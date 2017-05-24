@@ -37,10 +37,20 @@ export function renameTypes(schema: GraphQLSchema, transformer: (typeName: strin
     originalTypes.filter(t => t instanceof GraphQLInterfaceType).forEach(processType);
     originalTypes.filter(t => !(t instanceof GraphQLInterfaceType)).forEach(processType);
 
+    function findNewTypeMaybe(type: GraphQLObjectType|undefined) {
+        if (!type) {
+            return undefined;
+        }
+        const newType = findType(type.name);
+        return <GraphQLObjectType>newType;
+    }
+
     return new GraphQLSchema({
         types: Object.values(typeMap),
-        directives: schema.getDirectives(),
-        query: <GraphQLObjectType>findType(schema.getQueryType().name)
+        directives: schema.getDirectives(), // TODO rename
+        query: findNewTypeMaybe(schema.getQueryType())!,
+        mutation: findNewTypeMaybe(schema.getMutationType()),
+        subscription: findNewTypeMaybe(schema.getSubscriptionType()),
     });
 }
 
