@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2017",
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "lib": ["es2015"],
+    "lib": ["es2017"],
     "typeRoots": [
       "node_modules/@types"
     ],
