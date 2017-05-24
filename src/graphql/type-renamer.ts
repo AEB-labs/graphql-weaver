@@ -1,15 +1,23 @@
-
 import {
-    assertType,
-    GraphQLArgumentConfig, GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLFieldConfigArgumentMap,
+    GraphQLEnumType,
+    GraphQLEnumValueConfigMap,
+    GraphQLFieldConfigArgumentMap,
     GraphQLFieldConfigMap,
-    GraphQLFieldMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType,
+    GraphQLFieldMap,
+    GraphQLInputFieldConfigMap,
+    GraphQLInputObjectType,
+    GraphQLInputType,
+    GraphQLInterfaceType,
     GraphQLList,
-    GraphQLNamedType, GraphQLNonNull,
+    GraphQLNamedType,
+    GraphQLNonNull,
     GraphQLObjectType,
-    GraphQLOutputType, GraphQLResolveInfo,
-    GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType,
-    isNamedType
+    GraphQLOutputType,
+    GraphQLResolveInfo,
+    GraphQLScalarType,
+    GraphQLSchema,
+    GraphQLType,
+    GraphQLUnionType
 } from "graphql";
 
 /**

@@ -8,6 +8,7 @@ import {
 import fetch from "node-fetch";
 import TraceError = require("trace-error");
 import {renameTypes} from "./type-renamer";
+import {mergeSchemas} from "./schema-merger";
 
 export async function createSchema(config: ProxyConfig) {
     const endpoints = await Promise.all(config.endpoints.map(async endpoint => {
@@ -18,9 +19,13 @@ export async function createSchema(config: ProxyConfig) {
         }
     }));
 
-    const renamedSchemas = endpoints.map(endpoint => renameTypes(endpoint.schema, type => endpoint.name + '_' + type));
+    const renamedSchemas = endpoints.map(endpoint => ({
+        schema: renameTypes(endpoint.schema, type => endpoint.name + '_' + type),
+        namespace: endpoint.name
+    }));
+    const mergedSchema = mergeSchemas(renamedSchemas);
 
-    return renamedSchemas[0];
+    return mergedSchema;
 }
 
 
