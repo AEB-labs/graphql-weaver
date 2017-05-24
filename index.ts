@@ -1,3 +1,8 @@
 import {start} from "./src/server";
 
-start();
+// to get through firewall
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+start().catch(error => {
+    console.error(error.stack);
+});

@@ -15,6 +15,7 @@ export class GraphQLServer {
     constructor(private readonly config: GraphQLServerConfig) {
         const app = express();
         app.use(cors());
+        app.get('/', (req, res) => { res.redirect('/graphiql')});
         app.use('/graphql', bodyParser.json(), graphqlExpress(() => this.getGraphQLOptions()));
         app.use('/graphiql', graphiqlExpress({endpointURL: '/graphql'}));
 

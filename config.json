@@ -1,0 +1,7 @@
+{
+  "port": 3100,
+  "endpoints": {
+    "logistics": "https://api.graph.cool/simple/v1/ciz82rakk8ina0123ioeh6od7",
+    "blog": "https://api.graph.cool/simple/v1/ciz69upbv3jgb0146dodjn9js"
+  }
+}
