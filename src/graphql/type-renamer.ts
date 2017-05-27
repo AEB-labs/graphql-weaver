@@ -19,9 +19,10 @@ import {
     GraphQLType,
     GraphQLUnionType
 } from "graphql";
+import {isNativeGraphQLType} from "./native-types";
 
 /**
- * Creates a new schema that equals the given one but with all type names transformed by a custom callback
+ * Creates a new schema that equals the given one but with all names of non-native types transformed by a custom callback
  */
 export function renameTypes(schema: GraphQLSchema, transformer: (typeName: string) => string): GraphQLSchema {
     const typeMap: { [typeName: string]: GraphQLNamedType } = {};
@@ -36,6 +37,14 @@ export function renameTypes(schema: GraphQLSchema, transformer: (typeName: strin
     }
 
     function processType(type: GraphQLNamedType) {
+        if (type.name.substring(0, 2) === '__') {
+            // introspection types like __Schema do not need to be converted
+            return;
+        }
+        if (isNativeGraphQLType(type)) {
+            // don't rename native types. remapType also will not touch them.
+            return;
+        }
         typeMap[type.name] = renameType(type, transformer(type.name), findType);
     }
 
@@ -197,6 +206,10 @@ function remapType(type: GraphQLType, namedTypeResolver: TypeResolver): GraphQLT
     }
     if (type instanceof GraphQLNonNull) {
         return new GraphQLNonNull(remapType(type.ofType, namedTypeResolver));
+    }
+    if (isNativeGraphQLType(type)) {
+        // do not rename native types but keep the reference to singleton objects like GraphQLString
+        return type;
     }
     return namedTypeResolver(type.name);
 }

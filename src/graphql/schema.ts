@@ -1,14 +1,14 @@
 import {ProxyConfig} from "../config/proxy-configuration";
 import {
-    buildClientSchema, GraphQLFieldMap, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema,
-    GraphQLType,
-    IntrospectionQuery,
-    introspectionQuery, isNamedType, NamedTypeNode
+    buildClientSchema, GraphQLNamedType, GraphQLObjectType, GraphQLSchema, GraphQLString, IntrospectionQuery,
+    introspectionQuery
 } from "graphql";
 import fetch from "node-fetch";
-import TraceError = require("trace-error");
 import {renameTypes} from "./type-renamer";
 import {mergeSchemas} from "./schema-merger";
+import TraceError = require("trace-error");
+import {isNativeGraphQLType} from "./native-types";
+
 
 export async function createSchema(config: ProxyConfig) {
     const endpoints = await Promise.all(config.endpoints.map(async endpoint => {
@@ -27,7 +27,6 @@ export async function createSchema(config: ProxyConfig) {
 
     return mergedSchema;
 }
-
 
 async function fetchSchema(url: string) {
     let introspection = await doIntrospectionQuery(url);
