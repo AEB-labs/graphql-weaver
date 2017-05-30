@@ -1,4 +1,6 @@
 import {
+    GraphQLArgument,
+    GraphQLDirective,
     GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap, GraphQLFieldConfig,
     GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputFieldConfig,
     GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInputType,
@@ -7,6 +9,7 @@ import {
     GraphQLSchema, GraphQLType, GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
 import { isNativeGraphQLType } from './native-types';
+import { GraphQLDirectiveConfig } from 'graphql/type/directives';
 
 type TransformationFunction<TConfig> = (config: TConfig, context: SchemaTransformationContext) => void;
 
@@ -20,6 +23,7 @@ export interface SchemaTransformer {
     transformInputObjectType?: TransformationFunction<GraphQLInputObjectTypeConfig>;
     transformUnionType?: TransformationFunction<GraphQLUnionTypeConfig<any, any>>;
     transformObjectType?: TransformationFunction<GraphQLObjectTypeConfig<any, any>>;
+    transformDirective?: TransformationFunction<GraphQLDirectiveConfig>;
 
     transformField?: TransformationFunction<GraphQLFieldConfig<any, any>>;
     transformInputField?: TransformationFunction<GraphQLInputFieldConfig>;
@@ -54,6 +58,7 @@ export function combineTransformers(...transformers: SchemaTransformer[]): Schem
         transformInputObjectType: combineTransformationFunctions(transformers.map(t => t.transformInputObjectType)),
         transformUnionType: combineTransformationFunctions(transformers.map(t => t.transformUnionType)),
         transformObjectType: combineTransformationFunctions(transformers.map(t => t.transformObjectType)),
+        transformDirective: combineTransformationFunctions(transformers.map(t => t.transformDirective)),
         transformField: combineTransformationFunctions(transformers.map(t => t.transformField)),
         transformInputField: combineTransformationFunctions(transformers.map(t => t.transformInputField))
     };
@@ -90,7 +95,7 @@ class Transformer {
 
         return new GraphQLSchema({
             types: Object.values(this.typeMap),
-            directives: schema.getDirectives(), // TODO rename
+            directives: schema.getDirectives().map(directive => this.transformDirective(directive)),
             query: this.findNewTypeMaybe(schema.getQueryType())!,
             mutation: this.findNewTypeMaybe(schema.getMutationType()),
             subscription: this.findNewTypeMaybe(schema.getSubscriptionType())
@@ -232,19 +237,11 @@ class Transformer {
         const fields: GraphQLFieldConfigMap<any, any> = {};
         for (const fieldName in originalFields) {
             const originalField = originalFields[fieldName];
-            const args: GraphQLFieldConfigArgumentMap = {};
-            for (const arg of originalField.args) {
-                args[arg.name] = {
-                    description: arg.description,
-                    type: <GraphQLInputType>this.remapType(arg.type),
-                    defaultValue: arg.defaultValue
-                };
-            }
             const fieldConfig = {
                 description: originalField.description,
                 deprecationReason: originalField.deprecationReason,
                 type: <GraphQLOutputType>this.remapType(originalField.type),
-                args: args
+                args: this.transformArguments(originalField.args)
             };
             if (this.transformers.transformField) {
                 this.transformers.transformField(fieldConfig, this.transformationContext);
@@ -252,6 +249,18 @@ class Transformer {
             fields[fieldName] = fieldConfig;
         }
         return fields;
+    }
+
+    private transformArguments(originalArgs: GraphQLArgument[]): GraphQLFieldConfigArgumentMap {
+        const args: GraphQLFieldConfigArgumentMap = {};
+        for (const arg of originalArgs) {
+            args[arg.name] = {
+                description: arg.description,
+                type: <GraphQLInputType>this.remapType(arg.type),
+                defaultValue: arg.defaultValue
+            };
+        }
+        return args;
     }
 
     private transformInputObjectType(type: GraphQLInputObjectType) {
@@ -316,5 +325,18 @@ class Transformer {
             this.transformers.transformUnionType(config, this.transformationContext);
         }
         return new GraphQLUnionType(config);
+    }
+
+    private transformDirective(directive: GraphQLDirective) {
+        const config: GraphQLDirectiveConfig = {
+            name: directive.name,
+            description: directive.description,
+            locations: directive.locations,
+            args: this.transformArguments(directive.args)
+        };
+        if (this.transformers.transformDirective) {
+            this.transformers.transformDirective(config, this.transformationContext);
+        }
+        return new GraphQLDirective(config);
     }
 }

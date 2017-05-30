@@ -21,6 +21,7 @@ class RenamingTransformer implements SchemaTransformer {
     transformScalarType = this.rename;
     transformUnionType = this.rename;
     transformInputObjectType = this.rename;
+    transformDirective = this.rename;
 
     private rename(config: { name: string }) {
         config.name = this.typeNameTransformer(config.name);
