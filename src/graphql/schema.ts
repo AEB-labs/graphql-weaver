@@ -1,13 +1,14 @@
-import {ProxyConfig} from "../config/proxy-configuration";
+import { EndpointConfig, ProxyConfig } from '../config/proxy-configuration';
 import {
-    buildClientSchema, GraphQLNamedType, GraphQLObjectType, GraphQLSchema, GraphQLString, IntrospectionQuery,
-    introspectionQuery
-} from "graphql";
-import fetch from "node-fetch";
-import {renameTypes} from "./type-renamer";
-import {mergeSchemas} from "./schema-merger";
-import TraceError = require("trace-error");
-import {isNativeGraphQLType} from "./native-types";
+    buildClientSchema, GraphQLFieldConfig, GraphQLObjectType, GraphQLSchema, GraphQLType, IntrospectionQuery,
+    introspectionQuery, OperationTypeNode
+} from 'graphql';
+import fetch from 'node-fetch';
+import { renameTypes, TypeRenamingTransformer } from './type-renamer';
+import { mergeSchemas } from './schema-merger';
+import { combineTransformers, transformSchema } from './schema-transformer';
+import TraceError = require('trace-error');
+import { createResolver } from './proxy-resolver';
 
 
 export async function createSchema(config: ProxyConfig) {
@@ -16,16 +17,45 @@ export async function createSchema(config: ProxyConfig) {
             name: endpoint.name,
             config: endpoint,
             schema: await fetchSchema(endpoint.url)
-        }
+        };
     }));
+    const endpointMap = new Map(config.endpoints.map(endpoint => <[string, EndpointConfig]>[ endpoint.name, endpoint ]));
 
     const renamedSchemas = endpoints.map(endpoint => ({
         schema: renameTypes(endpoint.schema, type => endpoint.name + '_' + type),
-        namespace: endpoint.name
+        namespace: endpoint.name,
+        queryResolver: createResolver({ operation: 'query', url: endpoint.config.url}),
+        mutationResolver: createResolver({ operation: 'mutation', url: endpoint.config.url}),
+        subscriptionResolver: createResolver({ operation: 'subscription', url: endpoint.config.url}),
     }));
     const mergedSchema = mergeSchemas(renamedSchemas);
+    //const resolvingSchema = addResolvers(mergedSchema, endpointMap);
 
     return mergedSchema;
+}
+
+function addResolvers(schema: GraphQLSchema, endpointMap: Map<string, EndpointConfig>) {
+    return transformSchema(schema, {
+        transformField(config, context) {
+            const operation = getOperationIfRootType(context.oldOuterType, schema);
+            if (operation) {
+                const namespace = config.name;
+            }
+        }
+    });
+}
+
+function getOperationIfRootType(type: GraphQLType, schema: GraphQLSchema): OperationTypeNode | undefined {
+    if (type == schema.getQueryType()) {
+        return 'query';
+    }
+    if (type == schema.getMutationType()) {
+        return 'mutation';
+    }
+    if (type == schema.getSubscriptionType()) {
+        return 'subscription';
+    }
+    return undefined;
 }
 
 async function fetchSchema(url: string) {
@@ -60,7 +90,7 @@ async function doIntrospectionQuery(url: string): Promise<IntrospectionQuery> {
     }
     const json = await res.json<any>();
     if ('errors' in json) {
-        throw new Error(`Introspection query on ${url} failed: ${JSON.stringify((<any>json).errors)}`)
+        throw new Error(`Introspection query on ${url} failed: ${JSON.stringify((<any>json).errors)}`);
     }
     return json.data;
 }

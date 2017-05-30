@@ -1,24 +1,39 @@
-import {GraphQLFieldConfigMap, GraphQLObjectType, GraphQLSchema} from "graphql";
+import { GraphQLFieldConfigMap, GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema } from 'graphql';
 
-type NamedSchema = { namespace: string, schema: GraphQLSchema };
+interface NamedSchema {
+    namespace: string
+    schema: GraphQLSchema
+    queryResolver?: GraphQLFieldResolver<any, any>
+    mutationResolver?: GraphQLFieldResolver<any, any>
+    subscriptionResolver?: GraphQLFieldResolver<any, any>
+}
+
+interface FieldConfig {
+    namespace: string
+    type: GraphQLObjectType
+    resolver?: GraphQLFieldResolver<any, any>
+}
 
 /**
  * Creates a new GraphQLSchema where the operation root types have a field for each supplied schema
  */
 export function mergeSchemas(schemas: NamedSchema[]) {
-    const query = createObjectTypeMaybe('Query', schemas.map(schema => ({
+    const query = createRootFieldMaybe('Query', schemas.map(schema => ({
         namespace: schema.namespace,
-        type: schema.schema.getQueryType()
+        type: schema.schema.getQueryType(),
+        resolver: schema.queryResolver
     })))!;
 
-    const mutation = createObjectTypeMaybe('Mutation', schemas.map(schema => ({
+    const mutation = createRootFieldMaybe('Mutation', schemas.map(schema => ({
         namespace: schema.namespace,
-        type: schema.schema.getMutationType()
+        type: schema.schema.getMutationType(),
+        resolver: schema.mutationResolver
     })));
 
-    const subscription = createObjectTypeMaybe('Subscription', schemas.map(schema => ({
+    const subscription = createRootFieldMaybe('Subscription', schemas.map(schema => ({
         namespace: schema.namespace,
-        type: schema.schema.getSubscriptionType()
+        type: schema.schema.getSubscriptionType(),
+        resolver: schema.subscriptionResolver
     })));
 
     return new GraphQLSchema({
@@ -28,14 +43,15 @@ export function mergeSchemas(schemas: NamedSchema[]) {
     });
 }
 
-function createObjectTypeMaybe(name: string, types: { namespace: string, type: GraphQLObjectType }[]): GraphQLObjectType|undefined {
+function createRootFieldMaybe(name: string, types: FieldConfig[]): GraphQLObjectType|undefined {
     const fields: GraphQLFieldConfigMap<any, any> = {};
-    for (const {namespace, type} of types) {
+    for (const {namespace, type, resolver} of types) {
         if (!type) {
             continue;
         }
         fields[namespace] = {
-            type
+            type,
+            resolve: resolver
         };
     }
     if (!Object.keys(fields).length) {
