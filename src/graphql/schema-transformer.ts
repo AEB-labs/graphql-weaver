@@ -1,12 +1,10 @@
 import {
-    GraphQLArgument,
-    GraphQLDirective,
-    GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap, GraphQLFieldConfig,
-    GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputFieldConfig,
-    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInputType,
-    GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
-    GraphQLObjectTypeConfig, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig,
-    GraphQLSchema, GraphQLType, GraphQLUnionType, GraphQLUnionTypeConfig
+    GraphQLArgument, GraphQLDirective, GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap,
+    GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputFieldConfig,
+    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType,
+    GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
+    GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
+    GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
 import { isNativeGraphQLType } from './native-types';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
@@ -268,8 +266,6 @@ class Transformer {
                 newOuterType: this.remapType(type)
             }),
 
-            // this is likely not to work, so it should be overwritten later, but it's our best choice. Leaving it null
-            // will cause the schema invariants to fail (either resolveType or isTypeOf needs to be implemented)
             resolveType: !type.resolveType ? undefined :
                 (value: any, context: any, info: GraphQLResolveInfo) => type.resolveType(value, context, info)
         };
