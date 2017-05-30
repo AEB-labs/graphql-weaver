@@ -19,17 +19,31 @@ export async function createSchema(config: ProxyConfig) {
             schema: await fetchSchema(endpoint.url)
         };
     }));
-    const endpointMap = new Map(config.endpoints.map(endpoint => <[string, EndpointConfig]>[ endpoint.name, endpoint ]));
+    const endpointMap = new Map(config.endpoints.map(endpoint => <[string, EndpointConfig]>[endpoint.name, endpoint]));
 
-    const renamedSchemas = endpoints.map(endpoint => ({
-        schema: renameTypes(endpoint.schema, type => endpoint.name + '_' + type),
-        namespace: endpoint.name,
-        queryResolver: createResolver({ operation: 'query', url: endpoint.config.url}),
-        mutationResolver: createResolver({ operation: 'mutation', url: endpoint.config.url}),
-        subscriptionResolver: createResolver({ operation: 'subscription', url: endpoint.config.url}),
-    }));
+
+    const renamedSchemas = endpoints.map(endpoint => {
+        const prefix = endpoint.name + '_';
+        const typeRenamer = (type: string) => prefix + type;
+        const reverseTypeRenamer = (type: string) => {
+            if (type.startsWith(prefix)) {
+                return type.substr(prefix.length);
+            }
+            return type;
+        };
+        const baseResolverConfig = {
+            url: endpoint.config.url,
+            typeRenamer: reverseTypeRenamer
+        };
+        return {
+            schema: renameTypes(endpoint.schema, typeRenamer),
+            namespace: endpoint.name,
+            queryResolver: createResolver({...baseResolverConfig, operation: 'query'}),
+            mutationResolver: createResolver({...baseResolverConfig, operation: 'mutation'}),
+            subscriptionResolver: createResolver({...baseResolverConfig, operation: 'subscription'})
+        };
+    });
     const mergedSchema = mergeSchemas(renamedSchemas);
-    //const resolvingSchema = addResolvers(mergedSchema, endpointMap);
 
     return mergedSchema;
 }
