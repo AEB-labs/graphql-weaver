@@ -1,6 +1,6 @@
 import {
     ASTNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLFieldResolver, GraphQLResolveInfo, InlineFragmentNode,
-    print, SelectionSetNode, visit
+    print, SelectionSetNode, VariableNode, visit
 } from 'graphql';
 import { query } from './client';
 import { OperationTypeNode } from '@types/graphql/language';
@@ -18,8 +18,9 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
                     info: GraphQLResolveInfo): Promise<any> {
 
         const fragments = collectUsedFragments(info.fieldNodes, info.fragments);
+        const roots = [...info.fieldNodes, ...fragments];
         if (config.typeRenamer) {
-            [...info.fieldNodes, ...fragments].forEach(node => renameTypes(node, config.typeRenamer!));
+            roots.forEach(node => renameTypes(node, config.typeRenamer!));
         }
         info.fieldNodes.forEach(node => fetchTypenameIfFragmentsPresent(node));
         const selections = info.fieldNodes
@@ -27,15 +28,28 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
             .reduce((a, b) => a.concat(b), []);
         const selectionStr = selections.map(print).join('\n');
         const fragmentsStr = fragments.map(print).join('\n');
-        const queryStr = `${fragmentsStr}\n${config.operation} {\n${selectionStr}\n}`;
+        const variableNames = collectUsedVariableNames(roots);
+        const vars = (info.operation.variableDefinitions || [])
+            .filter(variable => variableNames.has(variable.variable.name.value))
+            .map(v => print(v)).join(', ');
+        const varStr = vars ? `(${vars})` : '';
+        const queryStr = `${fragmentsStr}\n${config.operation}${varStr} {\n${selectionStr}\n}`;
         console.log(queryStr);
 
-        return await query(config.url, queryStr);
+        return await query(config.url, queryStr, pickIntoObject(info.variableValues, Array.from(variableNames)));
     };
 }
 
-function pick<TValue>(object: {[key: string]: TValue}, keys: string[]): TValue[] {
+function pickIntoArray<TValue>(object: {[key: string]: TValue}, keys: string[]): TValue[] {
     return keys.map(key => object[key]);
+}
+
+function pickIntoObject<TValue>(object: {[key: string]: TValue}, keys: string[]): {[key: string]: TValue} {
+    const obj: {[key: string]: TValue} = {};
+    for (const key of keys) {
+        obj[key] = object[key];
+    }
+    return obj;
 }
 
 function renameTypes(root: ASTNode, typeNameTransformer: (name: string) => string) {
@@ -90,6 +104,19 @@ function collectUsedFragmentNames(roots: ASTNode[]): string[] {
 }
 
 
+function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
+    const variables = new Set<string>();
+    for (const root of roots) {
+        visit(root, {
+            Variable(node: VariableNode) {
+                variables.add(node.name.value);
+            }
+        });
+    }
+    return variables;
+}
+
+
 function collectUsedFragments(roots: ASTNode[], fragments: {[name: string]: FragmentDefinitionNode}) {
-    return pick(fragments, collectUsedFragmentNames(roots));
+    return pickIntoArray(fragments, collectUsedFragmentNames(roots));
 }

@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import TraceError = require('trace-error');
 
-export async function query(url: string, query: string): Promise<any> {
+export async function query(url: string, query: string, variables?: {[key: string]: any}): Promise<any> {
     let res;
     try {
         res = await fetch(url, {
@@ -11,7 +11,8 @@ export async function query(url: string, query: string): Promise<any> {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                query
+                query,
+                variables
             })
         });
     } catch (error) {
