@@ -105,6 +105,7 @@ class SchemaLinkTransformer implements SchemaTransformer {
                             fragments,
                             operation: {
                                 ...operation,
+                                operation: 'query', // links are always resolved via query operations
                                 variableDefinitions: [
                                     ...(operation.variableDefinitions || []),
                                     createVariableDefinitionNode(varName, getNamedType(originalType).name)

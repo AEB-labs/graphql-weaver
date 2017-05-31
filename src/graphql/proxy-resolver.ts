@@ -66,7 +66,7 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
 
         const operation: OperationDefinitionNode = {
             kind: 'OperationDefinition',
-            operation: 'query',
+            operation: info.operation.operation,
             variableDefinitions: vars,
             selectionSet: {
                 kind: 'SelectionSet',
