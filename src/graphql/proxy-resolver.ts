@@ -59,8 +59,14 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
             return root;
         }
 
-        const fragments = collectUsedFragments(info.fieldNodes, info.fragments).map(processRoot);
+        // order is important because info.fieldNodes may refer to a fragment of a different endpoint which will be cut
+        // off by processRoot. For the same reason, we need to give collectUsedFragments the transformer.
         const fieldNodes = info.fieldNodes.map(processRoot);
+        const fragments = collectUsedFragments({
+            roots: fieldNodes,
+            fragmentMap: info.fragments,
+            fragmentTransformer: processRoot
+        });
         const roots = [...fragments, ...fieldNodes];
 
         const selections = fieldNodes
@@ -260,15 +266,17 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
 }
 
 
-function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }) {
+function collectUsedFragments(params: {roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }, fragmentTransformer?: (node: FragmentDefinitionNode) => FragmentDefinitionNode}) {
     let fragments: FragmentDefinitionNode[] = [];
+    let originalFragments = new Set<FragmentDefinitionNode>();
     let hasChanged = false;
     do {
-        const newFragments = pickIntoArray(fragmentMap, collectDirectlyUsedFragmentNames(roots.concat(fragments)));
+        const newFragments = pickIntoArray(params.fragmentMap, collectDirectlyUsedFragmentNames(params.roots.concat(fragments)));
         hasChanged = false;
         for (const fragment of newFragments) {
-            if (fragments.indexOf(fragment) == -1) {
-                fragments.push(fragment);
+            if (!originalFragments.has(fragment)) {
+                originalFragments.add(fragment);
+                fragments.push(params.fragmentTransformer ? params.fragmentTransformer(fragment) : fragment);
                 hasChanged = true;
             }
         }
