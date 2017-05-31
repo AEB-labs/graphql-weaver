@@ -39,5 +39,11 @@ export async function query(url: string, query: string, variables?: {[key: strin
             throw new Error(`GraphQL endpoint reported an error without a message`);
         }
     }
+    if ('error' in json && typeof json.error == 'string') {
+        throw new Error(json.error);
+    }
+    if (!('data' in json)) {
+        throw new Error(`GraphQL endpoint did not report errors, but also did not provide a data result`);
+    }
     return json.data;
 }

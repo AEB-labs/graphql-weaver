@@ -29,20 +29,26 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
                            args: { [argName: string]: any },
                            context: any,
                            info: GraphQLResolveInfo): Promise<any> {
-        const originalFragments = collectUsedFragments(info.fieldNodes, info.fragments);
-
         function processRoot<T extends ASTNode>(root: T): T {
             const original = root;
             root = fetchTypenameIfFragmentsPresent(root);
 
             if (config.links) {
                 root = replaceLinksByScalarField({
-                    originalRoot: {kind: 'Document', definitions: [...originalFragments, info.operation]},
+                    originalRoot: {
+                        kind: 'Document',
+                        definitions: [
+                            // Provide all fragments here because if one of info.fieldNodes is a field node of a fragment,
+                            // that fragment is not necessarily used anywhere via the spread operator within any of the roots
+                            ...Object.values(info.fragments),
+                            info.operation
+                        ]
+                    },
                     originalNode: original,
                     node: root,
                     schema: info.schema,
                     links: config.links!,
-                    ignoreFirstLayer: true // first-level fields would be nested calls, there we want the link data
+                    ignoreFirstLayer: root.kind != 'FragmentDefinition' // first-level fields would be nested calls, there we want the link data
                 });
             }
 
@@ -53,7 +59,7 @@ export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any
             return root;
         }
 
-        const fragments = originalFragments.map(processRoot);
+        const fragments = collectUsedFragments(info.fieldNodes, info.fragments).map(processRoot);
         const fieldNodes = info.fieldNodes.map(processRoot);
         const roots = [...fragments, ...fieldNodes];
 
@@ -158,7 +164,7 @@ function initTypeInfoForNode(root: ASTNode, targetNode: ASTNode, schema: GraphQL
         }
     });
     if (!found) {
-        throw new Error(`Node ${targetNode.kind} not found in document`);
+        throw new Error(`${targetNode.kind} node not found in document`);
     }
     return typeInfo;
 }
@@ -229,7 +235,7 @@ function replaceLinksByScalarField(params: { originalRoot: DocumentNode, origina
     }));
 }
 
-function collectUsedFragmentNames(roots: ASTNode[]): string[] {
+function collectDirectlyUsedFragmentNames(roots: ASTNode[]): string[] {
     const fragments = new Set<string>();
     for (const root of roots) {
         visit(root, {
@@ -254,6 +260,18 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
 }
 
 
-function collectUsedFragments(roots: ASTNode[], fragments: { [name: string]: FragmentDefinitionNode }) {
-    return pickIntoArray(fragments, collectUsedFragmentNames(roots));
+function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }) {
+    let fragments: FragmentDefinitionNode[] = [];
+    let hasChanged = false;
+    do {
+        const newFragments = pickIntoArray(fragmentMap, collectDirectlyUsedFragmentNames(roots.concat(fragments)));
+        hasChanged = false;
+        for (const fragment of newFragments) {
+            if (fragments.indexOf(fragment) == -1) {
+                fragments.push(fragment);
+                hasChanged = true;
+            }
+        }
+    } while (hasChanged);
+    return fragments;
 }
