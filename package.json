@@ -14,6 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/body-parser": "^1.16.3",
+    "@types/clone": "^0.1.30",
     "@types/cors": "^2.8.1",
     "@types/fs-extra": "^3.0.2",
     "@types/node": "^7.0.22",
@@ -23,6 +24,7 @@
   },
   "dependencies": {
     "body-parser": "^1.17.2",
+    "clone": "^2.1.1",
     "cors": "^2.8.3",
     "express": "^4.15.3",
     "fs-extra": "^3.0.1",

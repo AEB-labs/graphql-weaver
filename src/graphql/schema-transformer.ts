@@ -34,10 +34,10 @@ export interface SchemaTransformationContext {
      * Finds a type of the new schema that corresponds to the given type in the old schema
      * @param type
      */
-    mapType(type: GraphQLType): GraphQLType;
+    mapType<T extends GraphQLType>(type: T): T;
 }
 
-interface FieldTransformationContext extends SchemaTransformationContext {
+export interface FieldTransformationContext extends SchemaTransformationContext {
     /**
      * Gets the type (in the new schema) that defined the field being transformed
      */
@@ -49,7 +49,7 @@ interface FieldTransformationContext extends SchemaTransformationContext {
     readonly oldOuterType: GraphQLObjectType | GraphQLInterfaceType;
 }
 
-interface InputFieldTransformationContext extends SchemaTransformationContext {
+export interface InputFieldTransformationContext extends SchemaTransformationContext {
     /**
      * Gets the type (in the new schema) that defined the field being transformed
      */
@@ -61,16 +61,16 @@ interface InputFieldTransformationContext extends SchemaTransformationContext {
     readonly oldOuterType: GraphQLInputObjectType;
 }
 
-interface GraphQLNamedFieldConfig<TSource, TContext> extends GraphQLFieldConfig<TSource, TContext> {
+export interface GraphQLNamedFieldConfig<TSource, TContext> extends GraphQLFieldConfig<TSource, TContext> {
     name: string;
 }
 
-interface GraphQLNamedInputFieldConfig extends GraphQLInputFieldConfig {
+export interface GraphQLNamedInputFieldConfig extends GraphQLInputFieldConfig {
     name: string;
 }
 
 function combineTransformationFunctions<TConfig, TContext extends SchemaTransformationContext>
-    (fns: (TransformationFunction<TConfig, TContext> | undefined)[]): TransformationFunction<TConfig, TContext> | undefined {
+(fns: (TransformationFunction<TConfig, TContext> | undefined)[]): TransformationFunction<TConfig, TContext> | undefined {
     const definedFns = fns.filter(a => a);
     if (!definedFns.length) {
         return undefined;
@@ -80,8 +80,7 @@ function combineTransformationFunctions<TConfig, TContext extends SchemaTransfor
     };
 }
 
-function bind<TConfig, TContext extends SchemaTransformationContext>(fn: TransformationFunction<TConfig, TContext> | undefined, obj: any):
-    TransformationFunction<TConfig, TContext> | undefined {
+function bind<TConfig, TContext extends SchemaTransformationContext>(fn: TransformationFunction<TConfig, TContext> | undefined, obj: any): TransformationFunction<TConfig, TContext> | undefined {
     return fn ? fn.bind(obj) : fn;
 }
 
@@ -183,7 +182,7 @@ class Transformer {
 
     private get transformationContext(): SchemaTransformationContext {
         return {
-            mapType: this.remapType
+            mapType: this.remapType.bind(this)
         };
     }
 
@@ -288,7 +287,8 @@ class Transformer {
                 description: originalField.description,
                 deprecationReason: originalField.deprecationReason,
                 type: this.remapType(originalField.type),
-                args: this.transformArguments(originalField.args)
+                args: this.transformArguments(originalField.args),
+                resolve: originalField.resolve
             };
             if (this.transformers.transformField) {
                 this.transformers.transformField(fieldConfig, context);

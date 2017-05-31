@@ -1,8 +1,11 @@
 export interface ProxyConfigInput {
     port?: number,
-    endpoints?: { [key: string]:  (string|{
-        url: string
-    })};
+    endpoints?: {
+        [key: string]: (string | {
+            url: string
+            links?: LinkConfigMap
+        })
+    };
 }
 
 export interface ProxyConfig {
@@ -11,8 +14,17 @@ export interface ProxyConfig {
 }
 
 export interface EndpointConfig {
-    name: string;
-    url: string;
+    name: string
+    url: string
+    links: LinkConfigMap
+}
+
+export type LinkConfigMap = { [typeAndField: string]: LinkTargetConfig | undefined };
+
+export interface LinkTargetConfig {
+    endpoint: string
+    field: string
+    argument: string
 }
 
 const DEFAULT_PORT = 3200;
@@ -25,13 +37,15 @@ export function normalizeProxyConfig(input: ProxyConfigInput) {
             if (typeof endpoint == 'string') {
                 return {
                     name: key,
-                    url: endpoint
-                }
+                    url: endpoint,
+                    links: {}
+                };
             }
             return {
+                links: {},
                 ...endpoint,
                 name: key
             };
         })
-    }
+    };
 }

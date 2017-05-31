@@ -9,7 +9,7 @@ export function renameTypes(schema: GraphQLSchema, typeNameTransformer: (typeNam
 }
 
 /**
- * A schema transformer that renames all no-native types according to a simple provided function
+ * A schema transform that renames all no-native types according to a simple provided function
  */
 export class TypeRenamingTransformer implements SchemaTransformer {
     constructor(private typeNameTransformer: (typeName: string) => string) {
