@@ -25,6 +25,8 @@ export interface LinkTargetConfig {
     endpoint: string
     field: string
     argument: string
+    batchMode?: boolean
+    keyField: string
 }
 
 const DEFAULT_PORT = 3200;

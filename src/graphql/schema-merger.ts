@@ -1,6 +1,6 @@
 import { GraphQLFieldConfigMap, GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema } from 'graphql';
 
-interface NamedSchema {
+export interface NamedSchema {
     namespace: string
     schema: GraphQLSchema
     queryResolver?: GraphQLFieldResolver<any, any>

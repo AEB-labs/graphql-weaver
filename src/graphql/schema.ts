@@ -1,13 +1,15 @@
 import { LinkConfigMap, ProxyConfig } from '../config/proxy-configuration';
-import { buildClientSchema, IntrospectionQuery, introspectionQuery } from 'graphql';
+import {
+    buildClientSchema, GraphQLFieldResolver, IntrospectionQuery, introspectionQuery, OperationTypeNode
+} from 'graphql';
 import fetch from 'node-fetch';
 import { renameTypes } from './type-renamer';
-import { mergeSchemas } from './schema-merger';
+import { mergeSchemas, NamedSchema } from './schema-merger';
 import { transformSchema } from './schema-transformer';
-import { createResolver } from './proxy-resolver';
 import { getReverseTypeRenamer, getTypePrefix } from './renaming';
 import { SchemaLinkTransformer } from './links';
 import TraceError = require('trace-error');
+import { resolveAsProxy } from './proxy-resolver';
 
 export async function createSchema(config: ProxyConfig) {
     const endpoints = await Promise.all(config.endpoints.map(async endpoint => {
@@ -25,7 +27,7 @@ export async function createSchema(config: ProxyConfig) {
         }
     }
 
-    const renamedSchemas = endpoints.map(endpoint => {
+    const renamedSchemas = endpoints.map((endpoint): NamedSchema => {
         const prefix = getTypePrefix(endpoint.config);
         const typeRenamer = (type: string) => prefix + type;
         const reverseTypeRenamer = getReverseTypeRenamer(endpoint.config);
@@ -34,12 +36,17 @@ export async function createSchema(config: ProxyConfig) {
             typeRenamer: reverseTypeRenamer,
             links: renamedLinkMap
         };
+
+        function createResolver(operation: OperationTypeNode): GraphQLFieldResolver<any, any> {
+            return (source, args, context, info) => resolveAsProxy(info, {...baseResolverConfig, operation});
+        }
+
         return {
             schema: renameTypes(endpoint.schema, typeRenamer),
             namespace: endpoint.name,
-            queryResolver: createResolver({...baseResolverConfig, operation: 'query'}),
-            mutationResolver: createResolver({...baseResolverConfig, operation: 'mutation'}),
-            subscriptionResolver: createResolver({...baseResolverConfig, operation: 'subscription'})
+            queryResolver: createResolver('query'),
+            mutationResolver: createResolver('mutation'),
+            subscriptionResolver: createResolver('subscription')
         };
     });
     const mergedSchema = mergeSchemas(renamedSchemas);

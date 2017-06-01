@@ -1,12 +1,11 @@
 import {
-    ASTNode, BREAK, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLFieldResolver,
-    GraphQLResolveInfo, GraphQLSchema, InlineFragmentNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo,
-    VariableNode, visit, visitWithTypeInfo
+    ASTNode, BREAK, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
+    GraphQLSchema, InlineFragmentNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo, VariableNode, visit,
+    visitWithTypeInfo
 } from 'graphql';
 import { query } from './client';
 import { OperationTypeNode } from '@types/graphql/language';
 import { LinkConfigMap } from '../config/proxy-configuration';
-import clone = require('clone');
 
 interface ResolverConfig {
     url: string;
@@ -18,93 +17,87 @@ interface ResolverConfig {
      */
     links?: LinkConfigMap
 
-    transform?: (nodes: TransformData, context: TranformContext) => TransformData
+    transform?: (nodes: TransformData) => TransformData
 }
 
 type TransformData = { operation: OperationDefinitionNode, fragments: FragmentDefinitionNode[], variables: { [ variableName: string]: any } };
-type TranformContext = { source: any, info: GraphQLResolveInfo };
 
-export function createResolver(config: ResolverConfig): GraphQLFieldResolver<any, any> {
-    return async function (source: any,
-                           args: { [argName: string]: any },
-                           context: any,
-                           info: GraphQLResolveInfo): Promise<any> {
-        function processRoot<T extends ASTNode>(root: T): T {
-            const original = root;
-            root = fetchTypenameIfFragmentsPresent(root);
+export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverConfig) {
+    function processRoot<T extends ASTNode>(root: T): T {
+        const original = root;
+        root = fetchTypenameIfFragmentsPresent(root);
 
-            if (config.links) {
-                root = replaceLinksByScalarField({
-                    originalRoot: {
-                        kind: 'Document',
-                        definitions: [
-                            // Provide all fragments here because if one of info.fieldNodes is a field node of a fragment,
-                            // that fragment is not necessarily used anywhere via the spread operator within any of the roots
-                            ...Object.values(info.fragments),
-                            info.operation
-                        ]
-                    },
-                    originalNode: original,
-                    node: root,
-                    schema: info.schema,
-                    links: config.links!,
-                    ignoreFirstLayer: root.kind != 'FragmentDefinition' // first-level fields would be nested calls, there we want the link data
-                });
-            }
-
-            // do this after replaceLinksByScalarField because it causes the schema and query to divert
-            if (config.typeRenamer) {
-                root = renameTypes(root, config.typeRenamer!);
-            }
-            return root;
+        if (config.links) {
+            root = replaceLinksByScalarField({
+                originalRoot: {
+                    kind: 'Document',
+                    definitions: [
+                        // Provide all fragments here because if one of info.fieldNodes is a field node of a fragment,
+                        // that fragment is not necessarily used anywhere via the spread operator within any of the roots
+                        ...Object.values(info.fragments),
+                        info.operation
+                    ]
+                },
+                originalNode: original,
+                node: root,
+                schema: info.schema,
+                links: config.links!,
+                ignoreFirstLayer: root.kind != 'FragmentDefinition' // first-level fields would be nested calls, there we want the link data
+            });
         }
 
-        // order is important because info.fieldNodes may refer to a fragment of a different endpoint which will be cut
-        // off by processRoot. For the same reason, we need to give collectUsedFragments the transformer.
-        const fieldNodes = info.fieldNodes.map(processRoot);
-        const fragments = collectUsedFragments({
-            roots: fieldNodes,
-            fragmentMap: info.fragments,
-            fragmentTransformer: processRoot
-        });
-        const roots = [...fragments, ...fieldNodes];
-
-        const selections = fieldNodes
-            .map(node => node.selectionSet ? node.selectionSet.selections : [])
-            .reduce((a, b) => a.concat(b), []);
-        const variableNames = collectUsedVariableNames(roots);
-        const vars = (info.operation.variableDefinitions || [])
-            .filter(variable => variableNames.has(variable.variable.name.value));
-
-        const operation: OperationDefinitionNode = {
-            kind: 'OperationDefinition',
-            operation: info.operation.operation,
-            variableDefinitions: vars,
-            selectionSet: {
-                kind: 'SelectionSet',
-                selections: selections
-            }
-        };
-
-        const variables = pickIntoObject(info.variableValues, Array.from(variableNames));
-        let data = {operation, fragments, variables};
-        if (config.transform) {
-            data = config.transform(data, {source, info});
+        // do this after replaceLinksByScalarField because it causes the schema and query to divert
+        if (config.typeRenamer) {
+            root = renameTypes(root, config.typeRenamer!);
         }
+        return root;
+    }
 
-        const document: DocumentNode = {
-            kind: 'Document',
-            definitions: [
-                ...data.fragments,
-                data.operation
-            ]
-        };
-        const queryStr = print(document);
-        console.log(queryStr);
-        console.log(data.variables);
+    // order is important because info.fieldNodes may refer to a fragment of a different endpoint which will be cut
+    // off by processRoot. For the same reason, we need to give collectUsedFragments the transformer.
+    const fieldNodes = info.fieldNodes.map(processRoot);
+    const fragments = collectUsedFragments({
+        roots: fieldNodes,
+        fragmentMap: info.fragments,
+        fragmentTransformer: processRoot
+    });
+    const roots = [...fragments, ...fieldNodes];
 
-        return await query(config.url, queryStr, data.variables);
+    const selections = fieldNodes
+        .map(node => node.selectionSet ? node.selectionSet.selections : [])
+        .reduce((a, b) => a.concat(b), []);
+    const variableNames = collectUsedVariableNames(roots);
+    const vars = (info.operation.variableDefinitions || [])
+        .filter(variable => variableNames.has(variable.variable.name.value));
+
+    const operation: OperationDefinitionNode = {
+        kind: 'OperationDefinition',
+        operation: info.operation.operation,
+        variableDefinitions: vars,
+        selectionSet: {
+            kind: 'SelectionSet',
+            selections: selections
+        }
     };
+
+    const variables = pickIntoObject(info.variableValues, Array.from(variableNames));
+    let data = {operation, fragments, variables};
+    if (config.transform) {
+        data = config.transform(data);
+    }
+
+    const document: DocumentNode = {
+        kind: 'Document',
+        definitions: [
+            ...data.fragments,
+            data.operation
+        ]
+    };
+    const queryStr = print(document);
+    console.log(queryStr);
+    console.log(data.variables);
+
+    return await query(config.url, queryStr, data.variables);
 }
 
 function pickIntoArray<TValue>(object: { [key: string]: TValue }, keys: string[]): TValue[] {
@@ -266,7 +259,7 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
 }
 
 
-function collectUsedFragments(params: {roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }, fragmentTransformer?: (node: FragmentDefinitionNode) => FragmentDefinitionNode}) {
+function collectUsedFragments(params: { roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }, fragmentTransformer?: (node: FragmentDefinitionNode) => FragmentDefinitionNode }) {
     let fragments: FragmentDefinitionNode[] = [];
     let originalFragments = new Set<FragmentDefinitionNode>();
     let hasChanged = false;

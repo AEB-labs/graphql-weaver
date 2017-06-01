@@ -28,7 +28,8 @@ export class GraphQLServer {
             throw new Error('Schema is not yet built, see console output for errors in the model');
         }
         return {
-            schema
+            schema,
+            context: {} // unique token
         };
     }
 }

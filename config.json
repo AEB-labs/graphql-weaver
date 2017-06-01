@@ -5,10 +5,18 @@
     "blog": {
       "url": "https://api.graph.cool/simple/v1/ciz69upbv3jgb0146dodjn9js",
       "links": {
-        "Post.country": {
+        "Post.countrySimple": {
           "endpoint": "logistics",
           "field": "Country",
-          "argument": "identCode"
+          "argument": "identCode",
+          "batchMode": false
+        },
+        "Post.country": {
+          "endpoint": "logistics",
+          "field": "allCountries",
+          "argument": "filter.identCode_in",
+          "keyField": "identCode",
+          "batchMode": true
         }
       }
     }
