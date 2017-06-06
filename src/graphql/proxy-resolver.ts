@@ -1,6 +1,7 @@
 import {
     ASTNode, BREAK, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
-    GraphQLSchema, InlineFragmentNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo, VariableNode, visit,
+    GraphQLSchema, InlineFragmentNode, NamedTypeNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo,
+    VariableDefinitionNode, VariableNode, visit,
     visitWithTypeInfo
 } from 'graphql';
 import { OperationTypeNode } from '@types/graphql/language';
@@ -68,7 +69,8 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
         .reduce((a, b) => a.concat(b), []);
     const variableNames = collectUsedVariableNames(roots);
     const vars = (info.operation.variableDefinitions || [])
-        .filter(variable => variableNames.has(variable.variable.name.value));
+        .filter(variable => variableNames.has(variable.variable.name.value))
+        .map(variable => renameTypes(variable, config.typeRenamer || ((a) => a)));
 
     const operation: OperationDefinitionNode = {
         kind: 'OperationDefinition',
@@ -110,32 +112,14 @@ function pickIntoObject<TValue>(object: { [key: string]: TValue }, keys: string[
 
 function renameTypes(root: ASTNode, typeNameTransformer: (name: string) => string) {
     return visit(root, {
-        FragmentDefinition(node: FragmentDefinitionNode) {
+        NamedType(node: NamedTypeNode) {
             return {
                 ...node,
-                typeCondition: {
-                    ...node.typeCondition,
-                    name: {
-                        kind: 'Name',
-                        value: typeNameTransformer(node.typeCondition.name.value)
-                    }
+                name: {
+                    kind: 'Name',
+                    value: typeNameTransformer(node.name.value)
                 }
             };
-        },
-        InlineFragment(node: InlineFragmentNode) {
-            if (node.typeCondition) {
-                return {
-                    ...node,
-                    typeCondition: {
-                        ...node.typeCondition,
-                        name: {
-                            kind: 'Name',
-                            value: typeNameTransformer(node.typeCondition.name.value)
-                        }
-                    }
-                };
-            }
-            return undefined;
         }
     });
 }
