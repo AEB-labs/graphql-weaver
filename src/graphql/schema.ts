@@ -61,6 +61,6 @@ export async function createProxySchema(config: ProxyConfig) {
             links: renamedLinkMap,
             endpointFactory
         }),
-        new TypeResolversTransformer()
+        new TypeResolversTransformer(endpoints.map(e => e.config))
     ));
 }

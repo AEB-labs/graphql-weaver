@@ -1,10 +1,12 @@
 import { GraphQLSchema } from 'graphql';
+import { capitalize } from '../utils';
 
 export interface ProxyConfigInput {
     port?: number,
     endpoints?: {
         [key: string]: (string | {
             url: string
+            typePrefix?: string
             links?: LinkConfigMap
         })
     };
@@ -17,6 +19,7 @@ export interface ProxyConfig {
 
 interface EndpointConfigBase {
     name: string
+    typePrefix: string
     links: LinkConfigMap
     url?: string
     schema?: GraphQLSchema
@@ -53,11 +56,13 @@ export function normalizeProxyConfig(input: ProxyConfigInput) {
                 return {
                     name: key,
                     url: endpoint,
-                    links: {}
+                    links: {},
+                    typePrefix: capitalize(key)
                 };
             }
             return {
                 links: {},
+                typePrefix: capitalize(key),
                 ...endpoint,
                 name: key
             };

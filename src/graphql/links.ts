@@ -4,7 +4,7 @@ import {
 } from 'graphql';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from './schema-transformer';
 import { EndpointConfig, LinkConfigMap } from '../config/proxy-configuration';
-import { getReverseTypeRenamer, getTypePrefix } from './renaming';
+import { getReverseTypeRenamer, getTypePrefix, splitIntoEndpointAndTypeName } from './renaming';
 import { resolveAsProxy } from './proxy-resolver';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
 import DataLoader = require('dataloader');
@@ -29,12 +29,12 @@ export class SchemaLinkTransformer implements SchemaTransformer {
             return;
         }
 
-        const endpoint = this.endpointMap.get(splitTypeName.endpoint);
+        const endpoint = this.endpointMap.get(splitTypeName.endpointName);
         if (!endpoint) {
-            throw new Error(`Endpoint ${splitTypeName.endpoint} not found`);
+            throw new Error(`Endpoint ${splitTypeName.endpointName} not found`);
         }
 
-        const linkName = splitTypeName.originalTypeName + '.' + config.name;
+        const linkName = splitTypeName.typeName + '.' + config.name;
         const link = endpoint.links[linkName];
         if (!link) {
             return;
@@ -150,17 +150,8 @@ export class SchemaLinkTransformer implements SchemaTransformer {
         };
     }
 
-    private splitTypeName(mergedName: string): { endpoint: string, originalTypeName: string } | undefined {
-        for (const endpoint of this.config.endpoints) {
-            const prefix = getTypePrefix(endpoint);
-            if (mergedName.startsWith(prefix)) {
-                return {
-                    endpoint: endpoint.name,
-                    originalTypeName: mergedName.substr(prefix.length)
-                };
-            }
-        }
-        return undefined;
+    private splitTypeName(mergedName: string): { endpointName: string, typeName: string } | undefined {
+        return splitIntoEndpointAndTypeName(mergedName, this.config.endpoints);
     }
 }
 
