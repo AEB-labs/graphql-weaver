@@ -4,6 +4,7 @@ import {
     GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType,
     GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
     GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
+    GraphQLTypeResolver,
     GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
@@ -35,6 +36,12 @@ export interface SchemaTransformationContext {
      * @param type
      */
     mapType<T extends GraphQLType>(type: T): T;
+
+    /**
+     * Finds a type of the new schema given its name in the old schema
+     * @param name
+     */
+    findType(name: string): GraphQLNamedType | undefined;
 }
 
 export interface FieldTransformationContext extends SchemaTransformationContext {
@@ -185,7 +192,8 @@ class Transformer {
 
     private get transformationContext(): SchemaTransformationContext {
         return {
-            mapType: this.mapType.bind(this)
+            mapType: this.mapType.bind(this),
+            findType: this.findType.bind(this)
         };
     }
 
@@ -258,19 +266,16 @@ class Transformer {
     }
 
     private transformInterfaceType(type: GraphQLInterfaceType) {
-        const config = {
+        const config: GraphQLInterfaceTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
+            resolveType: this.transformTypeResolver(type.resolveType),
 
             fields: () => this.transformFields(type.getFields(), {
                 ...this.transformationContext,
                 oldOuterType: type,
                 newOuterType: this.mapType(type)
-            }),
-
-            // TODO huh?
-            resolveType: !type.resolveType ? undefined :
-                (value: any, context: any, info: GraphQLResolveInfo) => type.resolveType(value, context, info)
+            })
         };
         if (this.transformers.transformInterfaceType) {
             this.transformers.transformInterfaceType(config, this.transformationContext);
@@ -380,7 +385,8 @@ class Transformer {
         const config: GraphQLUnionTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
-            types: type.getTypes().map(optionType => this.mapType(optionType))
+            types: type.getTypes().map(optionType => this.mapType(optionType)),
+            resolveType: this.transformTypeResolver(type.resolveType)
         };
         if (this.transformers.transformUnionType) {
             this.transformers.transformUnionType(config, this.transformationContext);
@@ -399,5 +405,22 @@ class Transformer {
             this.transformers.transformDirective(config, this.transformationContext);
         }
         return new GraphQLDirective(config);
+    }
+
+    private transformTypeResolver(typeResolver: GraphQLTypeResolver<any, any>) {
+        if (!typeResolver) {
+            return typeResolver;
+        }
+
+        return (value: any, context: any, info: GraphQLResolveInfo) => {
+            const result = typeResolver(value, context, info);
+            if (typeof result == 'string') {
+                return <GraphQLObjectType>this.findType(result);
+            }
+            if (result instanceof GraphQLObjectType) {
+                return this.mapType(result);
+            }
+            return result.then(r => typeof r == 'string' ? <GraphQLObjectType>this.findType(r) : this.mapType(r));
+        };
     }
 }

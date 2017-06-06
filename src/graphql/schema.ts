@@ -5,11 +5,12 @@ import {
 import fetch from 'node-fetch';
 import { renameTypes } from './type-renamer';
 import { mergeSchemas, NamedSchema } from './schema-merger';
-import { transformSchema } from './schema-transformer';
+import { combineTransformers, transformSchema } from './schema-transformer';
 import { getReverseTypeRenamer, getTypePrefix } from './renaming';
 import { SchemaLinkTransformer } from './links';
 import TraceError = require('trace-error');
 import { resolveAsProxy } from './proxy-resolver';
+import { TypeResolversTransformer } from './type-resolvers';
 
 export async function createSchema(config: ProxyConfig) {
     const endpoints = await Promise.all(config.endpoints.map(async endpoint => {
@@ -50,9 +51,10 @@ export async function createSchema(config: ProxyConfig) {
         };
     });
     const mergedSchema = mergeSchemas(renamedSchemas);
-    const linkedSchema = transformSchema(mergedSchema, new SchemaLinkTransformer(endpoints.map(e => e.config), mergedSchema, renamedLinkMap));
-
-    return linkedSchema;
+    return transformSchema(mergedSchema, combineTransformers(
+        new SchemaLinkTransformer(endpoints.map(e => e.config), mergedSchema, renamedLinkMap),
+        new TypeResolversTransformer()
+    ));
 }
 
 async function fetchSchema(url: string) {

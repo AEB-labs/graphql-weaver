@@ -15,3 +15,15 @@ export function getReverseTypeRenamer(endpoint: EndpointConfig) {
 export function getTypePrefix(endpoint: EndpointConfig) {
     return endpoint.name + ENDPOINT_TYPE_SEPARATOR
 }
+
+export function splitIntoEndpointAndTypeName(namespacedTypeName: string): { endpointName: string, typeName: string }|undefined {
+    const [ endpointName, typeName ] = namespacedTypeName.split(ENDPOINT_TYPE_SEPARATOR, 2);
+    if (endpointName == undefined || typeName == undefined) {
+        return undefined;
+    }
+    return { endpointName, typeName };
+}
+
+export function combineEndpointAndTypeName(value: { endpointName: string, typeName: string }) {
+    return value.endpointName + ENDPOINT_TYPE_SEPARATOR + value.typeName;
+}
