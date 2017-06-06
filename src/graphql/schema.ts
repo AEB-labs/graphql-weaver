@@ -1,23 +1,23 @@
 import { LinkConfigMap, ProxyConfig } from '../config/proxy-configuration';
-import {
-    buildClientSchema, GraphQLFieldResolver, IntrospectionQuery, introspectionQuery, OperationTypeNode
-} from 'graphql';
-import fetch from 'node-fetch';
+import { GraphQLFieldResolver, OperationTypeNode } from 'graphql';
 import { renameTypes } from './type-renamer';
 import { mergeSchemas, NamedSchema } from './schema-merger';
 import { combineTransformers, transformSchema } from './schema-transformer';
 import { getReverseTypeRenamer, getTypePrefix } from './renaming';
 import { SchemaLinkTransformer } from './links';
-import TraceError = require('trace-error');
 import { resolveAsProxy } from './proxy-resolver';
 import { TypeResolversTransformer } from './type-resolvers';
+import { EndpointFactory } from '../endpoints/endpoint-factory';
+import TraceError = require('trace-error');
 
-export async function createSchema(config: ProxyConfig) {
-    const endpoints = await Promise.all(config.endpoints.map(async endpoint => {
+export async function createProxySchema(config: ProxyConfig, endpointFactory: EndpointFactory) {
+    const endpoints = await Promise.all(config.endpoints.map(async config => {
+        const endpoint = endpointFactory.getEndpoint(config);
         return {
-            name: endpoint.name,
-            config: endpoint,
-            schema: await fetchSchema(endpoint.url)
+            name: config.name,
+            config,
+            endpoint,
+            schema: await endpoint.getSchema()
         };
     }));
 
@@ -33,7 +33,7 @@ export async function createSchema(config: ProxyConfig) {
         const typeRenamer = (type: string) => prefix + type;
         const reverseTypeRenamer = getReverseTypeRenamer(endpoint.config);
         const baseResolverConfig = {
-            url: endpoint.config.url,
+            query: endpoint.endpoint.query.bind(endpoint.endpoint),
             typeRenamer: reverseTypeRenamer,
             links: renamedLinkMap
         };
@@ -52,44 +52,12 @@ export async function createSchema(config: ProxyConfig) {
     });
     const mergedSchema = mergeSchemas(renamedSchemas);
     return transformSchema(mergedSchema, combineTransformers(
-        new SchemaLinkTransformer(endpoints.map(e => e.config), mergedSchema, renamedLinkMap),
+        new SchemaLinkTransformer({
+            endpoints: endpoints.map(e => e.config),
+            schema: mergedSchema,
+            links: renamedLinkMap,
+            endpointFactory
+        }),
         new TypeResolversTransformer()
     ));
-}
-
-async function fetchSchema(url: string) {
-    let introspection = await doIntrospectionQuery(url);
-    try {
-        return buildClientSchema(introspection);
-    } catch (error) {
-        throw new TraceError(`Failed to build schema from introspection result of ${url}: ${error.message}`, error);
-    }
-}
-
-async function doIntrospectionQuery(url: string): Promise<IntrospectionQuery> {
-    // TODO use a graphql client lib
-
-    let res;
-    try {
-        res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query: introspectionQuery
-            })
-        });
-    } catch (error) {
-        throw new TraceError(`Error fetching introspection result from ${url}: ${error.message}`, error);
-    }
-    if (!res.ok) {
-        throw new Error(`Error fetching introspection result from ${url}: ${res.statusText}`);
-    }
-    const json = await res.json<any>();
-    if ('errors' in json) {
-        throw new Error(`Introspection query on ${url} failed: ${JSON.stringify((<any>json).errors)}`);
-    }
-    return json.data;
 }

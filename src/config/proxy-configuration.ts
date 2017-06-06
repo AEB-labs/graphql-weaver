@@ -1,3 +1,5 @@
+import { GraphQLSchema } from 'graphql';
+
 export interface ProxyConfigInput {
     port?: number,
     endpoints?: {
@@ -13,11 +15,22 @@ export interface ProxyConfig {
     endpoints: EndpointConfig[]
 }
 
-export interface EndpointConfig {
+interface EndpointConfigBase {
     name: string
-    url: string
     links: LinkConfigMap
+    url?: string
+    schema?: GraphQLSchema
 }
+
+interface HttpEndpointConfig extends EndpointConfigBase {
+    url: string
+}
+
+interface LocalEndpointConfig extends EndpointConfigBase {
+    schema: GraphQLSchema
+}
+
+export type EndpointConfig = HttpEndpointConfig | LocalEndpointConfig;
 
 export type LinkConfigMap = { [typeAndField: string]: LinkTargetConfig | undefined };
 

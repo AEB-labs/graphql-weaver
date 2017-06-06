@@ -3,12 +3,11 @@ import {
     GraphQLSchema, InlineFragmentNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo, VariableNode, visit,
     visitWithTypeInfo
 } from 'graphql';
-import { query } from './client';
 import { OperationTypeNode } from '@types/graphql/language';
 import { LinkConfigMap } from '../config/proxy-configuration';
 
 interface ResolverConfig {
-    url: string;
+    query: (document: DocumentNode, variables?: {[name: string]: any}) => Promise<any>
     operation: OperationTypeNode;
     typeRenamer?: (name: string) => string;
 
@@ -93,11 +92,7 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
             data.operation
         ]
     };
-    const queryStr = print(document);
-    console.log(queryStr);
-    console.log(data.variables);
-
-    return await query(config.url, queryStr, data.variables);
+    return await config.query(document, data.variables);
 }
 
 function pickIntoArray<TValue>(object: { [key: string]: TValue }, keys: string[]): TValue[] {

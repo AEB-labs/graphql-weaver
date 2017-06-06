@@ -1,27 +1,31 @@
-import {GraphQLServer} from "./graphql/graphql-server";
-import {GraphQLObjectType, GraphQLSchema, GraphQLString} from "graphql";
-import {normalizeProxyConfig, ProxyConfig} from "./config/proxy-configuration";
-import * as fs from "fs-extra";
-import TraceError = require("trace-error");
-import {createSchema} from "./graphql/schema";
-
-async function loadConfig(fileName: string): Promise<ProxyConfig> {
-    await fs.ensureFile(fileName);
-    const contents = await fs.readFile(fileName, 'utf-8');
-    let json;
-    try {
-        json = JSON.parse(contents);
-    } catch (error) {
-        throw new TraceError(`Config file ${fileName} is not a vaild JSON file: ${error.message}`, error);
-    }
-    return normalizeProxyConfig(json);
-}
+import { GraphQLServer } from './graphql/graphql-server';
+import { createProxySchema } from './graphql/schema';
+import { loadProxyConfig } from './config/load-config';
+import TraceError = require('trace-error');
+import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
+import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 
 export async function start() {
     const configFileName = 'config.json';
-    const config = await loadConfig(configFileName);
+    const config = await loadProxyConfig(configFileName);
+    config.endpoints.push({
+        name: 'local',
+        links: {},
+        schema: new GraphQLSchema({
+            query: new GraphQLObjectType({
+                name: 'Query',
+                fields: {
+                    info: {
+                        type: GraphQLString,
+                        resolve: () => 'This is an internal endpoint'
+                    }
+                }
+            })
+        })
+    });
+
     console.log('Loading schemas...');
-    const schema = await createSchema(config);
+    const schema = await createProxySchema(config, new DefaultEndpointFactory());
 
     const schemaManager = {
         getSchema: () => schema
