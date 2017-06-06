@@ -1,5 +1,5 @@
-import { LinkConfigMap, ProxyConfig, ProxyConfigInput } from '../config/proxy-configuration';
-import { GraphQLFieldResolver, GraphQLSchema, OperationTypeNode } from 'graphql';
+import { LinkConfigMap, ProxyConfig } from '../config/proxy-configuration';
+import { GraphQLFieldResolver, OperationTypeNode } from 'graphql';
 import { renameTypes } from './type-renamer';
 import { mergeSchemas, NamedSchema } from './schema-merger';
 import { combineTransformers, transformSchema } from './schema-transformer';
@@ -7,7 +7,8 @@ import { getReverseTypeRenamer, getTypePrefix } from './renaming';
 import { SchemaLinkTransformer } from './links';
 import { resolveAsProxy } from './proxy-resolver';
 import { TypeResolversTransformer } from './type-resolvers';
-import { DefaultEndpointFactory, EndpointFactory } from '../endpoints/endpoint-factory';
+import { DefaultEndpointFactory } from '../endpoints/endpoint-factory';
+import { DefaultResolversTransformer } from './default-resolvers';
 import TraceError = require('trace-error');
 
 // Not decided on an API to choose this, so leave non-configurable for now
@@ -61,6 +62,7 @@ export async function createProxySchema(config: ProxyConfig) {
             links: renamedLinkMap,
             endpointFactory
         }),
-        new TypeResolversTransformer(endpoints.map(e => e.config))
+        new TypeResolversTransformer(endpoints.map(e => e.config)),
+        new DefaultResolversTransformer()
     ));
 }
