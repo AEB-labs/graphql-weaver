@@ -25,7 +25,7 @@ export async function start() {
     });
 
     console.log('Loading schemas...');
-    const schema = await createProxySchema(config, new DefaultEndpointFactory());
+    const schema = await createProxySchema(config);
 
     const schemaManager = {
         getSchema: () => schema

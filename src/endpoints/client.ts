@@ -24,7 +24,7 @@ export async function query(url: string, query: string, variables?: {[key: strin
 
     let json;
     try {
-        json = await res.json<any>();
+        json = await res.json();
     } catch (error) {
         throw new TraceError(`Response from GraphQL endpoint at ${url} is invalid json: ${error.message}`, error);
     }

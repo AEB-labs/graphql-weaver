@@ -1,13 +1,13 @@
 {
-  "name": "graphql-proxy",
+  "name": "@aeb/graphql-proxy",
   "version": "0.1.0",
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "start": "npm run start:live",
-    "start:live": "ts-node index.ts",
-    "start:idea": "ts-node %NODE_DEBUG_OPTION% index.ts",
-    "start:vscode": "ts-node --inspect=5858 --debug-brk --ignore false index.ts",
+    "start:live": "ts-node start.ts",
+    "start:idea": "ts-node %NODE_DEBUG_OPTION% start.ts",
+    "start:vscode": "ts-node --inspect=5858 --debug-brk --ignore false start.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
