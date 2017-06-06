@@ -9,6 +9,7 @@ import {
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
+import { objectValues } from '../utils';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => void;
@@ -131,7 +132,7 @@ class Transformer {
         // Dependencies between fields and their are broken up via GraphQL's thunk approach (fields are only requested when
         // needed, which is after all types have been converted). However, an object's reference to its implemented
         // interfaces does not support the thunk approach, so we need to make sure they are transformed first
-        const originalTypes = Object.values(schema.getTypeMap());
+        const originalTypes = objectValues(schema.getTypeMap());
         const orderedTypes = [
             ...originalTypes.filter(t => t instanceof GraphQLInterfaceType),
             ...originalTypes.filter(t => !(t instanceof GraphQLInterfaceType))
@@ -152,7 +153,7 @@ class Transformer {
         };
 
         return new GraphQLSchema({
-            types: Object.values(this.typeMap),
+            types: objectValues(this.typeMap),
             directives,
             query: findNewTypeMaybe(schema.getQueryType())!,
             mutation: findNewTypeMaybe(schema.getMutationType()),

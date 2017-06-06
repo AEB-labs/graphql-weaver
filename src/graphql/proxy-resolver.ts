@@ -5,6 +5,7 @@ import {
 } from 'graphql';
 import { OperationTypeNode } from '@types/graphql/language';
 import { LinkConfigMap } from '../config/proxy-configuration';
+import { objectValues } from '../utils';
 
 interface ResolverConfig {
     query: (document: DocumentNode, variables?: {[name: string]: any}) => Promise<any>
@@ -33,7 +34,7 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
                     definitions: [
                         // Provide all fragments here because if one of info.fieldNodes is a field node of a fragment,
                         // that fragment is not necessarily used anywhere via the spread operator within any of the roots
-                        ...Object.values(info.fragments),
+                        ...objectValues(info.fragments),
                         info.operation
                     ]
                 },
