@@ -171,6 +171,8 @@ function fetchTypenameIfFragmentsPresent(root: ASTNode) {
     // This also means that the result always includes __typename if fragments are used, even when not requested
     return visit(root, {
         SelectionSet(node: SelectionSetNode) {
+            // TODO we also need to fetch the __typename if the outer type is abstract (don't know why, but GraphQL demands it)
+            // this means we need a TypeInfo. Might be worth running the TypeInfo thing once and plug in multiple visitors
             const requiresTypename = node.selections.some(sel => sel.kind == 'FragmentSpread' || sel.kind == 'InlineFragment');
             const requestsTypename = node.selections.some(sel => sel.kind == 'Field' && sel.name.value == '__typename');
             const isTypenameAilased = node.selections.some(sel => sel.kind == 'Field' && sel.name.value != '__typename' && !!sel.alias && sel.alias.value == '__typename');

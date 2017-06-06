@@ -50,7 +50,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
             throw new Error(`Expected object type as query type of endpoint ${targetEndpointConfig.name}`);
         }
 
-        const dataLoaders = new WeakMap<any, DataLoader<any, any>>(); // TODO have one dataLoader per selection set
+        const dataLoaders = new WeakMap<any, DataLoader<any, any>>();
 
         const varName = 'param';
         const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
@@ -140,6 +140,10 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                 return value;
             }
 
+            // TODO include all the info.fieldNodes in the key somehow
+            // the fieldNodes array is unique each call, but each individual fieldNode is reused). We can not easily
+            // merge the selection sets because they may have collisions. However, we could merge all queries to one
+            // endpoint (dataLoader over dataLoaders).
             let dataLoader = dataLoaders.get(context);
             if (!dataLoader) {
                 dataLoader = new DataLoader(keys => resolveBatch(keys, info));
