@@ -6,7 +6,7 @@ import {
     GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
     GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
-import { isNativeGraphQLType } from './native-types';
+import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
@@ -121,45 +121,59 @@ class Transformer {
     }
 
     public transform(schema: GraphQLSchema): GraphQLSchema {
-        const originalTypes = Object.values(schema.getTypeMap());
-        const originalInterfaces = originalTypes.filter(t => t instanceof GraphQLInterfaceType);
-
         // Dependencies between fields and their are broken up via GraphQL's thunk approach (fields are only requested when
         // needed, which is after all types have been converted). However, an object's reference to its implemented
         // interfaces does not support the thunk approach, so we need to make sure they are transformed first
-        originalInterfaces.filter(t => t instanceof GraphQLInterfaceType).forEach(t => this.processType(t));
-        originalTypes.filter(t => !(t instanceof GraphQLInterfaceType)).forEach(t => this.processType(t));
+        const originalTypes = Object.values(schema.getTypeMap());
+        const orderedTypes = [
+            ...originalTypes.filter(t => t instanceof GraphQLInterfaceType),
+            ...originalTypes.filter(t => !(t instanceof GraphQLInterfaceType))
+        ];
+        for (const type of orderedTypes) {
+            this.processType(type);
+        }
+
+        const directives = schema.getDirectives()
+            .map(directive => isNativeDirective(directive) ? directive : this.transformDirective(directive));
+
+        const findNewTypeMaybe = (type: GraphQLObjectType | undefined) => {
+            if (!type) {
+                return undefined;
+            }
+            const newType = this.findType(type.name);
+            return <GraphQLObjectType>newType;
+        };
 
         return new GraphQLSchema({
             types: Object.values(this.typeMap),
-            directives: schema.getDirectives().map(directive => this.transformDirective(directive)),
-            query: this.findNewTypeMaybe(schema.getQueryType())!,
-            mutation: this.findNewTypeMaybe(schema.getMutationType()),
-            subscription: this.findNewTypeMaybe(schema.getSubscriptionType())
+            directives,
+            query: findNewTypeMaybe(schema.getQueryType())!,
+            mutation: findNewTypeMaybe(schema.getMutationType()),
+            subscription: findNewTypeMaybe(schema.getSubscriptionType())
         });
     }
 
     /**
      * Finds the type in the new schema by its name in the old schema
-     * @param name the old type name
+     * @param oldName the old type name
      * @returns {GraphQLNamedType}
      */
-    private findType(name: string) {
-        if (!(name in this.typeMap)) {
-            throw new Error(`Unexpected reference to type ${name} which has not (yet) been renamed`);
+    private findType(oldName: string) {
+        if (!(oldName in this.typeMap)) {
+            throw new Error(`Unexpected reference to type ${oldName}`);
         }
-        return this.typeMap[name];
+        return this.typeMap[oldName];
     }
 
     /**
      * Maps a type in the old schema to a type in the new schema, supporting list and optional types.
      */
-    private remapType<T extends GraphQLType>(type: T): T {
+    private mapType<T extends GraphQLType>(type: T): T {
         if (type instanceof GraphQLList) {
-            return <T>new GraphQLList(this.remapType(type.ofType));
+            return <T>new GraphQLList(this.mapType(type.ofType));
         }
         if (type instanceof GraphQLNonNull) {
-            return <T>new GraphQLNonNull(this.remapType(type.ofType));
+            return <T>new GraphQLNonNull(this.mapType(type.ofType));
         }
         const namedType = <GraphQLNamedType>type; // generics seem to throw off type guard logic
         if (isNativeGraphQLType(namedType)) {
@@ -169,20 +183,9 @@ class Transformer {
         return <T>this.findType(namedType.name);
     }
 
-    /**
-     * Finds the new type corresponding to the old type, or undefined if undefined is given
-     */
-    private findNewTypeMaybe(type: GraphQLObjectType | undefined) {
-        if (!type) {
-            return undefined;
-        }
-        const newType = this.findType(type.name);
-        return <GraphQLObjectType>newType;
-    }
-
     private get transformationContext(): SchemaTransformationContext {
         return {
-            mapType: this.remapType.bind(this)
+            mapType: this.mapType.bind(this)
         };
     }
 
@@ -244,9 +247,9 @@ class Transformer {
             fields: () => this.transformFields(type.getFields(), {
                 ...this.transformationContext,
                 oldOuterType: type,
-                newOuterType: this.remapType(type)
+                newOuterType: this.mapType(type)
             }),
-            interfaces: type.getInterfaces().map(iface => this.remapType(iface))
+            interfaces: type.getInterfaces().map(iface => this.mapType(iface))
         };
         if (this.transformers.transformObjectType) {
             this.transformers.transformObjectType(config, this.transformationContext);
@@ -262,9 +265,10 @@ class Transformer {
             fields: () => this.transformFields(type.getFields(), {
                 ...this.transformationContext,
                 oldOuterType: type,
-                newOuterType: this.remapType(type)
+                newOuterType: this.mapType(type)
             }),
 
+            // TODO huh?
             resolveType: !type.resolveType ? undefined :
                 (value: any, context: any, info: GraphQLResolveInfo) => type.resolveType(value, context, info)
         };
@@ -286,7 +290,7 @@ class Transformer {
                 name: fieldName,
                 description: originalField.description,
                 deprecationReason: originalField.deprecationReason,
-                type: this.remapType(originalField.type),
+                type: this.mapType(originalField.type),
                 args: this.transformArguments(originalField.args),
                 resolve: originalField.resolve
             };
@@ -306,7 +310,7 @@ class Transformer {
         for (const arg of originalArgs) {
             args[arg.name] = {
                 description: arg.description,
-                type: this.remapType(arg.type),
+                type: this.mapType(arg.type),
                 defaultValue: arg.defaultValue
             };
         }
@@ -314,9 +318,8 @@ class Transformer {
     }
 
     private transformInputObjectType(type: GraphQLInputObjectType) {
-        const originalFields = type.getFields();
-
         const getFields = () => {
+            const originalFields = type.getFields();
             const fields: GraphQLInputFieldConfigMap = {};
             for (const fieldName in originalFields) {
                 const originalField = originalFields[fieldName];
@@ -324,13 +327,13 @@ class Transformer {
                     name: fieldName,
                     description: originalField.description,
                     defaultValue: originalField.defaultValue,
-                    type: this.remapType(originalField.type)
+                    type: this.mapType(originalField.type)
                 };
                 if (this.transformers.transformInputField) {
                     this.transformers.transformInputField(fieldConfig, {
                         ...this.transformationContext,
                         oldOuterType: type,
-                        newOuterType: this.remapType(type)
+                        newOuterType: this.mapType(type)
                     });
                 }
                 if (fieldConfig.name in fields) {
@@ -377,7 +380,7 @@ class Transformer {
         const config: GraphQLUnionTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
-            types: type.getTypes().map(optionType => this.remapType(optionType))
+            types: type.getTypes().map(optionType => this.mapType(optionType))
         };
         if (this.transformers.transformUnionType) {
             this.transformers.transformUnionType(config, this.transformationContext);

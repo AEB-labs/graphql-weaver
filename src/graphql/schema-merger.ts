@@ -1,4 +1,7 @@
-import { GraphQLFieldConfigMap, GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema } from 'graphql';
+import {
+    GraphQLFieldConfigMap, GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema, specifiedDirectives
+} from 'graphql';
+import { isNativeDirective } from './native-symbols';
 
 export interface NamedSchema {
     namespace: string
@@ -36,10 +39,16 @@ export function mergeSchemas(schemas: NamedSchema[]) {
         resolver: schema.subscriptionResolver
     })));
 
+    const directives = schemas
+        .map(schema => schema.schema.getDirectives().filter(d => !isNativeDirective(d)))
+        .reduce((a,b) => a.concat(b), [])
+        .concat(specifiedDirectives);
+
     return new GraphQLSchema({
         query,
         mutation,
-        subscription
+        subscription,
+        directives
     });
 }
 
