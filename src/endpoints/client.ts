@@ -2,6 +2,8 @@ import fetch from "node-fetch";
 import TraceError = require('trace-error');
 
 export async function query(url: string, query: string, variables?: {[key: string]: any}): Promise<any> {
+    console.log(url);
+    console.log(query);
     let res;
     try {
         res = await fetch(url, {
@@ -28,6 +30,11 @@ export async function query(url: string, query: string, variables?: {[key: strin
     } catch (error) {
         throw new TraceError(`Response from GraphQL endpoint at ${url} is invalid json: ${error.message}`, error);
     }
+    assertSuccessfulResponse(json);
+    return json.data;
+}
+
+export function assertSuccessfulResponse(json: any) {
     if ('errors' in json && json['errors'].length) {
         // TODO properly handle multiple errors
         const errObj = json['errors'][0];
@@ -45,5 +52,4 @@ export async function query(url: string, query: string, variables?: {[key: strin
     if (!('data' in json)) {
         throw new Error(`GraphQL endpoint did not report errors, but also did not provide a data result`);
     }
-    return json.data;
 }

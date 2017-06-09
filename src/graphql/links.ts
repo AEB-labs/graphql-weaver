@@ -9,6 +9,13 @@ import { resolveAsProxy } from './proxy-resolver';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
 import DataLoader = require('dataloader');
 
+function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): GraphQLNonNull<T> {
+    if (type instanceof GraphQLNonNull) {
+        return type;
+    }
+    return new GraphQLNonNull(type);
+}
+
 export class SchemaLinkTransformer implements SchemaTransformer {
     private endpointMap: Map<string, EndpointConfig>;
 
@@ -68,7 +75,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                             operation: 'query', // links are always resolved via query operations
                             variableDefinitions: [
                                 ...(operation.variableDefinitions || []),
-                                createVariableDefinitionNode(varName, link.batchMode ? new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(originalType))) : originalType)
+                                createVariableDefinitionNode(varName, link.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(originalType))) : originalType)
                             ],
                             selectionSet: {
                                 kind: 'SelectionSet',
@@ -124,7 +131,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                 return result;
             }
             // unordered case: endpoints does not preserve order, so we need to remap based on a key field
-            const map = new Map((<any[]>result).map(item => <[any, any]>[item[link.keyField], item]));
+            const map = new Map((<any[]>result).map(item => <[any, any]>[item[link.keyField!], item]));
             return keys.map(key => map.get(key));
         };
 

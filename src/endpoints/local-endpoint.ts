@@ -1,5 +1,6 @@
 import { GraphQLEndpoint } from './graphql-endpoint';
-import { DocumentNode, execute, GraphQLSchema } from 'graphql';
+import { DocumentNode, execute, GraphQLSchema, print } from 'graphql';
+import { assertSuccessfulResponse } from './client';
 
 export class LocalEndpoint implements GraphQLEndpoint {
     constructor(public readonly schema: GraphQLSchema) {
@@ -7,7 +8,12 @@ export class LocalEndpoint implements GraphQLEndpoint {
     }
 
     async query(query: DocumentNode, variables?: { [name: string]: any }) {
-        return execute(this.schema, query, {}, {}, variables);
+        console.log('Local');
+        console.log(print(query));
+        const result = await execute(this.schema, query, {}, {}, variables);
+        assertSuccessfulResponse(result);
+        console.log(result);
+        return result.data;
     }
 
     async getSchema() {
