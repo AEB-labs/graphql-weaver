@@ -1,7 +1,6 @@
 import {
     ASTNode, BREAK, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
-    GraphQLSchema, InlineFragmentNode, NamedTypeNode, OperationDefinitionNode, print, SelectionSetNode, TypeInfo,
-    VariableDefinitionNode, VariableNode, visit,
+    GraphQLSchema, NamedTypeNode, OperationDefinitionNode, SelectionSetNode, TypeInfo, VariableNode, visit,
     visitWithTypeInfo
 } from 'graphql';
 import { OperationTypeNode } from '@types/graphql/language';
@@ -21,7 +20,7 @@ interface ResolverConfig {
     transform?: (nodes: TransformData) => TransformData
 }
 
-type TransformData = { operation: OperationDefinitionNode, fragments: FragmentDefinitionNode[], variables: { [ variableName: string]: any } };
+type TransformData = { operation: OperationDefinitionNode, fragments: {[name: string]: FragmentDefinitionNode}, variables: { [ variableName: string]: any } };
 
 export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverConfig) {
     function processRoot<T extends ASTNode>(root: T): T {
@@ -83,7 +82,7 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
     };
 
     const variables = pickIntoObject(info.variableValues, Array.from(variableNames));
-    let data = {operation, fragments, variables};
+    let data = {operation, fragments: arrayToMap(fragments, fr => fr.name.value), variables};
     if (config.transform) {
         data = config.transform(data);
     }
@@ -91,7 +90,7 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
     const document: DocumentNode = {
         kind: 'Document',
         definitions: [
-            ...data.fragments,
+            ...objectValues(data.fragments),
             data.operation
         ]
     };
@@ -108,6 +107,14 @@ function pickIntoObject<TValue>(object: { [key: string]: TValue }, keys: string[
         obj[key] = object[key];
     }
     return obj;
+}
+
+function arrayToMap<TValue>(array: TValue[], keyFn: (obj: TValue) => string): {[name: string]: TValue} {
+    const result: {[name: string]: TValue} = {};
+    for (const item of array) {
+        result[keyFn(item)] = item;
+    }
+    return result;
 }
 
 function renameTypes(root: ASTNode, typeNameTransformer: (name: string) => string) {

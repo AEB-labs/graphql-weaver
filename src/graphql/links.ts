@@ -1,12 +1,15 @@
 import {
-    ArgumentNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo,
-    GraphQLSchema, GraphQLType, ListTypeNode, NamedTypeNode, SelectionNode, TypeNode, ValueNode, VariableDefinitionNode
+    getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLSchema,
+    GraphQLType, SelectionSetNode
 } from 'graphql';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from './schema-transformer';
 import { EndpointConfig, LinkConfigMap } from '../config/proxy-configuration';
-import { getReverseTypeRenamer, getTypePrefix, splitIntoEndpointAndTypeName } from './renaming';
+import { getReverseTypeRenamer, splitIntoEndpointAndTypeName } from './renaming';
 import { resolveAsProxy } from './proxy-resolver';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
+import {
+    addFieldSelectionSafely, createNestedArgumentWithVariableNode, createVariableDefinitionNode
+} from './language-utils';
 import DataLoader = require('dataloader');
 
 function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): GraphQLNonNull<T> {
@@ -61,13 +64,23 @@ export class SchemaLinkTransformer implements SchemaTransformer {
 
         const varName = 'param';
         const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
+        let keyFieldAlias: string|undefined;
         const basicResolve = async (value: any, info: GraphQLResolveInfo) => {
+            let selectionSetNode: SelectionSetNode;
             const obj = await resolveAsProxy(info, {
                 query: targetEndpoint.query.bind(targetEndpoint),
                 operation: 'query',
                 links: this.config.links,
                 typeRenamer: getReverseTypeRenamer(targetEndpointConfig),
                 transform: ({operation, fragments, variables}) => {
+                    if (link.keyField) {
+                        const { alias, selectionSet } = addFieldSelectionSafely(operation.selectionSet, link.keyField, fragments);
+                        keyFieldAlias = alias;
+                        selectionSetNode = selectionSet;
+                    } else {
+                        selectionSetNode = info.operation.selectionSet;
+                    }
+
                     return {
                         fragments,
                         operation: {
@@ -89,21 +102,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                                         arguments: [
                                             createNestedArgumentWithVariableNode(link.argument, varName)
                                         ],
-                                        selectionSet: {
-                                            kind: 'SelectionSet',
-                                            selections: <SelectionNode[]>[ // strange type error
-                                                ...operation.selectionSet.selections,
-                                                ...(link.keyField ? [
-                                                    {
-                                                        kind: 'Field',
-                                                        name: {
-                                                            kind: 'Name',
-                                                            value: link.keyField
-                                                        }
-                                                    }
-                                                ] : [])
-                                            ]
-                                        }
+                                        selectionSet: selectionSetNode
                                     }
                                 ]
                             }
@@ -131,7 +130,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                 return result;
             }
             // unordered case: endpoints does not preserve order, so we need to remap based on a key field
-            const map = new Map((<any[]>result).map(item => <[any, any]>[item[link.keyField!], item]));
+            const map = new Map((<any[]>result).map(item => <[any, any]>[item[keyFieldAlias!], item]));
             return keys.map(key => map.get(key));
         };
 
@@ -164,81 +163,4 @@ export class SchemaLinkTransformer implements SchemaTransformer {
     private splitTypeName(mergedName: string): { endpointName: string, typeName: string } | undefined {
         return splitIntoEndpointAndTypeName(mergedName, this.config.endpoints);
     }
-}
-
-function createTypeNode(type: GraphQLType): TypeNode {
-    if (type instanceof GraphQLList) {
-        return {
-            kind: 'ListType',
-            type: createTypeNode(type.ofType)
-        };
-    }
-    if (type instanceof GraphQLNonNull) {
-        return {
-            kind: 'NonNullType',
-            type: <NamedTypeNode | ListTypeNode>createTypeNode(type.ofType)
-        };
-    }
-    return {
-        kind: 'NamedType',
-        name: {
-            kind: 'Name',
-            value: type.name
-        }
-    };
-}
-
-function createVariableDefinitionNode(varName: string, type: GraphQLType): VariableDefinitionNode {
-    return {
-        kind: 'VariableDefinition',
-        variable: {
-            kind: 'Variable',
-            name: {
-                kind: 'Name',
-                value: varName
-            }
-        },
-        type: createTypeNode(type)
-    };
-}
-
-function createNestedArgumentWithVariableNode(argumentPath: string, variableName: string): ArgumentNode {
-    const parts = argumentPath.split('.');
-    const argName = parts.shift();
-    if (!argName) {
-        throw new Error('Argument must not be empty');
-    }
-
-    let value: ValueNode = {
-        kind: 'Variable',
-        name: {
-            kind: 'Name',
-            value: variableName
-        }
-    };
-
-    for (const part of parts.reverse()) {
-        value = {
-            kind: 'ObjectValue',
-            fields: [
-                {
-                    kind: 'ObjectField',
-                    value,
-                    name: {
-                        kind: 'Name',
-                        value: part
-                    }
-                }
-            ]
-        };
-    }
-
-    return {
-        kind: 'Argument',
-        name: {
-            kind: 'Name',
-            value: argName
-        },
-        value
-    };
 }
