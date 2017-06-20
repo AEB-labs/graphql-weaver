@@ -8,7 +8,8 @@
     "start:live": "ts-node start.ts",
     "start:idea": "ts-node %NODE_DEBUG_OPTION% start.ts",
     "start:vscode": "ts-node --inspect=5858 --debug-brk --ignore false start.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc --noEmit --skipLibCheck && node ./spec/support/jasmine.js",
+    "test:idea": "node %NODE_DEBUG_OPTION% ./spec/support/jasmine.js"
   },
   "author": "",
   "license": "ISC",
@@ -17,8 +18,12 @@
     "@types/cors": "^2.8.1",
     "@types/fs-extra": "^3.0.2",
     "@types/graphql": "^0.9.1",
+    "@types/jasmine": "^2.5.52",
     "@types/node": "^7.0.22",
     "@types/node-fetch": "^1.6.7",
+    "jasmine": "^2.6.0",
+    "jasmine-promises": "^0.4.1",
+    "jasmine-spec-reporter": "^4.1.0",
     "ts-node": "^3.0.4",
     "typescript": "^2.3.3"
   },
