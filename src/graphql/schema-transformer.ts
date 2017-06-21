@@ -43,6 +43,8 @@ export interface SchemaTransformationContext {
      * @param name
      */
     findType(name: string): GraphQLNamedType | undefined;
+
+    readonly oldSchema: GraphQLSchema;
 }
 
 export interface FieldTransformationContext extends SchemaTransformationContext {
@@ -117,18 +119,23 @@ export function combineTransformers(...transformers: SchemaTransformer[]): Schem
  * @param transformers
  */
 export function transformSchema(schema: GraphQLSchema, transformers: SchemaTransformer) {
-    const transformer = new Transformer(transformers);
-    return transformer.transform(schema);
+    const transformer = new Transformer(transformers, schema);
+    return transformer.transform();
 }
 
+// this is not really an OOP class but it is useful to keep track of state. It is not exported, so this is fine
 class Transformer {
     private typeMap: { [typeName: string]: GraphQLNamedType } = {};
 
-    constructor(private transformers: SchemaTransformer) {
-
+    constructor(private readonly transformers: SchemaTransformer, private readonly schema: GraphQLSchema) {
     }
 
-    public transform(schema: GraphQLSchema): GraphQLSchema {
+    /**
+     * only call once
+     */
+    public transform(): GraphQLSchema {
+        const schema = this.schema;
+
         // Dependencies between fields and their are broken up via GraphQL's thunk approach (fields are only requested when
         // needed, which is after all types have been converted). However, an object's reference to its implemented
         // interfaces does not support the thunk approach, so we need to make sure they are transformed first
@@ -194,7 +201,8 @@ class Transformer {
     private get transformationContext(): SchemaTransformationContext {
         return {
             mapType: this.mapType.bind(this),
-            findType: this.findType.bind(this)
+            findType: this.findType.bind(this),
+            oldSchema: this.schema
         };
     }
 

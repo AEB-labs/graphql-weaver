@@ -1,17 +1,11 @@
 import { SchemaTransformationContext, SchemaTransformer } from './schema-transformer';
 import { GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLTypeResolver } from 'graphql';
-import { combineEndpointAndTypeName, splitIntoEndpointAndTypeName } from './renaming';
-import { EndpointConfig } from '../config/proxy-configuration';
 
 /**
  * A transformer that adds type resolvers to abstract types. They will assume the __typename field is fetched and use
  * that to locate the concrete type.
  */
 export class TypeResolversTransformer implements SchemaTransformer {
-    constructor(private endpoints: EndpointConfig[]) {
-
-    }
-
     transformObjectType(config: GraphQLObjectTypeConfig<any, any>) {
         config.isTypeOf = undefined;
     }
@@ -25,11 +19,8 @@ export class TypeResolversTransformer implements SchemaTransformer {
                 throw new Error(`__typename does not exist on fetched object of abstract type ${config.name}`);
             }
 
-            // Prefix can be taken from the interface because abstract and concrete type always originate from the same schema
-            const name = combineEndpointAndTypeName({
-                endpointName: splitIntoEndpointAndTypeName(config.name, this.endpoints)!.endpointName,
-                typeName: obj.__typename
-            }, this.endpoints);
+            // endpoint mapping and type prefixes should be taken care of in the links and type-prefixes modules
+            const name = obj.__typename;
             const type = context.findType(name);
             if (!type) {
                 throw new Error(`__typename of abstract type ${config.name} is set to ${JSON.stringify(name)}, ` +

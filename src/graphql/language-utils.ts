@@ -1,7 +1,7 @@
 import {
-    ArgumentNode, FieldNode, FragmentDefinitionNode, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLType,
-    ListTypeNode,
-    NamedTypeNode, NonNullTypeNode, SelectionNode, SelectionSetNode, TypeNode, ValueNode, VariableDefinitionNode
+    ArgumentNode, ASTNode, FieldNode, FragmentDefinitionNode, GraphQLList, GraphQLNamedType, GraphQLNonNull,
+    GraphQLType, ListTypeNode, NamedTypeNode, NonNullTypeNode, SelectionNode, SelectionSetNode, TypeNode, ValueNode,
+    VariableDefinitionNode, visit
 } from 'graphql';
 
 /**
@@ -215,4 +215,44 @@ export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: st
     }
 
     return selectionSet.selections.some(aliasExistsInSelectionNode);
+}
+
+export function addVariableDefinitionSafely(variableDefinitions: VariableDefinitionNode[], name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
+    const names = new Set(variableDefinitions.map(def => def.variable.name.value));
+    let varName = name;
+    if (names.has(name)) {
+        let number = 0;
+        do {
+            varName = name + number;
+            number++;
+        } while (names.has(name));
+    }
+
+    return {
+        variableDefinitions: [
+            ...variableDefinitions,
+            createVariableDefinitionNode(varName, type)
+        ],
+        name: varName
+    };
+}
+
+/**
+ * Renames all named types starting at a node
+ * @param root the node where to start
+ * @param typeNameTransformer a function that gets the old name and returns the new name
+ * @returns {any}
+ */
+export function renameTypes<T extends ASTNode>(root: T, typeNameTransformer: (name: string) => string): T {
+    return visit(root, {
+        NamedType(node: NamedTypeNode) {
+            return {
+                ...node,
+                name: {
+                    kind: 'Name',
+                    value: typeNameTransformer(node.name.value)
+                }
+            };
+        }
+    });
 }

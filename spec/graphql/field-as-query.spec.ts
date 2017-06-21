@@ -44,7 +44,7 @@ describe('getFieldAsQuery', () => {
     it('works with simple query', async () => {
         const result = await query(`{field{str}}`);
 
-        const operation = <OperationDefinitionNode>result.query.definitions[0];
+        const operation = <OperationDefinitionNode>result.document.definitions[0];
         expect(operation.kind).toBe('OperationDefinition');
 
         const field = <FieldNode>operation.selectionSet.selections[0];
@@ -63,7 +63,7 @@ describe('getFieldAsQuery', () => {
             }
         `);
 
-        const operation = <OperationDefinitionNode>result.query.definitions[0];
+        const operation = <OperationDefinitionNode>result.document.definitions[0];
         expect(operation.kind).toBe('OperationDefinition');
 
         const field = <FieldNode>operation.selectionSet.selections[0];
@@ -86,7 +86,7 @@ describe('getFieldAsQuery', () => {
             }
         `);
 
-        const operation = <OperationDefinitionNode>result.query.definitions[0];
+        const operation = <OperationDefinitionNode>result.document.definitions[0];
         expect(operation.kind).toBe('OperationDefinition');
 
         const field = <FieldNode>operation.selectionSet.selections[0];
@@ -97,7 +97,7 @@ describe('getFieldAsQuery', () => {
     it('passes through arguments and variables', async () => {
         const result = await query(`query($a: String) { field { str(arg: $a) } }`, {a: 'abc'});
 
-        const operation = <OperationDefinitionNode>result.query.definitions[0];
+        const operation = <OperationDefinitionNode>result.document.definitions[0];
         expect(operation.kind).toBe('OperationDefinition');
         expect(operation.variableDefinitions![0].variable.name.value).toBe('a');
         expect((<NamedTypeNode>operation.variableDefinitions![0].type).name.value).toEqual('String');

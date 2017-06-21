@@ -1,15 +1,16 @@
 import {
-    getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLSchema,
-    GraphQLType, SelectionSetNode
+    DocumentNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo,
+    GraphQLSchema, GraphQLType
 } from 'graphql';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from './schema-transformer';
 import { EndpointConfig, LinkConfigMap } from '../config/proxy-configuration';
-import { getReverseTypeRenamer, splitIntoEndpointAndTypeName } from './renaming';
-import { resolveAsProxy } from './proxy-resolver';
+import { splitIntoEndpointAndTypeName } from './renaming';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
 import {
-    addFieldSelectionSafely, createNestedArgumentWithVariableNode, createVariableDefinitionNode
+    addFieldSelectionSafely, addVariableDefinitionSafely, createNestedArgumentWithVariableNode
 } from './language-utils';
+import { getFieldAsQueryParts } from './field-as-query';
+import { arrayToObject } from '../utils';
 import DataLoader = require('dataloader');
 
 function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): GraphQLNonNull<T> {
@@ -62,58 +63,62 @@ export class SchemaLinkTransformer implements SchemaTransformer {
 
         const dataLoaders = new WeakMap<any, DataLoader<any, any>>();
 
-        const varName = 'param';
         const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
         let keyFieldAlias: string|undefined;
         const basicResolve = async (value: any, info: GraphQLResolveInfo) => {
-            let selectionSetNode: SelectionSetNode;
-            const obj = await resolveAsProxy(info, {
-                query: targetEndpoint.query.bind(targetEndpoint),
-                operation: 'query',
-                links: this.config.links,
-                typeRenamer: getReverseTypeRenamer(targetEndpointConfig),
-                transform: ({operation, fragments, variables}) => {
-                    if (link.keyField) {
-                        const { alias, selectionSet } = addFieldSelectionSafely(operation.selectionSet, link.keyField, fragments);
-                        keyFieldAlias = alias;
-                        selectionSetNode = selectionSet;
-                    } else {
-                        selectionSetNode = info.operation.selectionSet;
-                    }
+            const {fragments, variableDefinitions, variableValues, selectionSet} = getFieldAsQueryParts(info);
 
-                    return {
-                        fragments,
-                        operation: {
-                            ...operation,
-                            operation: 'query', // links are always resolved via query operations
-                            variableDefinitions: [
-                                ...(operation.variableDefinitions || []),
-                                createVariableDefinitionNode(varName, link.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(originalType))) : originalType)
-                            ],
-                            selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                    {
-                                        kind: 'Field',
-                                        name: {
-                                            kind: 'Name',
-                                            value: link.field
-                                        },
-                                        arguments: [
-                                            createNestedArgumentWithVariableNode(link.argument, varName)
-                                        ],
-                                        selectionSet: selectionSetNode
-                                    }
-                                ]
-                            }
-                        },
-                        variables: {
-                            ...variables,
-                            [varName]: value
+            // add variable
+            const varType = link.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(originalType))) : originalType;
+            const varNameBase = link.argument.split('.').pop()!;
+            const { variableDefinitions: extVariableDefinitions, name: varName } =
+                addVariableDefinitionSafely(variableDefinitions, varNameBase, varType);
+
+            // add keyField if needed
+            let extSelectionSet = selectionSet;
+            if (link.batchMode && link.keyField) {
+                const { alias, selectionSet: newSelectionSet } =
+                    addFieldSelectionSafely(selectionSet, link.keyField, arrayToObject(fragments, f => f.name.value));
+                keyFieldAlias = alias;
+                extSelectionSet = newSelectionSet;
+            }
+
+            const document: DocumentNode = {
+                kind: 'Document',
+                definitions: [
+                    ...fragments,
+                    {
+                        kind: 'OperationDefinition',
+                        operation: 'query', // links are always resolved via query operations
+                        variableDefinitions: extVariableDefinitions,
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                {
+                                    kind: 'Field',
+                                    name: {
+                                        kind: 'Name',
+                                        value: link.field
+                                    },
+                                    arguments: [
+                                        createNestedArgumentWithVariableNode(link.argument, varName)
+                                    ],
+                                    selectionSet: extSelectionSet
+                                }
+                            ]
                         }
-                    };
+                    }
+                ]
+            };
+
+            const query = {
+                document,
+                variableValues: {
+                    ...variableValues,
+                    [varName]: value
                 }
-            });
+            };
+            const obj = await targetEndpoint.query(query.document, query.variableValues);
             return obj[link.field];
         };
 
@@ -125,7 +130,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                 result = await keys.map(key => basicResolve(key, info));
             }
 
-            if (!link.keyField) {
+            if (!link.batchMode || !link.keyField) {
                 // simple case: endpoint returns the objects in the order of given ids
                 return result;
             }

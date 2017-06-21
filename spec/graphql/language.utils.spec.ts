@@ -1,10 +1,10 @@
 import {
     addFieldSelectionSafely, createFieldNode, createNestedArgumentWithVariableNode, createTypeNode,
-    createVariableDefinitionNode
+    createVariableDefinitionNode, renameTypes
 } from '../../src/graphql/language-utils';
 import {
     FragmentDefinitionNode, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString, NamedTypeNode,
-    ObjectValueNode, SelectionSetNode, VariableNode
+    ObjectValueNode, SelectionSetNode, VariableDefinitionNode, VariableNode
 } from 'graphql';
 
 describe('language-utils', () => {
@@ -287,4 +287,22 @@ describe('language-utils', () => {
             });
         });
     });
+
+    describe('renameTypes', () => {
+        it('renames types in variable definitions', () => {
+            const node: VariableDefinitionNode = {
+                kind: 'VariableDefinition',
+                variable: {
+                    kind: 'Variable',
+                    name: {
+                        kind: 'Name',
+                        value: 'var'
+                    }
+                },
+                type: createTypeNode(GraphQLString)
+            };
+            const renamed = renameTypes(node, name => 'prefix' + name);
+            expect((<NamedTypeNode>renamed.type).name.value).toBe('prefixString');
+        });
+    })
 });
