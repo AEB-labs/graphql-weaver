@@ -9,7 +9,7 @@ import { LinkConfigMap } from '../config/proxy-configuration';
 import { objectValues } from '../utils';
 
 interface ResolverConfig {
-    query: (document: DocumentNode, variables?: {[name: string]: any}) => Promise<any>
+    query: (document: DocumentNode, variables?: {[name: string]: any}, context?: any) => Promise<any>
     operation: OperationTypeNode;
     typeRenamer?: (name: string) => string;
 
@@ -23,7 +23,7 @@ interface ResolverConfig {
 
 type TransformData = { operation: OperationDefinitionNode, fragments: FragmentDefinitionNode[], variables: { [ variableName: string]: any } };
 
-export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverConfig) {
+export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverConfig, context?: any) {
     function processRoot<T extends ASTNode>(root: T): T {
         const original = root;
         root = fetchTypenameIfFragmentsPresent(root);
@@ -95,7 +95,7 @@ export async function resolveAsProxy(info: GraphQLResolveInfo, config: ResolverC
             data.operation
         ]
     };
-    return await config.query(document, data.variables);
+    return await config.query(document, data.variables, context);
 }
 
 function pickIntoArray<TValue>(object: { [key: string]: TValue }, keys: string[]): TValue[] {

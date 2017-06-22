@@ -9,7 +9,7 @@ export interface GraphQLEndpoint {
      * @param query the query string in the GraphQL language
      * @param variables an optional map of key-value pairs for variables
      */
-    query(query: DocumentNode, variables?: { [name: string]: any }): Promise<any>;
+    query(query: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<any>;
 
     /**
      * Fetches the schema of the endpoint. May not be cached.

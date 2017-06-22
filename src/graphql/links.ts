@@ -61,7 +61,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
 
         const varName = 'param';
         const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
-        const basicResolve = async (value: any, info: GraphQLResolveInfo) => {
+        const basicResolve = async (value: any, info: GraphQLResolveInfo, context: any) => {
             const obj = await resolveAsProxy(info, {
                 query: targetEndpoint.query.bind(targetEndpoint),
                 operation: 'query',
@@ -114,16 +114,16 @@ export class SchemaLinkTransformer implements SchemaTransformer {
                         }
                     };
                 }
-            });
+            }, context);
             return obj[link.field];
         };
 
-        const resolveBatch = async (keys: any[], info: GraphQLResolveInfo) => {
+        const resolveBatch = async (keys: any[], info: GraphQLResolveInfo, context: any) => {
             let result;
             if (link.batchMode) {
-                result = await basicResolve(keys, info);
+                result = await basicResolve(keys, info, context);
             } else {
-                result = await keys.map(key => basicResolve(key, info));
+                result = await keys.map(key => basicResolve(key, info, context));
             }
 
             if (!link.keyField) {
@@ -153,7 +153,7 @@ export class SchemaLinkTransformer implements SchemaTransformer {
             // endpoint (dataLoader over dataLoaders).
             let dataLoader = dataLoaders.get(context);
             if (!dataLoader) {
-                dataLoader = new DataLoader(keys => resolveBatch(keys, info));
+                dataLoader = new DataLoader(keys => resolveBatch(keys, info, context));
                 dataLoaders.set(context, dataLoader);
             }
 

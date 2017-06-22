@@ -62,7 +62,7 @@ export async function createProxySchema(config: ProxyConfig) {
         };
 
         function createResolver(operation: OperationTypeNode): GraphQLFieldResolver<any, any> {
-            return (source, args, context, info) => resolveAsProxy(info, {...baseResolverConfig, operation});
+            return (source, args, context, info) => resolveAsProxy(info, {...baseResolverConfig, operation}, context);
         }
 
         return {
