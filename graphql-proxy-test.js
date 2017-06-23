@@ -3,6 +3,6 @@
 var Jasmine = require('jasmine');
 var SpecReporter = require('jasmine-spec-reporter').SpecReporter;
 var jasmine = new Jasmine();
-jasmine.loadConfigFile('spec/support/jasmine.json');
+jasmine.loadConfigFile('./spec/support/jasmine.json');
 jasmine.addReporter(new SpecReporter());
 jasmine.execute();

@@ -4,12 +4,8 @@
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
   "main": "index.ts",
   "scripts": {
-    "start": "npm run start:live",
-    "start:live": "ts-node start.ts",
-    "start:idea": "ts-node %NODE_DEBUG_OPTION% start.ts",
-    "start:vscode": "ts-node --inspect=5858 --debug-brk --ignore false start.ts",
-    "test": "tsc --noEmit --skipLibCheck && node ./spec/support/jasmine.js",
-    "test:idea": "node %NODE_DEBUG_OPTION% ./spec/support/jasmine.js"
+    "start": "graphql-proxy",
+    "test": "tsc --noEmit --skipLibCheck && node ./spec/support/jasmine.js"
   },
   "author": "",
   "license": "ISC",
