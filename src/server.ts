@@ -11,7 +11,6 @@ export async function start() {
     config.endpoints.push({
         name: 'local',
         typePrefix: 'Local',
-        links: {},
         schema: new GraphQLSchema({
             query: new GraphQLObjectType({
                 name: 'Query',
@@ -29,7 +28,7 @@ export async function start() {
     const schema = await createProxySchema(config);
 
     const schemaManager = {
-        getSchema: () => schema
+        getSchema: () => schema.schema
     };
     const graphqlServer = new GraphQLServer({
         schemaProvider: schemaManager,

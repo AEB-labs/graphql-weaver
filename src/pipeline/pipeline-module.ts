@@ -2,9 +2,10 @@ import { ASTNode, DocumentNode, GraphQLSchema, TypeInfo } from 'graphql';
 import { SchemaTransformer, transformSchema } from '../graphql/schema-transformer';
 import { EndpointConfig } from '../config/proxy-configuration';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
-import { ExtendedIntrospectionQuery } from '../endpoints/extended-introspection';
+import { ExtendedIntrospectionQuery, ExtendedSchema } from '../endpoints/extended-introspection';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
 import { Query } from '../graphql/common';
+import { transformExtendedSchema } from '../graphql/extended-schema-transformer';
 
 /**
  * Part of the pipeline that transforms both the schema and queries/resolvers
@@ -14,6 +15,7 @@ export interface PipelineModule extends SchemaPipelineModule, QueryPipelineModul
 
 export interface SchemaPipelineModule {
     transformSchema?(schema: GraphQLSchema): GraphQLSchema;
+    transformExtendedSchema?(schema: ExtendedSchema): ExtendedSchema;
 
     getSchemaTransformer?(): SchemaTransformer;
 }
@@ -62,18 +64,21 @@ export function runQueryPipeline(modules: QueryPipelineModule[], query: Query) {
     return modules.reduce((query, module) => runQueryPipelineModule(module, query), query);
 }
 
-export function runSchemaPipelineModule(module: SchemaPipelineModule, schema: GraphQLSchema) {
+export function runSchemaPipelineModule(module: SchemaPipelineModule, schema: ExtendedSchema) {
+    if (module.transformExtendedSchema) {
+        schema = module.transformExtendedSchema(schema);
+    }
     if (module.transformSchema) {
-        schema = module.transformSchema(schema);
+        schema = schema.withSchema(module.transformSchema(schema.schema));
     }
     if (module.getSchemaTransformer) {
         const transformer = module.getSchemaTransformer();
-        schema = transformSchema(schema, transformer);
+        schema = transformExtendedSchema(schema, transformer);
     }
     return schema;
 }
 
-export function runSchemaPipeline(modules: SchemaPipelineModule[], schema: GraphQLSchema) {
+export function runSchemaPipeline(modules: SchemaPipelineModule[], schema: ExtendedSchema) {
     // TODO be more efficient by combining schema transformers if possible
     return modules.reduce((schema, module) => runSchemaPipelineModule(module, schema), schema);
 }
@@ -81,11 +86,12 @@ export function runSchemaPipeline(modules: SchemaPipelineModule[], schema: Graph
 export interface EndpointInfo {
     endpointConfig: EndpointConfig
     endpoint: GraphQLEndpoint
-    schema: GraphQLSchema // original?? would be better without, maybe?
-    extendedIntrospection: ExtendedIntrospectionQuery
+    schema: ExtendedSchema
 }
 
-export interface PreMergeModuleContext extends EndpointInfo {
+export interface PreMergeModuleContext {
+    endpointConfig: EndpointConfig
+    endpoint: GraphQLEndpoint
     processQuery(query: Query, endpointName: string): Query;
 }
 

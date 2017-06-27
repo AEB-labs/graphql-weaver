@@ -6,12 +6,16 @@ import { NamespaceModule } from './namespaces';
 import { DefaultResolversModule } from './default-resolvers';
 import { AbstractTypesModule } from './abstract-types';
 import { LinksModule } from './links';
-import { DocumentNode, GraphQLSchema } from 'graphql';
-import { mergeSchemas } from '../graphql/merge-schemas';
+import { DocumentNode } from 'graphql';
 import { ProxyResolversModule } from './proxy-resolvers';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
+import { ExtendedSchema } from '../endpoints/extended-introspection';
+import { mergeExtendedSchemas } from '../graphql/merge-extended-schemas';
+import { ExtendedIntrospectionModule } from './extended-introspection';
+import { AdditionalMetadataModule } from './additional-metadata';
 
 const preMergeModuleFactories: PreMergeModuleFactory[] = [
+    ({endpointConfig}) => new AdditionalMetadataModule(endpointConfig),
     ({endpointConfig}) => new TypePrefixesModule(endpointConfig.typePrefix),
     ({endpointConfig}) => new NamespaceModule(endpointConfig.name),
     ({processQuery, endpoint, endpointConfig}) => new ProxyResolversModule({processQuery, endpoint, endpointConfig}),
@@ -20,12 +24,13 @@ const preMergeModuleFactories: PreMergeModuleFactory[] = [
 ];
 
 const postMergeModuleFactories: PostMergeModuleFactory[] = [
-    (context) => new LinksModule(context)
+    //(context) => new LinksModule(context)
+    () => new ExtendedIntrospectionModule()
 ];
 
 type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
 
-export function runPipeline(endpoints: EndpointInfo[], endpointFactory: EndpointFactory): GraphQLSchema {
+export function runPipeline(endpoints: EndpointInfo[], endpointFactory: EndpointFactory): ExtendedSchema {
     const pipeline = new Pipeline(endpoints, endpointFactory);
     return pipeline.schema;
 }
@@ -33,7 +38,7 @@ export function runPipeline(endpoints: EndpointInfo[], endpointFactory: Endpoint
 class Pipeline {
     private readonly preMergeModules: Map<string, PipelineModule[]>;
     private readonly postMergeModules: PipelineModule[];
-    private _schema: GraphQLSchema | undefined;
+    private _schema: ExtendedSchema | undefined;
 
     constructor(private readonly endpoints: EndpointInfo[], private readonly endpointFactory: EndpointFactory) {
         const extendedEndpoints = endpoints.map(endpoint => ({
@@ -66,7 +71,7 @@ class Pipeline {
             return runSchemaPipeline(this.preMergeModules.get(endpoint.endpointConfig.name)!, schema);
         });
 
-        const schema = mergeSchemas(schemas);
+        const schema = mergeExtendedSchemas(...schemas);
 
         return runSchemaPipeline(this.postMergeModules, schema);
     }

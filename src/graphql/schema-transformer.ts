@@ -26,6 +26,7 @@ export interface SchemaTransformer {
     transformDirective?: TransformationFunction<GraphQLDirectiveConfig, DirectiveTransformationContext>;
 
     transformField?: TransformationFunction<GraphQLNamedFieldConfig<any, any>, FieldTransformationContext>;
+    transformFields?: TransformationFunction<GraphQLFieldConfigMap<any, any>, FieldsTransformationContext>;
     transformInputField?: TransformationFunction<GraphQLNamedInputFieldConfig, InputFieldTransformationContext>;
 }
 
@@ -64,6 +65,23 @@ export interface FieldTransformationContext extends SchemaTransformationContext 
      * The original version of the field
      */
     readonly oldField: GraphQLField<any, any>;
+
+    /**
+     * Gets the type (in the new schema) that defined the field being transformed
+     */
+    readonly newOuterType: GraphQLObjectType | GraphQLInterfaceType;
+
+    /**
+     * Gets the type (in the old schema) that defined the field being transformed
+     */
+    readonly oldOuterType: GraphQLObjectType | GraphQLInterfaceType;
+}
+
+export interface FieldsTransformationContext extends SchemaTransformationContext {
+    /**
+     * The original version of the fields
+     */
+    readonly oldFields: GraphQLFieldMap<any, any>;
 
     /**
      * Gets the type (in the new schema) that defined the field being transformed
@@ -341,6 +359,14 @@ class Transformer {
                 throw new Error(`Duplicate field name ${fieldConfig} in ${context.oldOuterType.name}`);
             }
             fields[fieldConfig.name] = fieldConfig;
+        }
+        if (this.transformers.transformFields) {
+            this.transformers.transformFields(fields, {
+                ...this.transformationContext,
+                oldFields: originalFields,
+                oldOuterType: context.oldOuterType,
+                newOuterType: context.newOuterType
+            });
         }
         return fields;
     }

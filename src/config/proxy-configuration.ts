@@ -1,5 +1,6 @@
 import { GraphQLSchema } from 'graphql';
 import { capitalize } from '../utils';
+import { FieldMetadata } from '../endpoints/extended-introspection';
 
 export interface ProxyConfigInput {
     port?: number,
@@ -7,7 +8,7 @@ export interface ProxyConfigInput {
         [key: string]: (string | {
             url: string
             typePrefix?: string
-            links?: LinkConfigMap
+            fieldMetadata?: {[key: string]: FieldMetadata}
         })
     };
 }
@@ -20,7 +21,7 @@ export interface ProxyConfig {
 interface EndpointConfigBase {
     name: string
     typePrefix: string
-    links: LinkConfigMap
+    fieldMetadata?: {[key: string]: FieldMetadata}
     url?: string
     schema?: GraphQLSchema
 }
@@ -35,15 +36,6 @@ interface LocalEndpointConfig extends EndpointConfigBase {
 
 export type EndpointConfig = HttpEndpointConfig | LocalEndpointConfig;
 
-export type LinkConfigMap = { [typeAndField: string]: LinkTargetConfig | undefined };
-
-export interface LinkTargetConfig {
-    endpoint: string
-    field: string
-    argument: string
-    batchMode?: boolean
-    keyField?: string
-}
 
 const DEFAULT_PORT = 3200;
 
@@ -56,12 +48,10 @@ export function normalizeProxyConfig(input: ProxyConfigInput) {
                 return {
                     name: key,
                     url: endpoint,
-                    links: {},
                     typePrefix: capitalize(key)
                 };
             }
             return {
-                links: {},
                 typePrefix: capitalize(key),
                 ...endpoint,
                 name: key
