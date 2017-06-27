@@ -191,7 +191,7 @@ class Transformer {
         const directives = schema.getDirectives()
             .map(directive => isNativeDirective(directive) ? directive : this.transformDirective(directive));
 
-        const findNewTypeMaybe = (type: GraphQLObjectType | undefined) => {
+        const findNewTypeMaybe = (type: GraphQLObjectType | null | undefined) => {
             if (!type) {
                 return undefined;
             }

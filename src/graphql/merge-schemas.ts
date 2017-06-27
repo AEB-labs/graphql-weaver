@@ -1,5 +1,5 @@
 import { GraphQLDirective, GraphQLField, GraphQLFieldConfig, GraphQLObjectType, GraphQLSchema } from 'graphql';
-import { arrayToObject, mapValues } from '../utils';
+import {arrayToObject, mapAndCompact, mapValues} from '../utils';
 
 /**
  * Merges multiple GraphQL schemas by merging the fields of root types (query, mutation, subscription)
@@ -8,8 +8,8 @@ import { arrayToObject, mapValues } from '../utils';
 export function mergeSchemas(schemas: GraphQLSchema[]) {
     return new GraphQLSchema({
         query: mergeFields(schemas.map(schema => schema.getQueryType()), 'Query'),
-        mutation: mergeFields(schemas.map(schema => schema.getMutationType()).filter(a => a), 'Mutation'),
-        subscription: mergeFields(schemas.map(schema => schema.getSubscriptionType()).filter(a => a), 'Subscription'),
+        mutation: mergeFields(mapAndCompact(schemas, schema => schema.getMutationType()), 'Mutation'),
+        subscription: mergeFields(mapAndCompact(schemas, schema => schema.getSubscriptionType()), 'Subscription'),
         directives: (<GraphQLDirective[]>[]).concat(...schemas.map(schema => schema.getDirectives()))
     });
 }

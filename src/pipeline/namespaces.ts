@@ -26,10 +26,6 @@ export class NamespaceModule implements PipelineModule {
     }**/
 
     private wrap(type: GraphQLObjectType, operation: string): GraphQLObjectType {
-        if (!type) {
-            return type;
-        }
-
         return new GraphQLObjectType({
             name: `Wrapped${type.name}`, // TODO collisions
             description: 'Namespace root', // does not really matter, will be discarded on merge anyway

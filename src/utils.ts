@@ -10,9 +10,9 @@ export function capitalize(string: string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-export function maybeDo<TIn, TOut>(input: TIn|undefined, fn: (input: TIn) => TOut): TOut|undefined {
-    if (!input) {
-        return input;
+export function maybeDo<TIn, TOut>(input: TIn|null|undefined, fn: (input: TIn) => TOut): TOut|undefined {
+    if (input == undefined) {
+        return undefined;
     }
     return fn(input);
 }
@@ -58,4 +58,8 @@ export function flatten<T>(input: T[][]): T[] {
 
 export function flatMap<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut[]): TOut[] {
     return flatten(input.map(fn));
+}
+
+export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|undefined|null): TOut[] {
+    return input.map(fn).filter(a => a != undefined) as TOut[];
 }
