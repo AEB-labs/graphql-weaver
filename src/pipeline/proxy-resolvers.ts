@@ -30,16 +30,19 @@ class ResolverTransformer implements SchemaTransformer {
 
     }
 
-    transformField(config: GraphQLNamedFieldConfig<any, any>, context: FieldTransformationContext) {
+    transformField(config: GraphQLNamedFieldConfig<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfig<any, any> {
         if (!isRootType(context.oldOuterType, context.oldSchema)) {
-            return;
+            return config;
         }
 
-        config.resolve = async (source, args, context, info) => {
-            let query = getFieldAsQuery(info);
-            query = this.config.processQuery(query, this.config.endpointConfig.name);
-            return await this.config.endpoint.query(query.document, query.variableValues);
-        }
+        return {
+            ...config,
+            resolve: async (source, args, context, info) => {
+                let query = getFieldAsQuery(info);
+                query = this.config.processQuery(query, this.config.endpointConfig.name);
+                return await this.config.endpoint.query(query.document, query.variableValues);
+            }
+        };
     }
 }
 

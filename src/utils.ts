@@ -29,10 +29,10 @@ export function objectToMap<T>(object: {[name: string]: T}): Map<string, T> {
     return new Map<string, T>(objectEntries(object));
 }
 
-export function mapValues<TIn, TOut>(obj: {[key: string]: TIn}, fn: (input: TIn) => TOut): {[key: string]: TOut} {
+export function mapValues<TIn, TOut>(obj: {[key: string]: TIn}, fn: (value: TIn, key: string) => TOut): {[key: string]: TOut} {
     const result: {[key: string]: TOut} = {};
     for (const key in obj) {
-        result[key] = fn(obj[key]);
+        result[key] = fn(obj[key], key);
     }
     return result;
 }
@@ -58,6 +58,10 @@ export function flatten<T>(input: T[][]): T[] {
 
 export function flatMap<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut[]): TOut[] {
     return flatten(input.map(fn));
+}
+
+export function compact<T>(arr: (T|undefined|null)[]): T[] {
+    return arr.filter(a => a != undefined) as T[];
 }
 
 export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|undefined|null): TOut[] {

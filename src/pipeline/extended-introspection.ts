@@ -16,14 +16,17 @@ export class ExtendedIntrospectionModule implements PipelineModule {
 
     transformExtendedSchema(schema: ExtendedSchema): ExtendedSchema {
         return schema.withSchema(transformSchema(schema.schema, {
-            transformFields(config: GraphQLFieldConfigMap<any, any>, {oldOuterType}: FieldsTransformationContext) {
+            transformFields(config: GraphQLFieldConfigMap<any, any>, {oldOuterType}: FieldsTransformationContext): GraphQLFieldConfigMap<any, any> {
                 if (oldOuterType != schema.schema.getQueryType()) {
-                    return;
+                    return config;
                 }
 
-                config[EXTENDED_INTROSPECTION_FIELD] = {
-                    type: getExtendedIntrospectionType(),
-                    resolve: () => schema
+                return {
+                    ...config,
+                    [EXTENDED_INTROSPECTION_FIELD]: {
+                        type: getExtendedIntrospectionType(),
+                        resolve: () => schema
+                    }
                 };
             }
         }));
