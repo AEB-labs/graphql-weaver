@@ -1,18 +1,22 @@
 import {
     ASTNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
-    OperationDefinitionNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode, visit
+    OperationDefinitionNode, OperationTypeNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode,
+    visit
 } from 'graphql';
 import { Query } from './common';
 
-/**
- * Prepares all the parts necessary to construct a GraphQL query document like produced by getFieldAsQuery
- */
-export function getFieldAsQueryParts(info: GraphQLResolveInfo): {
+type QueryParts = {
     fragments: FragmentDefinitionNode[],
     selectionSet: SelectionSetNode,
     variableDefinitions: VariableDefinitionNode[],
     variableValues: { [name: string]: any }
-} {
+    operation: OperationTypeNode;
+};
+
+/**
+ * Prepares all the parts necessary to construct a GraphQL query document like produced by getFieldAsQuery
+ */
+export function getFieldAsQueryParts(info: GraphQLResolveInfo): QueryParts {
     const fragments = collectUsedFragments(info.fieldNodes, info.fragments);
     const selections = collectSelections(info.fieldNodes);
     const selectionSet: SelectionSetNode = {
@@ -23,8 +27,9 @@ export function getFieldAsQueryParts(info: GraphQLResolveInfo): {
     const variableDefinitions = (info.operation.variableDefinitions || [])
         .filter(variable => variableNames.has(variable.variable.name.value));
     const variableValues = pickIntoObject(info.variableValues, Array.from(variableNames));
+    const operation = info.operation.operation;
 
-    return {fragments, variableDefinitions, variableValues, selectionSet};
+    return {fragments, variableDefinitions, variableValues, selectionSet, operation};
 }
 
 /**
@@ -33,11 +38,15 @@ export function getFieldAsQueryParts(info: GraphQLResolveInfo): {
  * This is the basic component of a proxy - a resolver calls this method and then sends the query to the upstream server
  */
 export function getFieldAsQuery(info: GraphQLResolveInfo): Query {
-    const {fragments, variableDefinitions, variableValues, selectionSet} = getFieldAsQueryParts(info);
+    return getQueryFromParts(getFieldAsQueryParts(info));
+}
 
-    const operation: OperationDefinitionNode = {
+export function getQueryFromParts(parts: QueryParts) {
+    const {fragments, variableDefinitions, variableValues, selectionSet, operation} = parts;
+
+    const operationNode: OperationDefinitionNode = {
         kind: 'OperationDefinition',
-        operation: info.operation.operation,
+        operation,
         variableDefinitions,
         selectionSet
     };
@@ -45,7 +54,7 @@ export function getFieldAsQuery(info: GraphQLResolveInfo): Query {
     const document: DocumentNode = {
         kind: 'Document',
         definitions: [
-            operation,
+            operationNode,
             ...fragments
         ]
     };

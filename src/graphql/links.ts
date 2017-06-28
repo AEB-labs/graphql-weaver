@@ -1,12 +1,23 @@
-import { getNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLType } from 'graphql';
+import {
+    DocumentNode, execute, FieldNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo,
+    GraphQLType, OperationDefinitionNode, SelectionSetNode
+} from 'graphql';
 import { FieldTransformationContext } from './schema-transformer';
-import { getFieldAsQuery } from './field-as-query';
+import { getFieldAsQueryParts } from './field-as-query';
 import { ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata } from './extended-schema-transformer';
 import { walkFields } from './schema-utils';
 import { ExtendedSchema } from '../endpoints/extended-introspection';
+import {
+    addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
+    createSelectionChain
+} from './language-utils';
+import { arrayToObject } from '../utils';
+import { assertSuccessfulResponse } from '../endpoints/client';
+import { isArray } from 'util';
+import { ArrayKeyWeakMap } from '../multi-key-weak-map';
 import DataLoader = require('dataloader');
 
-function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): GraphQLNonNull<T> {
+function getNonNullType<T extends GraphQLType>(type: T | GraphQLNonNull<T>): GraphQLNonNull<T> {
     if (type instanceof GraphQLNonNull) {
         return type;
     }
@@ -22,127 +33,149 @@ export class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         if (!config.metadata || !config.metadata.link) {
             return config;
         }
+        const schema = this.schema.schema;
         const link = config.metadata.link;
-        const field = walkFields(this.schema.schema.getQueryType(), [link.endpoint, ...link.field.split('.')]);
-        if (!field) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${link.endpoint}.${link.field} which does not exist in the schema`);
+        const fieldNames = [link.endpoint, ...link.field.split('.')];
+        const targetField = walkFields(this.schema.schema.getQueryType(), fieldNames);
+        if (!targetField) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${fieldNames.join('.')} which does not exist in the schema`);
         }
 
         // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
         // TODO implement links on list fields
-        const type = <GraphQLOutputType>getNamedType(context.mapType(field.type));
+        const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
+        const sourceRawType = getNamedType(context.mapType(config.type));
 
-        return {
-            ...config,
-            resolve: async (a,b,c, info) => {
-                const { document, variableValues } = getFieldAsQuery(info);
-                //const result = await execute(this.schema.schema, document, undefined, undefined, variableValues);
-                return null;
-            },
-            type
-        };
-
-        /*const dataLoaders = new WeakMap<any, DataLoader<any, any>>();
-
-        const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
-        let keyFieldAlias: string|undefined;
-        const basicResolve = async (value: any, info: GraphQLResolveInfo) => {
-            const {fragments, variableDefinitions, variableValues, selectionSet} = getFieldAsQueryParts(info);
+        /**
+         * Fetches one object, or a list of objects in batch mode, according to the query underlying the resolveInfo
+         * @param keyOrKeys either a single key of a list of keys, depending on link.batchMode
+         * @param resolveInfo the resolveInfo from the request
+         * @returns {Promise<void>}
+         */
+        async function fetchSingularOrPlural(keyOrKeys: any, resolveInfo: GraphQLResolveInfo & { context: any }) {
+            const {fragments, ...originalParts} = getFieldAsQueryParts(resolveInfo);
 
             // add variable
-            const varType = link.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(originalType))) : originalType;
+            const varType = link.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(sourceRawType))) : getNonNullType(sourceRawType);
             const varNameBase = link.argument.split('.').pop()!;
-            const { variableDefinitions: extVariableDefinitions, name: varName } =
-                addVariableDefinitionSafely(variableDefinitions, varNameBase, varType);
+            const {variableDefinitions, name: varName} = addVariableDefinitionSafely(originalParts.variableDefinitions, varNameBase, varType);
+            const variableValues = {
+                ...originalParts.variableValues,
+                [varName]: keyOrKeys
+            };
 
             // add keyField if needed
-            let extSelectionSet = selectionSet;
+            let payloadSelectionSet = originalParts.selectionSet;
+            let keyFieldAlias: string | undefined;
             if (link.batchMode && link.keyField) {
-                const { alias, selectionSet: newSelectionSet } =
-                    addFieldSelectionSafely(selectionSet, link.keyField, arrayToObject(fragments, f => f.name.value));
+                const {alias, selectionSet: newSelectionSet} =
+                    addFieldSelectionSafely(payloadSelectionSet, link.keyField, arrayToObject(fragments, f => f.name.value));
                 keyFieldAlias = alias;
-                extSelectionSet = newSelectionSet;
+                payloadSelectionSet = newSelectionSet;
             }
 
+            // wrap selection in field node chain on target, and add the argument with the key field
+            const outerFieldNames = [...fieldNames];
+            const innerFieldName = outerFieldNames.pop()!; // this removes the last element of outerFields in-place
+            const innerFieldNode: FieldNode = {
+                ...createFieldNode(innerFieldName),
+                selectionSet: payloadSelectionSet,
+                arguments: [
+                    createNestedArgumentWithVariableNode(link.argument, varName)
+                ]
+            };
+            const innerSelectionSet: SelectionSetNode = {
+                kind: 'SelectionSet',
+                selections: [innerFieldNode]
+            };
+            const selectionSet = createSelectionChain(outerFieldNames, innerSelectionSet);
+
+            // create document
+            const operation: OperationDefinitionNode = {
+                kind: 'OperationDefinition',
+                operation: 'query',
+                variableDefinitions,
+                selectionSet
+            };
             const document: DocumentNode = {
                 kind: 'Document',
                 definitions: [
-                    ...fragments,
-                    {
-                        kind: 'OperationDefinition',
-                        operation: 'query', // links are always resolved via query operations
-                        variableDefinitions: extVariableDefinitions,
-                        selectionSet: {
-                            kind: 'SelectionSet',
-                            selections: [
-                                {
-                                    kind: 'Field',
-                                    name: {
-                                        kind: 'Name',
-                                        value: link.field
-                                    },
-                                    arguments: [
-                                        createNestedArgumentWithVariableNode(link.argument, varName)
-                                    ],
-                                    selectionSet: extSelectionSet
-                                }
-                            ]
-                        }
-                    }
+                    operation,
+                    ...fragments
                 ]
             };
 
-            const query = {
-                document,
-                variableValues: {
-                    ...variableValues,
-                    [varName]: value
-                }
-            };
-            const obj = await targetEndpoint.query(query.document, query.variableValues);
-            return obj[link.field];
-        };
+            // execute
+            const result = await execute(schema, document, {} /* root */, resolveInfo.context, variableValues);
+            assertSuccessfulResponse(result);
 
-        const resolveBatch = async (keys: any[], info: GraphQLResolveInfo) => {
-            let result;
-            if (link.batchMode) {
-                result = await basicResolve(keys, info);
-            } else {
-                result = await keys.map(key => basicResolve(key, info));
-            }
+            // unwrap
+            const data = fieldNames.reduce((data, fieldName) => data![fieldName], result.data);
 
-            if (!link.batchMode || !link.keyField) {
-                // simple case: endpoint returns the objects in the order of given ids
-                return result;
-            }
             // unordered case: endpoints does not preserve order, so we need to remap based on a key field
-            const map = new Map((<any[]>result).map(item => <[any, any]>[item[keyFieldAlias!], item]));
-            return keys.map(key => map.get(key));
-        };
-
-        const field = endpointQueryType.getFields()[link.field];
-        const originalType = config.type;
-        // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
-        config.type = <GraphQLOutputType>getNamedType(context.mapType(field.type));
-        config.resolve = async (source, args, context, info) => {
-            const fieldNode = info.fieldNodes[0];
-            const alias = fieldNode.alias ? fieldNode.alias.value : fieldNode.name.value;
-            const value = source[alias];
-            if (!value) {
-                return value;
+            if (link.batchMode && link.keyField) {
+                // first, create a lookup table from id to item
+                if (!isArray(data)) {
+                    throw new Error(`Result of ${fieldNames.join('.')} expected to be an array because batchMode is true`);
+                }
+                const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
+                // Then, use the lookup table to efficiently order the result
+                return (keyOrKeys as any[]).map(key => map.get(key));
             }
 
-            // TODO include all the info.fieldNodes in the key somehow
+            // ordered case (plural) or singular case
+            return data;
+        }
+
+        /**
+         * Fetches a list of objects by their keys
+         *
+         * @param keys an array of key values
+         * @param info the resolve info that specifies the structure of the query
+         * @return an array of objects, with 1:1 mapping to the keys
+         */
+        async function fetchBatch(keys: any[], info: GraphQLResolveInfo & { context: any }) {
+            if (!link.batchMode) {
+                // no batch mode, so do one request per id
+                return keys.map(key => fetchSingularOrPlural(key, info));
+            }
+            return await fetchSingularOrPlural(keys, info);
+        }
+
+        const dataLoaders = new ArrayKeyWeakMap<FieldNode|any, DataLoader<any, any>>();
+
+        /**
+         * Fetches an object by its key, but collects keys before sending a batch request
+         */
+        async function fetchDeferred(key: any, info: GraphQLResolveInfo & { context: any }) {
             // the fieldNodes array is unique each call, but each individual fieldNode is reused). We can not easily
             // merge the selection sets because they may have collisions. However, we could merge all queries to one
             // endpoint (dataLoader over dataLoaders).
-            let dataLoader = dataLoaders.get(context);
+            // also include context because it is also used
+            const dataLoaderKey = [...info.fieldNodes, context];
+            let dataLoader = dataLoaders.get(dataLoaderKey);
             if (!dataLoader) {
-                dataLoader = new DataLoader(keys => resolveBatch(keys, info));
-                dataLoaders.set(context, dataLoader);
+                dataLoader = new DataLoader(keys => fetchBatch(keys, info));
+                dataLoaders.set(dataLoaderKey, dataLoader);
             }
 
-            return dataLoader.load(value);
-        };*/
+            return dataLoader.load(key);
+        }
+
+        return {
+            ...config,
+            resolve: async (source, vars, context, info) => {
+                const fieldNode = info.fieldNodes[0];
+                const alias = fieldNode.alias ? fieldNode.alias.value : fieldNode.name.value;
+                const key = source[alias];
+                if (!key) {
+                    return key;
+                }
+
+                const result = fetchDeferred(key, {...info, context});
+                return result;
+            },
+            type: targetRawType
+        };
     }
 }

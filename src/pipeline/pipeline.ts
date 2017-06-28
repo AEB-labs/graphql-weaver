@@ -82,6 +82,6 @@ class Pipeline {
             throw new Error(`Endpoint ${endpointName} does not exist`);
         }
         const preMergeModules = this.preMergeModules.get(endpointName)!;
-        return runQueryPipeline([...preMergeModules].reverse(), query);
+        return runQueryPipeline([...preMergeModules, ...this.postMergeModules].reverse(), query);
     }
 }

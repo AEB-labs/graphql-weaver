@@ -1,7 +1,6 @@
-import { ASTNode, FieldNode, TypeInfo, visit, visitWithTypeInfo } from 'graphql';
+import { ASTNode, FieldNode, GraphQLObjectType, TypeInfo, visit, visitWithTypeInfo } from 'graphql';
 import { PipelineModule } from './pipeline-module';
 import { SchemaLinkTransformer } from '../graphql/links';
-import { getTypePrefix } from '../graphql/renaming';
 import { ExtendedSchema } from '../endpoints/extended-introspection';
 import { transformExtendedSchema } from '../graphql/extended-schema-transformer';
 
@@ -28,33 +27,31 @@ export class LinksModule implements PipelineModule {
      *
      * The resolver of the linked field will do the fetch of the linked object, so here we just need the scalar value
      */
-    /*transformNode(node: ASTNode): ASTNode {
-        if (!this.schema) {
+    transformNode(node: ASTNode): ASTNode {
+        if (!this.linkedSchema || !this.unlinkedSchema) {
             throw new Error(`Schema is not built yet`);
         }
 
         let layer = 0;
-        const links = this.links;
-        const typeInfo = new TypeInfo(this.schema);
+        const typeInfo = new TypeInfo(this.linkedSchema.schema);
 
         // first-level fields would be nested calls, there we want the link data
         const ignoreFirstLayer = node.kind != 'FragmentDefinition';
 
         return visit(node, visitWithTypeInfo(typeInfo, {
             Field: {
-                enter(child: FieldNode) {
+                enter: (child: FieldNode) => {
                     if (ignoreFirstLayer && layer < 2) {
                         layer++;
                         return;
                     }
                     layer++;
                     const type = typeInfo.getParentType();
-                    if (!type) {
+                    if (!type || !(type instanceof GraphQLObjectType)) {
                         throw new Error(`Failed to retrieve type for field ${child.name.value}`);
                     }
-                    const linkName = type.name + '.' + typeInfo.getFieldDef().name;
-                    const link = links[linkName];
-                    if (link) {
+                    const metadata = this.unlinkedSchema!.getFieldMetadata(type, typeInfo.getFieldDef());
+                    if (metadata && metadata.link) {
                         return {
                             ...child,
                             selectionSet: undefined
@@ -68,5 +65,5 @@ export class LinksModule implements PipelineModule {
                 }
             }
         }));
-    }*/
+    }
 }

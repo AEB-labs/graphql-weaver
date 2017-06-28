@@ -1,10 +1,11 @@
 import { PipelineModule } from './pipeline-module';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from '../graphql/schema-transformer';
 import { GraphQLSchema, GraphQLType } from 'graphql';
-import { getFieldAsQuery } from '../graphql/field-as-query';
+import { getFieldAsQuery, getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
 import { Query } from '../graphql/common';
 import { EndpointConfig } from '../config/proxy-configuration';
+import { createSelectionChain } from '../graphql/language-utils';
 
 interface Config {
     readonly endpoint: GraphQLEndpoint
@@ -38,7 +39,11 @@ class ResolverTransformer implements SchemaTransformer {
         return {
             ...config,
             resolve: async (source, args, context, info) => {
-                let query = getFieldAsQuery(info);
+                // wrap selection into field being resolved
+                const { selectionSet, ...parts} = getFieldAsQueryParts(info);
+                const newSelectionSet = createSelectionChain([config.name], selectionSet);
+                let query = getQueryFromParts({...parts, selectionSet: newSelectionSet});
+
                 query = this.config.processQuery(query, this.config.endpointConfig.name);
                 return await this.config.endpoint.query(query.document, query.variableValues);
             }
