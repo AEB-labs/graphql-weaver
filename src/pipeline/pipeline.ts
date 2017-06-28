@@ -9,8 +9,8 @@ import { LinksModule } from './links';
 import { DocumentNode } from 'graphql';
 import { ProxyResolversModule } from './proxy-resolvers';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
-import { mergeExtendedSchemas } from '../graphql/merge-extended-schemas';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
+import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
 
@@ -24,7 +24,7 @@ const preMergeModuleFactories: PreMergeModuleFactory[] = [
 ];
 
 const postMergeModuleFactories: PostMergeModuleFactory[] = [
-    //(context) => new LinksModule(context)
+    () => new LinksModule(),
     () => new ExtendedIntrospectionModule()
 ];
 
@@ -82,6 +82,6 @@ class Pipeline {
             throw new Error(`Endpoint ${endpointName} does not exist`);
         }
         const preMergeModules = this.preMergeModules.get(endpointName)!;
-        return runQueryPipeline([...preMergeModules].reverse(), query);
+        return runQueryPipeline([...preMergeModules, ...this.postMergeModules].reverse(), query);
     }
 }

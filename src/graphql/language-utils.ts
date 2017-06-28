@@ -27,6 +27,34 @@ export function createFieldNode(name: string, alias?: string): FieldNode {
 }
 
 /**
+ * Builds a SelectionSetNode for a chain of nested field selections
+ *
+ * The input (['a', 'b'], selSet) yields the selection set "{ a { b { selSet } } }"
+ * @param fieldNames
+ * @param innermostSelectionSet
+ * @returns {SelectionSetNode}
+ */
+export function createSelectionChain(fieldNames: string[], innermostSelectionSet: SelectionSetNode): SelectionSetNode {
+    let currentSelectionSet = innermostSelectionSet;
+    for (const fieldName of fieldNames) {
+        currentSelectionSet = {
+            kind: 'SelectionSet',
+            selections: [
+                {
+                    kind: 'Field',
+                    name: {
+                        kind: 'Name',
+                        value: fieldName
+                    },
+                    selectionSet: currentSelectionSet
+                }
+            ]
+        };
+    }
+    return currentSelectionSet;
+}
+
+/**
  * Creates a GraphQL syntax node for a type reference, given the type instance of the schema
  */
 export function createTypeNode(type: GraphQLNamedType): NamedTypeNode;

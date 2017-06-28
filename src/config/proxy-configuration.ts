@@ -1,6 +1,6 @@
 import { GraphQLSchema } from 'graphql';
-import { capitalize } from '../utils';
-import { FieldMetadata } from '../endpoints/extended-introspection';
+import { capitalize } from '../utils/utils';
+import { FieldMetadata } from '../extended-schema/extended-schema';
 
 export interface ProxyConfigInput {
     port?: number,

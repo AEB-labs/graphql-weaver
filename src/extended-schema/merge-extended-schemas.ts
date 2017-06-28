@@ -1,6 +1,6 @@
-import { ExtendedSchema, FieldMetadata } from '../endpoints/extended-introspection';
-import { flatMap } from '../utils';
-import { mergeSchemas } from './merge-schemas';
+import { ExtendedSchema, FieldMetadata } from './extended-schema';
+import { flatMap } from '../utils/utils';
+import { mergeSchemas } from '../graphql/merge-schemas';
 
 /**
  * Merges multiple GraphQL schemas by merging the fields of root types (query, mutation, subscription).
