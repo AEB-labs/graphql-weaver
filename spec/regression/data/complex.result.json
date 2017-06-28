@@ -1,0 +1,27 @@
+{
+  "local": {
+    "info": "This is an internal endpoint"
+  },
+  "logistics": {
+    "allCountries": [
+      {
+        "isoCode": "DE"
+      },
+      {
+        "isoCode": "FR"
+      },
+      {
+        "isoCode": "US"
+      },
+      {
+        "isoCode": "CZ"
+      },
+      {
+        "isoCode": "CN"
+      },
+      {
+        "isoCode": "HK"
+      }
+    ]
+  }
+}

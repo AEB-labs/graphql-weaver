@@ -21,7 +21,8 @@
     "jasmine-promises": "^0.4.1",
     "jasmine-spec-reporter": "^4.1.0",
     "ts-node": "^3.0.4",
-    "typescript": "^2.3.3"
+    "typescript": "^2.3.3",
+    "jsondiffpatch": "^0.2.4"
   },
   "dependencies": {
     "body-parser": "^1.17.2",
