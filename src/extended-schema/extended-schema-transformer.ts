@@ -1,8 +1,8 @@
-import { ExtendedSchema, FieldMetadata } from '../endpoints/extended-introspection';
+import { ExtendedSchema, FieldMetadata } from './extended-schema';
 import {
     FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext,
     SchemaTransformer, transformSchema
-} from './schema-transformer';
+} from '../graphql/schema-transformer';
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
 import { mapValues } from '../utils';
 

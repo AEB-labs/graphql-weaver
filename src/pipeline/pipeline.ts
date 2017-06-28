@@ -9,8 +9,8 @@ import { LinksModule } from './links';
 import { DocumentNode } from 'graphql';
 import { ProxyResolversModule } from './proxy-resolvers';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
-import { mergeExtendedSchemas } from '../graphql/merge-extended-schemas';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
+import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
 

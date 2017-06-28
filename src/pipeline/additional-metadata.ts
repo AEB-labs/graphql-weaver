@@ -1,7 +1,7 @@
 import { PipelineModule } from './pipeline-module';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { EndpointConfig } from '../config/proxy-configuration';
-import { mergeFieldMetadata } from '../graphql/merge-extended-schemas';
+import { mergeFieldMetadata } from '../extended-schema/merge-extended-schemas';
 import { objectToMap } from '../utils';
 
 /**

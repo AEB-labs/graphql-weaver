@@ -4,9 +4,9 @@ import {
 } from 'graphql';
 import { FieldTransformationContext } from './schema-transformer';
 import { getFieldAsQueryParts } from './field-as-query';
-import { ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata } from './extended-schema-transformer';
+import { ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata } from '../extended-schema/extended-schema-transformer';
 import { walkFields } from './schema-utils';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
 import {
     addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
     createSelectionChain

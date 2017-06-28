@@ -1,8 +1,8 @@
 import { ASTNode, FieldNode, GraphQLObjectType, TypeInfo, visit, visitWithTypeInfo } from 'graphql';
 import { PipelineModule } from './pipeline-module';
 import { SchemaLinkTransformer } from '../graphql/links';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
-import { transformExtendedSchema } from '../graphql/extended-schema-transformer';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
+import { transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
 
 /**
  * Adds a feature to link fields to types of other endpoints

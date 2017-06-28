@@ -2,10 +2,10 @@ import { ASTNode, DocumentNode, GraphQLSchema, TypeInfo } from 'graphql';
 import { SchemaTransformer } from '../graphql/schema-transformer';
 import { EndpointConfig } from '../config/proxy-configuration';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
-import { ExtendedSchema } from '../endpoints/extended-introspection';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { EndpointFactory } from '../endpoints/endpoint-factory';
 import { Query } from '../graphql/common';
-import { ExtendedSchemaTransformer, transformExtendedSchema } from '../graphql/extended-schema-transformer';
+import { ExtendedSchemaTransformer, transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
 
 /**
  * Part of the pipeline that transforms both the schema and queries/resolvers
