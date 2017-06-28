@@ -1,4 +1,4 @@
-import { GraphQLServer } from './graphql/graphql-server';
+import { GraphQLServer } from './server/graphql-server';
 import { createProxySchema } from './graphql/schema';
 import { loadProxyConfig } from './config/load-config';
 import TraceError = require('trace-error');
