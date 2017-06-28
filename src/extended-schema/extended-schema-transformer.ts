@@ -4,7 +4,7 @@ import {
     SchemaTransformer, transformSchema
 } from '../graphql/schema-transformer';
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
-import { mapValues } from '../utils';
+import { mapValues } from '../utils/utils';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;

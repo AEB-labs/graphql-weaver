@@ -1,4 +1,4 @@
-import { ArrayKeyWeakMap } from '../src/multi-key-weak-map';
+import { ArrayKeyWeakMap } from '../../src/utils/multi-key-weak-map';
 describe('MultiKeyWeakMap', () => {
     it('can set and get', () => {
         const map = new ArrayKeyWeakMap();

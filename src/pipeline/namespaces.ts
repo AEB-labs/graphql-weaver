@@ -2,7 +2,7 @@ import { PipelineModule } from './pipeline-module';
 import {
     ASTNode, FieldNode, FragmentDefinitionNode, GraphQLObjectType, GraphQLSchema, SelectionSetNode, visit
 } from 'graphql';
-import { maybeDo } from '../utils';
+import { maybeDo } from '../utils/utils';
 
 /**
  * Wraps the root types into a field of a new type

@@ -1,5 +1,5 @@
 import { GraphQLServer } from './server/graphql-server';
-import { createProxySchema } from './graphql/schema';
+import { createProxySchema } from './proxy-schema';
 import { loadProxyConfig } from './config/load-config';
 import TraceError = require('trace-error');
 import { DefaultEndpointFactory } from './endpoints/endpoint-factory';

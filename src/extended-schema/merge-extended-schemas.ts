@@ -1,5 +1,5 @@
 import { ExtendedSchema, FieldMetadata } from './extended-schema';
-import { flatMap } from '../utils';
+import { flatMap } from '../utils/utils';
 import { mergeSchemas } from '../graphql/merge-schemas';
 
 /**

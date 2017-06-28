@@ -11,10 +11,10 @@ import {
     addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
     createSelectionChain
 } from './language-utils';
-import { arrayToObject } from '../utils';
+import { arrayToObject } from '../utils/utils';
 import { assertSuccessfulResponse } from '../endpoints/client';
 import { isArray } from 'util';
-import { ArrayKeyWeakMap } from '../multi-key-weak-map';
+import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import DataLoader = require('dataloader');
 
 function getNonNullType<T extends GraphQLType>(type: T | GraphQLNonNull<T>): GraphQLNonNull<T> {

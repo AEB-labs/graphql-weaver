@@ -1,5 +1,5 @@
 import { GraphQLBoolean, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { objectValues } from '../utils';
+import { objectValues } from '../utils/utils';
 import { ExtendedSchema, FieldMetadata } from './extended-schema';
 
 export const EXTENDED_INTROSPECTION_FIELD = '_extIntrospection';

@@ -1,5 +1,5 @@
 import { GraphQLDirective, GraphQLField, GraphQLFieldConfig, GraphQLObjectType, GraphQLSchema } from 'graphql';
-import {arrayToObject, mapAndCompact, mapValues} from '../utils';
+import {arrayToObject, mapAndCompact, mapValues} from '../utils/utils';
 
 /**
  * Merges multiple GraphQL schemas by merging the fields of root types (query, mutation, subscription)
