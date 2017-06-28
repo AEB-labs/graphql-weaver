@@ -1,0 +1,21 @@
+import CustomMatcher = jasmine.CustomMatcher;
+import CustomMatcherResult = jasmine.CustomMatcherResult;
+import CustomMatcherFactories = jasmine.CustomMatcherFactories;
+const jsondiffpatch = require('jsondiffpatch');
+
+// thanks to https://github.com/jasmine/jasmine/issues/675#issuecomment-127187623
+export const TO_EQUAL_JSON_MATCHERS: CustomMatcherFactories = {
+    toEqualJSON: function(util, customEqualityTesters): CustomMatcher {
+        return {
+            compare: function(actual: any, expected: any): CustomMatcherResult {
+                actual = JSON.parse(JSON.stringify(actual));
+                expected = JSON.parse(JSON.stringify(expected));
+                const pass = util.equals(actual, expected, customEqualityTesters);
+                return {
+                    pass,
+                    message: pass ? 'ok' : 'JSON objects to not equal, diff: ' + jsondiffpatch.formatters.console.format(jsondiffpatch.diff(expected, actual))
+                };
+            },
+        };
+    }
+};

@@ -23,7 +23,11 @@ export class TypeRenamingTransformer implements SchemaTransformer {
     transformInputObjectType = this.rename;
     transformDirective = this.rename;
 
-    private rename(config: { name: string }) {
-        config.name = this.typeNameTransformer(config.name);
+    private rename<T extends { name: string }>(config: T): T {
+        // ugly assertions needed until typescript 2.5, waiting for https://github.com/Microsoft/TypeScript/issues/10727
+        return {
+            ...(config as object),
+            name: this.typeNameTransformer(config.name)
+        } as T;
     }
 }

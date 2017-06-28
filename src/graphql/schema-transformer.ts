@@ -1,33 +1,32 @@
 import {
-    GraphQLArgument, GraphQLDirective, GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap,
-    GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputFieldConfig,
-    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType,
-    GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
+    GraphQLArgument, GraphQLDirective, GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap, GraphQLField,
+    GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputField,
+    GraphQLInputFieldConfig, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig,
+    GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
     GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
-    GraphQLTypeResolver,
-    GraphQLUnionType, GraphQLUnionTypeConfig
+    GraphQLTypeResolver, GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
-import { objectValues } from '../utils';
+import { compact, objectValues } from '../utils/utils';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
-    = (config: TConfig, context: TContext) => void;
-type SimpleTransformationFunction<TConfig> = TransformationFunction<TConfig, SchemaTransformationContext>;
+    = (config: TConfig, context: TContext) => TConfig;
 
 /**
  * An set of transformation functions that can alter parts of a schema
  */
 export interface SchemaTransformer {
-    transformScalarType?: SimpleTransformationFunction<GraphQLScalarTypeConfig<any, any>>;
-    transformEnumType?: SimpleTransformationFunction<GraphQLEnumTypeConfig>;
-    transformInterfaceType?: SimpleTransformationFunction<GraphQLInterfaceTypeConfig<any, any>>;
-    transformInputObjectType?: SimpleTransformationFunction<GraphQLInputObjectTypeConfig>;
-    transformUnionType?: SimpleTransformationFunction<GraphQLUnionTypeConfig<any, any>>;
-    transformObjectType?: SimpleTransformationFunction<GraphQLObjectTypeConfig<any, any>>;
-    transformDirective?: SimpleTransformationFunction<GraphQLDirectiveConfig>;
+    transformScalarType?: TransformationFunction<GraphQLScalarTypeConfig<any, any>, TypeTransformationContext<GraphQLScalarType>>;
+    transformEnumType?: TransformationFunction<GraphQLEnumTypeConfig, TypeTransformationContext<GraphQLEnumType>>;
+    transformInterfaceType?: TransformationFunction<GraphQLInterfaceTypeConfig<any, any>, TypeTransformationContext<GraphQLInterfaceType>>;
+    transformInputObjectType?: TransformationFunction<GraphQLInputObjectTypeConfig, TypeTransformationContext<GraphQLInputObjectType>>;
+    transformUnionType?: TransformationFunction<GraphQLUnionTypeConfig<any, any>, TypeTransformationContext<GraphQLUnionType>>;
+    transformObjectType?: TransformationFunction<GraphQLObjectTypeConfig<any, any>, TypeTransformationContext<GraphQLObjectType>>;
+    transformDirective?: TransformationFunction<GraphQLDirectiveConfig, DirectiveTransformationContext>;
 
     transformField?: TransformationFunction<GraphQLNamedFieldConfig<any, any>, FieldTransformationContext>;
+    transformFields?: TransformationFunction<GraphQLFieldConfigMap<any, any>, FieldsTransformationContext>;
     transformInputField?: TransformationFunction<GraphQLNamedInputFieldConfig, InputFieldTransformationContext>;
 }
 
@@ -43,9 +42,47 @@ export interface SchemaTransformationContext {
      * @param name
      */
     findType(name: string): GraphQLNamedType | undefined;
+
+    readonly oldSchema: GraphQLSchema;
+}
+
+export interface TypeTransformationContext<T extends GraphQLType>  extends SchemaTransformationContext {
+    /**
+     * The original version of the type
+     */
+    readonly oldType: T;
+}
+
+export interface DirectiveTransformationContext extends SchemaTransformationContext {
+    /**
+     * The original version of the directive
+     */
+    readonly oldDirective: GraphQLDirective;
 }
 
 export interface FieldTransformationContext extends SchemaTransformationContext {
+    /**
+     * The original version of the field
+     */
+    readonly oldField: GraphQLField<any, any>;
+
+    /**
+     * Gets the type (in the new schema) that defined the field being transformed
+     */
+    readonly newOuterType: GraphQLObjectType | GraphQLInterfaceType;
+
+    /**
+     * Gets the type (in the old schema) that defined the field being transformed
+     */
+    readonly oldOuterType: GraphQLObjectType | GraphQLInterfaceType;
+}
+
+export interface FieldsTransformationContext extends SchemaTransformationContext {
+    /**
+     * The original version of the fields
+     */
+    readonly oldFields: GraphQLFieldMap<any, any>;
+
     /**
      * Gets the type (in the new schema) that defined the field being transformed
      */
@@ -58,6 +95,11 @@ export interface FieldTransformationContext extends SchemaTransformationContext 
 }
 
 export interface InputFieldTransformationContext extends SchemaTransformationContext {
+    /**
+     * The original version of the field
+     */
+    readonly oldField: GraphQLInputField;
+
     /**
      * Gets the type (in the new schema) that defined the field being transformed
      */
@@ -79,13 +121,11 @@ export interface GraphQLNamedInputFieldConfig extends GraphQLInputFieldConfig {
 
 function combineTransformationFunctions<TConfig, TContext extends SchemaTransformationContext>
 (fns: (TransformationFunction<TConfig, TContext> | undefined)[]): TransformationFunction<TConfig, TContext> | undefined {
-    const definedFns = fns.filter(a => a);
+    const definedFns = compact(fns.filter(a => a));
     if (!definedFns.length) {
         return undefined;
     }
-    return (config, context) => {
-        definedFns.forEach(fn => fn!(config, context));
-    };
+    return (config, context) => definedFns.reduce((config, fn) => fn(config, context), config);
 }
 
 function bind<TConfig, TContext extends SchemaTransformationContext>(fn: TransformationFunction<TConfig, TContext> | undefined, obj: any): TransformationFunction<TConfig, TContext> | undefined {
@@ -117,18 +157,23 @@ export function combineTransformers(...transformers: SchemaTransformer[]): Schem
  * @param transformers
  */
 export function transformSchema(schema: GraphQLSchema, transformers: SchemaTransformer) {
-    const transformer = new Transformer(transformers);
-    return transformer.transform(schema);
+    const transformer = new Transformer(transformers, schema);
+    return transformer.transform();
 }
 
+// this is not really an OOP class but it is useful to keep track of state. It is not exported, so this is fine
 class Transformer {
     private typeMap: { [typeName: string]: GraphQLNamedType } = {};
 
-    constructor(private transformers: SchemaTransformer) {
-
+    constructor(private readonly transformers: SchemaTransformer, private readonly schema: GraphQLSchema) {
     }
 
-    public transform(schema: GraphQLSchema): GraphQLSchema {
+    /**
+     * only call once
+     */
+    public transform(): GraphQLSchema {
+        const schema = this.schema;
+
         // Dependencies between fields and their are broken up via GraphQL's thunk approach (fields are only requested when
         // needed, which is after all types have been converted). However, an object's reference to its implemented
         // interfaces does not support the thunk approach, so we need to make sure they are transformed first
@@ -144,7 +189,7 @@ class Transformer {
         const directives = schema.getDirectives()
             .map(directive => isNativeDirective(directive) ? directive : this.transformDirective(directive));
 
-        const findNewTypeMaybe = (type: GraphQLObjectType | undefined) => {
+        const findNewTypeMaybe = (type: GraphQLObjectType | null | undefined) => {
             if (!type) {
                 return undefined;
             }
@@ -194,7 +239,8 @@ class Transformer {
     private get transformationContext(): SchemaTransformationContext {
         return {
             mapType: this.mapType.bind(this),
-            findType: this.findType.bind(this)
+            findType: this.findType.bind(this),
+            oldSchema: this.schema
         };
     }
 
@@ -236,7 +282,7 @@ class Transformer {
     }
 
     private transformScalarType(type: GraphQLScalarType) {
-        const config: GraphQLScalarTypeConfig<any, any> = {
+        let config: GraphQLScalarTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
             serialize: type.serialize.bind(type),
@@ -244,13 +290,13 @@ class Transformer {
             parseValue: type.parseValue.bind(type)
         };
         if (this.transformers.transformScalarType) {
-            this.transformers.transformScalarType(config, this.transformationContext);
+            config = this.transformers.transformScalarType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLScalarType(config);
     }
 
     private transformObjectType(type: GraphQLObjectType) {
-        const config = {
+        let config: GraphQLObjectTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
             fields: () => this.transformFields(type.getFields(), {
@@ -261,25 +307,24 @@ class Transformer {
             interfaces: type.getInterfaces().map(iface => this.mapType(iface))
         };
         if (this.transformers.transformObjectType) {
-            this.transformers.transformObjectType(config, this.transformationContext);
+            config = this.transformers.transformObjectType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLObjectType(config);
     }
 
     private transformInterfaceType(type: GraphQLInterfaceType) {
-        const config: GraphQLInterfaceTypeConfig<any, any> = {
+        let config: GraphQLInterfaceTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
             resolveType: this.transformTypeResolver(type.resolveType),
 
             fields: () => this.transformFields(type.getFields(), {
-                ...this.transformationContext,
                 oldOuterType: type,
                 newOuterType: this.mapType(type)
             })
         };
         if (this.transformers.transformInterfaceType) {
-            this.transformers.transformInterfaceType(config, this.transformationContext);
+            config = this.transformers.transformInterfaceType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLInterfaceType(config);
     }
@@ -288,11 +333,11 @@ class Transformer {
      * Creates field configs for all provided fields, but with remapped types and argument types. All named
      * types are sent through the typeResolver with their old name to determine the new type.
      */
-    private transformFields(originalFields: GraphQLFieldMap<any, any>, context: FieldTransformationContext): GraphQLFieldConfigMap<any, any> {
-        const fields: GraphQLFieldConfigMap<any, any> = {};
+    private transformFields(originalFields: GraphQLFieldMap<any, any>, context: { oldOuterType: GraphQLObjectType | GraphQLInterfaceType, newOuterType: GraphQLObjectType | GraphQLInterfaceType }): GraphQLFieldConfigMap<any, any> {
+        let fields: GraphQLFieldConfigMap<any, any> = {};
         for (const fieldName in originalFields) {
             const originalField = originalFields[fieldName];
-            const fieldConfig: GraphQLNamedFieldConfig<any, any> = {
+            let fieldConfig: GraphQLNamedFieldConfig<any, any> = {
                 name: fieldName,
                 description: originalField.description,
                 deprecationReason: originalField.deprecationReason,
@@ -301,12 +346,25 @@ class Transformer {
                 resolve: originalField.resolve
             };
             if (this.transformers.transformField) {
-                this.transformers.transformField(fieldConfig, context);
+                fieldConfig = this.transformers.transformField(fieldConfig, {
+                    ...this.transformationContext,
+                    oldField: originalField,
+                    oldOuterType: context.oldOuterType,
+                    newOuterType: context.newOuterType
+                });
             }
             if (fieldConfig.name in fields) {
                 throw new Error(`Duplicate field name ${fieldConfig} in ${context.oldOuterType.name}`);
             }
             fields[fieldConfig.name] = fieldConfig;
+        }
+        if (this.transformers.transformFields) {
+            fields = this.transformers.transformFields(fields, {
+                ...this.transformationContext,
+                oldFields: originalFields,
+                oldOuterType: context.oldOuterType,
+                newOuterType: context.newOuterType
+            });
         }
         return fields;
     }
@@ -329,15 +387,16 @@ class Transformer {
             const fields: GraphQLInputFieldConfigMap = {};
             for (const fieldName in originalFields) {
                 const originalField = originalFields[fieldName];
-                const fieldConfig = {
+                let fieldConfig: GraphQLNamedInputFieldConfig = {
                     name: fieldName,
                     description: originalField.description,
                     defaultValue: originalField.defaultValue,
                     type: this.mapType(originalField.type)
                 };
                 if (this.transformers.transformInputField) {
-                    this.transformers.transformInputField(fieldConfig, {
+                    fieldConfig = this.transformers.transformInputField(fieldConfig, {
                         ...this.transformationContext,
+                        oldField: originalField,
                         oldOuterType: type,
                         newOuterType: this.mapType(type)
                     });
@@ -350,13 +409,13 @@ class Transformer {
             return fields;
         };
 
-        const config = {
+        let config: GraphQLInputObjectTypeConfig = {
             name: type.name,
             description: type.description,
             fields: getFields
         };
         if (this.transformers.transformInputObjectType) {
-            this.transformers.transformInputObjectType(config, this.transformationContext);
+            config = this.transformers.transformInputObjectType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLInputObjectType(config);
     }
@@ -371,39 +430,39 @@ class Transformer {
             };
         }
 
-        const config = {
+        let config: GraphQLEnumTypeConfig = {
             name: type.name,
             description: type.description,
             values
         };
         if (this.transformers.transformEnumType) {
-            this.transformers.transformEnumType(config, this.transformationContext);
+            config = this.transformers.transformEnumType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLEnumType(config);
     }
 
     private transformUnionType(type: GraphQLUnionType) {
-        const config: GraphQLUnionTypeConfig<any, any> = {
+        let config: GraphQLUnionTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
             types: type.getTypes().map(optionType => this.mapType(optionType)),
             resolveType: this.transformTypeResolver(type.resolveType)
         };
         if (this.transformers.transformUnionType) {
-            this.transformers.transformUnionType(config, this.transformationContext);
+            config = this.transformers.transformUnionType(config, {...this.transformationContext, oldType: type});
         }
         return new GraphQLUnionType(config);
     }
 
     private transformDirective(directive: GraphQLDirective) {
-        const config: GraphQLDirectiveConfig = {
+        let config: GraphQLDirectiveConfig = {
             name: directive.name,
             description: directive.description,
             locations: directive.locations,
             args: this.transformArguments(directive.args)
         };
         if (this.transformers.transformDirective) {
-            this.transformers.transformDirective(config, this.transformationContext);
+            config = this.transformers.transformDirective(config, {...this.transformationContext, oldDirective: directive});
         }
         return new GraphQLDirective(config);
     }

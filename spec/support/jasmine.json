@@ -1,0 +1,13 @@
+{
+  "spec_dir": "spec",
+  "spec_files": [
+    "**/*[sS]pec.ts"
+  ],
+  "helpers": [
+    "support/bootstrap.js",
+    "helpers/**/*.js",
+    "helpers/**/*.ts"
+  ],
+  "stopSpecOnExpectationFailure": false,
+  "random": false
+}

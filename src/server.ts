@@ -1,5 +1,5 @@
-import { GraphQLServer } from './graphql/graphql-server';
-import { createProxySchema } from './graphql/schema';
+import { GraphQLServer } from './server/graphql-server';
+import { createProxySchema } from './proxy-schema';
 import { loadProxyConfig } from './config/load-config';
 import TraceError = require('trace-error');
 import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
@@ -11,7 +11,6 @@ export async function start() {
     config.endpoints.push({
         name: 'local',
         typePrefix: 'Local',
-        links: {},
         schema: new GraphQLSchema({
             query: new GraphQLObjectType({
                 name: 'Query',
@@ -29,7 +28,7 @@ export async function start() {
     const schema = await createProxySchema(config);
 
     const schemaManager = {
-        getSchema: () => schema
+        getSchema: () => schema.schema
     };
     const graphqlServer = new GraphQLServer({
         schemaProvider: schemaManager,
