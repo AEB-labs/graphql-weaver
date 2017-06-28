@@ -24,7 +24,7 @@ const preMergeModuleFactories: PreMergeModuleFactory[] = [
 ];
 
 const postMergeModuleFactories: PostMergeModuleFactory[] = [
-    //(context) => new LinksModule(context)
+    () => new LinksModule(),
     () => new ExtendedIntrospectionModule()
 ];
 

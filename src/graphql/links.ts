@@ -1,16 +1,9 @@
-import {
-    DocumentNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo,
-    GraphQLSchema, GraphQLType
-} from 'graphql';
-import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from './schema-transformer';
-import { EndpointConfig, LinkConfigMap } from '../config/proxy-configuration';
-import { splitIntoEndpointAndTypeName } from './renaming';
-import { EndpointFactory } from '../endpoints/endpoint-factory';
-import {
-    addFieldSelectionSafely, addVariableDefinitionSafely, createNestedArgumentWithVariableNode
-} from './language-utils';
-import { getFieldAsQueryParts } from './field-as-query';
-import { arrayToObject } from '../utils';
+import { getNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLType } from 'graphql';
+import { FieldTransformationContext } from './schema-transformer';
+import { getFieldAsQuery } from './field-as-query';
+import { ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata } from './extended-schema-transformer';
+import { walkFields } from './schema-utils';
+import { ExtendedSchema } from '../endpoints/extended-introspection';
 import DataLoader = require('dataloader');
 
 function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): GraphQLNonNull<T> {
@@ -20,48 +13,36 @@ function getNonNullType<T extends GraphQLType>(type: T|GraphQLNonNull<T>): Graph
     return new GraphQLNonNull(type);
 }
 
-export class SchemaLinkTransformer implements SchemaTransformer {
-    private endpointMap: Map<string, EndpointConfig>;
+export class SchemaLinkTransformer implements ExtendedSchemaTransformer {
+    constructor(private readonly schema: ExtendedSchema) {
 
-    constructor(private config: {
-        endpoints: EndpointConfig[],
-        schema: GraphQLSchema,
-        links: LinkConfigMap,
-        endpointFactory: EndpointFactory
-    }) {
-        this.endpointMap = new Map(config.endpoints.map(endpoint => <[string, EndpointConfig]>[
-            endpoint.name, endpoint
-        ]));
     }
 
-    transformField(config: GraphQLNamedFieldConfig<any, any>, context: FieldTransformationContext) {
-        const splitTypeName = this.splitTypeName(context.oldOuterType.name);
-        if (!splitTypeName) {
-            return;
+    transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
+        if (!config.metadata || !config.metadata.link) {
+            return config;
+        }
+        const link = config.metadata.link;
+        const field = walkFields(this.schema.schema.getQueryType(), [link.endpoint, ...link.field.split('.')]);
+        if (!field) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${link.endpoint}.${link.field} which does not exist in the schema`);
         }
 
-        const endpoint = this.endpointMap.get(splitTypeName.endpointName);
-        if (!endpoint) {
-            throw new Error(`Endpoint ${splitTypeName.endpointName} not found`);
-        }
+        // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
+        // TODO implement links on list fields
+        const type = <GraphQLOutputType>getNamedType(context.mapType(field.type));
 
-        const linkName = splitTypeName.typeName + '.' + config.name;
-        const link = endpoint.links[linkName];
-        if (!link) {
-            return;
-        }
+        return {
+            ...config,
+            resolve: async (a,b,c, info) => {
+                const { document, variableValues } = getFieldAsQuery(info);
+                //const result = await execute(this.schema.schema, document, undefined, undefined, variableValues);
+                return null;
+            },
+            type
+        };
 
-        const targetEndpointConfig = this.endpointMap.get(link.endpoint);
-        if (!targetEndpointConfig) {
-            throw new Error(`Link ${linkName} refers to nonexistent endpoint ${link.endpoint}`);
-        }
-
-        const endpointQueryType = this.config.schema.getQueryType().getFields()[targetEndpointConfig.name].type;
-        if (!(endpointQueryType instanceof GraphQLObjectType)) {
-            throw new Error(`Expected object type as query type of endpoint ${targetEndpointConfig.name}`);
-        }
-
-        const dataLoaders = new WeakMap<any, DataLoader<any, any>>();
+        /*const dataLoaders = new WeakMap<any, DataLoader<any, any>>();
 
         const targetEndpoint = this.config.endpointFactory.getEndpoint(targetEndpointConfig);
         let keyFieldAlias: string|undefined;
@@ -162,10 +143,6 @@ export class SchemaLinkTransformer implements SchemaTransformer {
             }
 
             return dataLoader.load(value);
-        };
-    }
-
-    private splitTypeName(mergedName: string): { endpointName: string, typeName: string } | undefined {
-        return splitIntoEndpointAndTypeName(mergedName, this.config.endpoints);
+        };*/
     }
 }
