@@ -1,6 +1,6 @@
 import {execute, parse} from "graphql";
 import {ProxyConfig} from "../../src/config/proxy-configuration";
-import {createProxySchema} from "../../src/graphql/schema";
+import {createProxySchema} from "../../src/proxy-schema";
 
 /**
  * Create a graphql proxy for a configuration and execute a query on it.

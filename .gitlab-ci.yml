@@ -1,0 +1,21 @@
+image: node:latest
+
+cache:
+  paths:
+    - node_modules/
+
+stages:
+  - test
+
+variables:
+  NPM_REGISTRY: 35.157.124.193
+  NPM_AUTH_TOKEN: PsGuOgWIl/WUu0qoy+MnqVksG/0e2YlSKhw2jYwrYKI=
+
+before_script:
+  - echo //$NPM_REGISTRY/:_authToken=$NPM_AUTH_TOKEN > ~/.npmrc
+  - npm set registry http://$NPM_REGISTRY
+  - npm install
+
+test:
+  stage: test
+  script: npm test
