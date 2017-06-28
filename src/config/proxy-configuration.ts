@@ -39,7 +39,7 @@ export type EndpointConfig = HttpEndpointConfig | LocalEndpointConfig;
 
 const DEFAULT_PORT = 3200;
 
-export function normalizeProxyConfig(input: ProxyConfigInput) {
+export function normalizeProxyConfig(input: ProxyConfigInput): ProxyConfig {
     return {
         port: input.port || DEFAULT_PORT,
         endpoints: Object.keys(input.endpoints || {}).map(key => {
