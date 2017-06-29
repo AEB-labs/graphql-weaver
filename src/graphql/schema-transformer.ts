@@ -299,7 +299,7 @@ class Transformer {
         let config: GraphQLObjectTypeConfig<any, any> = {
             name: type.name,
             description: type.description,
-            fields: () => this.transformFields(type.getFields(), {
+            fields: () => this.transformFields(type.getFields(), <{ oldOuterType: GraphQLObjectType | GraphQLInterfaceType, newOuterType: GraphQLObjectType | GraphQLInterfaceType}>{
                 ...this.transformationContext,
                 oldOuterType: type,
                 newOuterType: this.mapType(type)
@@ -333,7 +333,7 @@ class Transformer {
      * Creates field configs for all provided fields, but with remapped types and argument types. All named
      * types are sent through the typeResolver with their old name to determine the new type.
      */
-    private transformFields(originalFields: GraphQLFieldMap<any, any>, context: { oldOuterType: GraphQLObjectType | GraphQLInterfaceType, newOuterType: GraphQLObjectType | GraphQLInterfaceType }): GraphQLFieldConfigMap<any, any> {
+    private transformFields(originalFields: GraphQLFieldMap<any, any>, context: { oldOuterType: GraphQLObjectType | GraphQLInterfaceType, newOuterType: GraphQLObjectType | GraphQLInterfaceType}): GraphQLFieldConfigMap<any, any> {
         let fields: GraphQLFieldConfigMap<any, any> = {};
         for (const fieldName in originalFields) {
             const originalField = originalFields[fieldName];

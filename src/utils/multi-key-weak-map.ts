@@ -115,6 +115,6 @@ export class MultiKeyWeakMap<K, V> {
 
 export class ArrayKeyWeakMap<K, V> extends MultiKeyWeakMap<K[], V> {
     constructor() {
-        super(new ArrayKeyStrategy());
+        super(<MultiKeyStrategy<any>>new ArrayKeyStrategy());
     }
 }

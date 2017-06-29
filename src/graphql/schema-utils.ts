@@ -1,4 +1,5 @@
-import { GraphQLField, GraphQLInterfaceType, GraphQLObjectType, GraphQLType } from 'graphql';
+import {GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLObjectType, GraphQLType} from 'graphql';
+import any = jasmine.any;
 
 /**
  * Finds a field by traversing a schema from field to field
@@ -14,7 +15,7 @@ export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNa
             return undefined;
         }
 
-        const fields = currentType.getFields();
+        const fields: GraphQLFieldMap<any, any> = currentType.getFields();
         if (!(fieldName in fields)) {
             return undefined;
         }
