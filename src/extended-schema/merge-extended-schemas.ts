@@ -1,4 +1,4 @@
-import { ExtendedSchema, FieldMetadata } from './extended-schema';
+import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 import { flatMap } from '../utils/utils';
 import { mergeSchemas } from '../graphql/merge-schemas';
 
@@ -7,10 +7,10 @@ import { mergeSchemas } from '../graphql/merge-schemas';
  * Also takes care of extended field metadata
  */
 export function mergeExtendedSchemas(...schemas: ExtendedSchema[]) {
-    const metadata = mergeFieldMetadata(...schemas.map(schema => schema.fieldMetadata));
-    return new ExtendedSchema(mergeSchemas(schemas.map(schema => schema.schema)), metadata);
+    const fieldMetadata = mergeFieldMetadata(...schemas.map(schema => schema.fieldMetadata));
+    return new ExtendedSchema(mergeSchemas(schemas.map(schema => schema.schema)), new SchemaMetadata({fieldMetadata}));
 }
 
 export function mergeFieldMetadata(...metadatas: Map<string, FieldMetadata>[]) {
-    return new Map(flatMap(metadatas, map => [...map]));
+    return new Map(flatMap(metadatas, map => Array.from(map)));
 }

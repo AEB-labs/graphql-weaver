@@ -45,7 +45,7 @@ export function mapValues<TIn, TOut>(obj: {[key: string]: TIn}, fn: (value: TIn,
  */
 export function mapMapKeys<TKey, TNewKey, TValue>(map: Map<TKey, TValue>, fn: (key: TKey) => TNewKey): Map<TNewKey, TValue> {
     const newMap = new Map<TNewKey, TValue>();
-    for (const [key, value] of map) {
+    for (const [key, value] of Array.from(map)) {
         newMap.set(fn(key), value);
     }
     return newMap;
