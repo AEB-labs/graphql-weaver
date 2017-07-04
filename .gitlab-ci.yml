@@ -6,6 +6,7 @@ cache:
 
 stages:
   - test
+  - deploy
 
 variables:
   NPM_REGISTRY: 35.157.124.193
@@ -19,3 +20,11 @@ before_script:
 test:
   stage: test
   script: npm test
+
+deploy-npm:
+  stage: deploy
+  script:
+    - npm publish
+  only:
+    - master
+  allow_failure: true # fails when version is not increased
