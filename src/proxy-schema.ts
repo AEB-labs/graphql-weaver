@@ -2,7 +2,7 @@ import { ProxyConfig } from './config/proxy-configuration';
 import { GraphQLSchema, parse } from 'graphql';
 import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
 import {
-    buildSchemaMetadata, EXTENDED_INTROSPECTION_QUERY, supportsExtendedIntrospection
+    buildSchemaMetadata, EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_QUERY, supportsExtendedIntrospection
 } from './extended-schema/extended-introspection';
 import { runPipeline } from './pipeline/pipeline';
 import { EndpointInfo } from './pipeline/pipeline-module';
@@ -35,5 +35,5 @@ async function getMetadata(schema: GraphQLSchema, endpoint: GraphQLEndpoint) {
         return new SchemaMetadata();
     }
     const result = await endpoint.query(parse(EXTENDED_INTROSPECTION_QUERY));
-    return buildSchemaMetadata(result.data);
+    return buildSchemaMetadata(result[EXTENDED_INTROSPECTION_FIELD]);
 }

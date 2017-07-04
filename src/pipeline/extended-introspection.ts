@@ -1,6 +1,8 @@
 import { PipelineModule } from './pipeline-module';
 import { GraphQLFieldConfigMap } from 'graphql';
-import { EXTENDED_INTROSPECTION_FIELD, getExtendedIntrospectionType } from '../extended-schema/extended-introspection';
+import {
+    EXTENDED_INTROSPECTION_FIELD, getExtendedIntrospectionData, getExtendedIntrospectionType
+} from '../extended-schema/extended-introspection';
 import { FieldsTransformationContext, transformSchema } from '../graphql/schema-transformer';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 
@@ -24,7 +26,7 @@ export class ExtendedIntrospectionModule implements PipelineModule {
                     ...config,
                     [EXTENDED_INTROSPECTION_FIELD]: {
                         type: getExtendedIntrospectionType(),
-                        resolve: () => schema.metadata
+                        resolve: () => getExtendedIntrospectionData(schema.metadata)
                     }
                 };
             }

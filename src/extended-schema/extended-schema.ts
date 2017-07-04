@@ -19,7 +19,7 @@ export class SchemaMetadata {
     public readonly fieldMetadata = new Map<string, FieldMetadata>();
 
     public constructor(config: { fieldMetadata?: Map<string, FieldMetadata> } = {}) {
-        this.fieldMetadata = this.fieldMetadata || config.fieldMetadata;
+        this.fieldMetadata = config.fieldMetadata || this.fieldMetadata;
     }
 
     getFieldMetadata(type: string | GraphQLObjectType, field: string | GraphQLField<any, any>) {
