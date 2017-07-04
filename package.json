@@ -5,7 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "node graphql-proxy",
-    "test": "node graphql-proxy-test"
+    "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
   },
   "author": "",
   "license": "ISC",
