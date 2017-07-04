@@ -121,7 +121,7 @@ export interface GraphQLNamedInputFieldConfig extends GraphQLInputFieldConfig {
 
 function combineTransformationFunctions<TConfig, TContext extends SchemaTransformationContext>
 (fns: (TransformationFunction<TConfig, TContext> | undefined)[]): TransformationFunction<TConfig, TContext> | undefined {
-    const definedFns = compact(fns.filter(a => a));
+    const definedFns = compact(fns);
     if (!definedFns.length) {
         return undefined;
     }
