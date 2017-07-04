@@ -1,5 +1,5 @@
 import { ProxyConfig } from './config/proxy-configuration';
-import { parse } from 'graphql';
+import { GraphQLSchema, parse } from 'graphql';
 import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
 import {
     EMPTY_INTROSPECTION_QUERY, EXTENDED_INTROSPECTION_QUERY, ExtendedIntrospectionQuery, supportsExtendedIntrospection
@@ -12,7 +12,7 @@ import TraceError = require('trace-error');
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultEndpointFactory();
 
-export async function createProxySchema(config: ProxyConfig) {
+export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSchema> {
     const endpoints = await Promise.all(config.endpoints.map(async config => {
         const endpoint = endpointFactory.getEndpoint(config);
         const schema = await endpoint.getSchema();
@@ -27,5 +27,5 @@ export async function createProxySchema(config: ProxyConfig) {
         return endpointInfo;
     }));
 
-    return runPipeline(endpoints, endpointFactory);
+    return runPipeline(endpoints, endpointFactory).schema;
 }

@@ -12,6 +12,6 @@ import {createProxySchema} from "../../src/proxy-schema";
 export async function testConfigWithQuery(proxyConfig: ProxyConfig, query: string, variableValues: {[name: string]: any}) {
     const schema = await createProxySchema(proxyConfig);
     const document = parse(query, {});
-    const result = await execute(schema.schema, document, {}, {}, variableValues, undefined);
+    const result = await execute(schema, document, {}, {}, variableValues, undefined);
     return result.data;
 }
