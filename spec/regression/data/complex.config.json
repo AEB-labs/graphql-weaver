@@ -1,11 +1,13 @@
 {
   "port": 3100,
-  "endpoints": {
-    "logistics": {
+  "endpoints": [
+    {
+      "namespace": "logistics",
       "url": "https://api.graph.cool/simple/v1/ciz82rakk8ina0123ioeh6od7",
       "typePrefix": "Log"
     },
-    "blog": {
+    {
+      "namespace": "blog",
       "url": "https://api.graph.cool/simple/v1/ciz69upbv3jgb0146dodjn9js",
       "typePrefix": "Blog",
       "fieldMetadata": {
@@ -28,5 +30,5 @@
         }
       }
     }
-  }
+  ]
 }

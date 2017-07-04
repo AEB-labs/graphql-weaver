@@ -1,4 +1,4 @@
-import { normalizeProxyConfig, ProxyConfig } from './proxy-configuration';
+import { ProxyConfig } from './proxy-configuration';
 import * as fs from 'fs-extra';
 import TraceError = require('trace-error');
 
@@ -9,7 +9,7 @@ export async function loadProxyConfig(fileName: string): Promise<ProxyConfig> {
     try {
         json = JSON.parse(contents);
     } catch (error) {
-        throw new TraceError(`Config file ${fileName} is not a vaild JSON file: ${error.message}`, error);
+        throw new TraceError(`Config file ${fileName} is not a valid JSON file: ${error.message}`, error);
     }
-    return normalizeProxyConfig(json);
+    return json;
 }

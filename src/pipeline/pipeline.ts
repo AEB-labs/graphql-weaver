@@ -17,7 +17,7 @@ import { AdditionalMetadataModule } from './additional-metadata';
 const preMergeModuleFactories: PreMergeModuleFactory[] = [
     ({endpointConfig}) => new AdditionalMetadataModule(endpointConfig),
     ({endpointConfig}) => new TypePrefixesModule(endpointConfig.typePrefix),
-    ({endpointConfig}) => new NamespaceModule(endpointConfig.name),
+    ({endpointConfig}) => new NamespaceModule(endpointConfig.namespace),
     ({processQuery, endpoint, endpointConfig}) => new ProxyResolversModule({processQuery, endpoint, endpointConfig}),
     () => new DefaultResolversModule(),
     () => new AbstractTypesModule()
@@ -48,7 +48,7 @@ class Pipeline {
 
         this.preMergeModules = new Map(extendedEndpoints.map(context =>
             <[string, PipelineModule[]]>[
-                context.endpointConfig.name, // map key
+                context.endpointConfig.namespace, // map key
                 preMergeModuleFactories.map(factory => factory(context)) // map value
             ]));
         this.postMergeModules = postMergeModuleFactories.map(factory => factory({
@@ -68,7 +68,7 @@ class Pipeline {
     private createSchema() {
         const schemas = this.endpoints.map(endpoint => {
             const schema = endpoint.schema;
-            return runSchemaPipeline(this.preMergeModules.get(endpoint.endpointConfig.name)!, schema);
+            return runSchemaPipeline(this.preMergeModules.get(endpoint.endpointConfig.namespace)!, schema);
         });
 
         const schema = mergeExtendedSchemas(...schemas);
