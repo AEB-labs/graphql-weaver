@@ -6,9 +6,10 @@ export const EXTENDED_INTROSPECTION_FIELD = '_extIntrospection';
 export interface ExtendedIntrospectionData {
     types: {
         name: string,
-        fields: Array<FieldMetadata & {
+        fields: {
             name: string,
-        }>
+            metadata: FieldMetadata
+        }[]
     }[]
 }
 
@@ -17,13 +18,15 @@ export const EXTENDED_INTROSPECTION_QUERY = `{
         types { 
             name 
             fields { 
-                name 
-                link { 
-                    endpoint 
-                    field
-                    argument
-                    batchMode
-                    keyField
+                name
+                metadata {
+                    link { 
+                        endpoint 
+                        field
+                        argument
+                        batchMode
+                        keyField
+                    }
                 }
             }
         }
@@ -60,7 +63,7 @@ export function getExtendedIntrospectionData(metadata: SchemaMetadata): Extended
                 name: typeName,
                 fields: keys
                     .filter(key => key.startsWith(typeName + '.'))
-                    .map(key => ({name: key.split('.', 2)[1], ...metadata.fieldMetadata.get(key)!}))
+                    .map(key => ({name: key.split('.', 2)[1], metadata: metadata.fieldMetadata.get(key)!}))
             }))
     };
 }
@@ -73,8 +76,7 @@ export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
     const map = new Map<string, FieldMetadata>();
     for (const type of data.types) {
         for (const field of type.fields) {
-            const {name, ...metadata} = field;
-            map.set(type.name + '.' + field.name, field);
+            map.set(type.name + '.' + field.name, field.metadata);
         }
     }
     return new SchemaMetadata({fieldMetadata: map});
@@ -83,6 +85,7 @@ export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
 function createExtendedIntrospectionType(): GraphQLObjectType {
     const linkType = new GraphQLObjectType({
         name: '_FieldLink',
+        description: 'Configuration of a link on a field. If this metadata is present, the consumer should replace the type of the field with the type of the linked field and, for the value of this field, fetch objects from the linked field according to this config',
         fields: {
             endpoint: {
                 description: 'The name of the endpoint this link points to',
@@ -107,14 +110,10 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         }
     });
 
-    const fieldType = new GraphQLObjectType({
-        name: '_ExtendedField',
+    const fieldMetadataType = new GraphQLObjectType({
+        name: '_FieldMetadata',
+        description: 'Metadata on a GraphQL field',
         fields: {
-            name: {
-                description: 'The field name',
-                type: GraphQLString
-            },
-
             link: {
                 description: 'Specifies if this field should be resolved as a link to a different endpoint',
                 type: linkType
@@ -122,8 +121,25 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         }
     });
 
+    const fieldType = new GraphQLObjectType({
+        name: '_ExtendedField',
+        description: 'Extension of the field introspection type',
+        fields: {
+            name: {
+                description: 'The field name',
+                type: GraphQLString
+            },
+
+            metadata: {
+                description: 'Additional metadata on this field',
+                type: fieldMetadataType
+            },
+        }
+    });
+
     const typeType = new GraphQLObjectType({
         name: '_ExtendedType',
+        description: 'Extension of the type introspection type',
         fields: {
             name: {
                 description: 'The type name',
