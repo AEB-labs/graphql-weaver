@@ -44,7 +44,7 @@ class ResolverTransformer implements SchemaTransformer {
                 const newSelectionSet = createSelectionChain([config.name], selectionSet);
                 let query = getQueryFromParts({...parts, selectionSet: newSelectionSet});
 
-                query = this.config.processQuery(query, this.config.endpointConfig.name);
+                query = this.config.processQuery(query, this.config.endpointConfig.namespace);
                 return await this.config.endpoint.query(query.document, query.variableValues);
             }
         };
