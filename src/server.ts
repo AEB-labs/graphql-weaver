@@ -35,7 +35,7 @@ export async function start() {
 
     const port = config.port || defaultPort;
     const schemaManager = {
-        getSchema: () => schema.schema
+        getSchema: () => schema
     };
     const graphqlServer = new GraphQLServer({
         schemaProvider: schemaManager,

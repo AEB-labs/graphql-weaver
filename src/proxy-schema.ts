@@ -2,11 +2,12 @@ import { ProxyConfig } from './config/proxy-configuration';
 import { GraphQLSchema, parse } from 'graphql';
 import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
 import {
-    EMPTY_INTROSPECTION_QUERY, EXTENDED_INTROSPECTION_QUERY, ExtendedIntrospectionQuery, supportsExtendedIntrospection
+    buildSchemaMetadata, EXTENDED_INTROSPECTION_QUERY, supportsExtendedIntrospection
 } from './extended-schema/extended-introspection';
 import { runPipeline } from './pipeline/pipeline';
 import { EndpointInfo } from './pipeline/pipeline-module';
-import { ExtendedSchema } from './extended-schema/extended-schema';
+import { ExtendedSchema, SchemaMetadata } from './extended-schema/extended-schema';
+import { GraphQLEndpoint } from './endpoints/graphql-endpoint';
 import TraceError = require('trace-error');
 
 // Not decided on an API to choose this, so leave non-configurable for now
@@ -16,9 +17,8 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
     const endpoints = await Promise.all(config.endpoints.map(async config => {
         const endpoint = endpointFactory.getEndpoint(config);
         const schema = await endpoint.getSchema();
-        const extendedIntrospection: ExtendedIntrospectionQuery = supportsExtendedIntrospection(schema) ?
-            await endpoint.query(parse(EXTENDED_INTROSPECTION_QUERY)) : EMPTY_INTROSPECTION_QUERY;
-        const extendedSchema = ExtendedSchema.fromIntrospection(schema, extendedIntrospection);
+        const metadata = await getMetadata(schema, endpoint);
+        const extendedSchema = new ExtendedSchema(schema, metadata);
         const endpointInfo: EndpointInfo = {
             endpointConfig: config,
             endpoint,
@@ -28,4 +28,12 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
     }));
 
     return runPipeline(endpoints, endpointFactory).schema;
+}
+
+async function getMetadata(schema: GraphQLSchema, endpoint: GraphQLEndpoint) {
+    if (!supportsExtendedIntrospection(schema)) {
+        return new SchemaMetadata();
+    }
+    const result = await endpoint.query(parse(EXTENDED_INTROSPECTION_QUERY));
+    return buildSchemaMetadata(result.data);
 }

@@ -1,18 +1,15 @@
 import { GraphQLBoolean, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { objectValues } from '../utils/utils';
-import { ExtendedSchema, FieldMetadata } from './extended-schema';
+import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 
 export const EXTENDED_INTROSPECTION_FIELD = '_extIntrospection';
 
-export interface ExtendedIntrospectionQuery {
-    _extIntrospection: {
-        types: {
+export interface ExtendedIntrospectionData {
+    types: {
+        name: string,
+        fields: Array<FieldMetadata & {
             name: string,
-            fields: Array<FieldMetadata & {
-                name: string,
-            }>
-        }[]
-    }
+        }>
+    }[]
 }
 
 export const EXTENDED_INTROSPECTION_QUERY = `{
@@ -33,18 +30,54 @@ export const EXTENDED_INTROSPECTION_QUERY = `{
     }
 }`;
 
-export const EMPTY_INTROSPECTION_QUERY: ExtendedIntrospectionQuery = {_extIntrospection: {types: []}};
-
 export function supportsExtendedIntrospection(schema: GraphQLSchema) {
     return EXTENDED_INTROSPECTION_FIELD in schema.getQueryType().getFields();
 }
 
 let extendedIntrospectionType: GraphQLObjectType | undefined;
+
+/**
+ * Gets an object type to be used as a field called {@link EXTENDED_INTROSPECTION_FIELD} that exposes metadata in the
+ * schema. The field value should be {@link ExtendedIntrospectionData}, as created by
+ * {@link getExtendedIntrospectionData}
+ */
 export function getExtendedIntrospectionType(): GraphQLObjectType {
     if (!extendedIntrospectionType) {
         extendedIntrospectionType = createExtendedIntrospectionType();
     }
     return extendedIntrospectionType;
+}
+
+/**
+ * Constructs the data for {@link getExtendedIntrospectionType()} from a SchemaMetadata
+ */
+export function getExtendedIntrospectionData(metadata: SchemaMetadata): ExtendedIntrospectionData {
+    const keys = Array.from(metadata.fieldMetadata.keys());
+    return {
+        types: keys
+            .map(key => key.split('.')[0])
+            .map(typeName => ({
+                name: typeName,
+                fields: keys
+                    .filter(key => key.startsWith(typeName + '.'))
+                    .map(key => ({name: key.split('.', 2)[1], ...metadata.fieldMetadata.get(key)!}))
+            }))
+    };
+}
+
+/**
+ * Builds a {@link SchemaMetadata} instance from the result of an extended introspection query
+ * @param data
+ */
+export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
+    const map = new Map<string, FieldMetadata>();
+    for (const type of data.types) {
+        for (const field of type.fields) {
+            const {name, ...metadata} = field;
+            map.set(type.name + '.' + field.name, field);
+        }
+    }
+    return new SchemaMetadata({fieldMetadata: map});
 }
 
 function createExtendedIntrospectionType(): GraphQLObjectType {
@@ -94,26 +127,15 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         fields: {
             name: {
                 description: 'The type name',
-                type: GraphQLString,
-                resolve: ({type}: { type: GraphQLObjectType }) => type.name
+                type: GraphQLString
             },
 
             fields: {
                 description: 'A list of all fields of this type that have extended information',
-                type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(fieldType))),
-                resolve: ({type, schema}: { type: GraphQLObjectType, schema: ExtendedSchema }) =>
-                    objectValues(type.getFields())
-                        .map(field => ({field, metadata: schema.getFieldMetadata(type, field)})) // fetch metadata
-                        .filter(({metadata}) => metadata) // discard fields without metadata
-                        .map(({field, metadata}) => ({...metadata, name: field.name})) // unwrap
+                type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(fieldType)))
             }
         }
     });
-
-    function typeHasMetadata(type: GraphQLObjectType, schema: ExtendedSchema) {
-        // TODO maybe optimize this with a set?
-        return Array.from(schema.fieldMetadata.keys()).some(key => key.startsWith(type.name + '.'));
-    }
 
     return new GraphQLObjectType({
         name: '_ExtendedIntrospection',
@@ -121,11 +143,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         fields: {
             types: {
                 description: 'A list of all types that have extended information',
-                type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(typeType))),
-                resolve: (schema: ExtendedSchema) => objectValues(schema.schema.getTypeMap())
-                    .filter(type => type instanceof GraphQLObjectType)
-                    .filter(type => typeHasMetadata(type, schema))
-                    .map(type => ({type, schema}))
+                type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(typeType)))
             }
         }
     });

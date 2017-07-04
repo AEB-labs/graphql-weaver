@@ -1,5 +1,4 @@
 import {GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLObjectType, GraphQLType} from 'graphql';
-import any = jasmine.any;
 
 /**
  * Finds a field by traversing a schema from field to field

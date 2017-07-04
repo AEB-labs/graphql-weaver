@@ -1,11 +1,10 @@
 import { GraphQLField, GraphQLObjectType, GraphQLSchema } from 'graphql';
-import { ExtendedIntrospectionQuery } from './extended-introspection';
 
 export interface FieldMetadata {
-    link?: LinkTargetConfig
+    link?: LinkConfig
 }
 
-export interface LinkTargetConfig {
+export interface LinkConfig {
     endpoint: string
     field: string
     argument: string
@@ -13,24 +12,14 @@ export interface LinkTargetConfig {
     keyField?: string
 }
 
-export class ExtendedSchema {
-    constructor(public readonly schema: GraphQLSchema, public readonly fieldMetadata: Map<string, FieldMetadata>) {
-    }
+/**
+ * Holds metadata of a GraphQLSchema
+ */
+export class SchemaMetadata {
+    public readonly fieldMetadata = new Map<string, FieldMetadata>();
 
-    // maybe move this to extended-introspection.ts (buildExtendedClientSchema?) to avoid cyclic references
-    static fromIntrospection(schema: GraphQLSchema, extendedIntrospection: ExtendedIntrospectionQuery) {
-        const map = new Map<string, FieldMetadata>();
-        for (const type of extendedIntrospection._extIntrospection.types) {
-            for (const field of type.fields) {
-                const {name, ...metadata} = field;
-                map.set(this.getFieldKey(type.name, field.name), field);
-            }
-        }
-        return new ExtendedSchema(schema, map);
-    }
-
-    static fromSchema(schema: GraphQLSchema) {
-        return new ExtendedSchema(schema, new Map());
+    public constructor(config: { fieldMetadata?: Map<string, FieldMetadata> } = {}) {
+        this.fieldMetadata = this.fieldMetadata || config.fieldMetadata;
     }
 
     getFieldMetadata(type: string | GraphQLObjectType, field: string | GraphQLField<any, any>) {
@@ -40,18 +29,35 @@ export class ExtendedSchema {
         if (typeof field != 'string') {
             field = field.name;
         }
-        return this.fieldMetadata.get(ExtendedSchema.getFieldKey(type, field));
-    }
-
-    withSchema(schema: GraphQLSchema) {
-        return new ExtendedSchema(schema, this.fieldMetadata);
-    }
-
-    withFieldMetadata(fieldMetadata: Map<string, FieldMetadata>) {
-        return new ExtendedSchema(this.schema, fieldMetadata);
+        return this.fieldMetadata.get(SchemaMetadata.getFieldKey(type, field));
     }
 
     private static getFieldKey(type: string, field: string) {
         return `${type}.${field}`;
+    }
+}
+
+export class ExtendedSchema {
+    constructor(public readonly schema: GraphQLSchema, public readonly metadata: SchemaMetadata = new SchemaMetadata()) {
+    }
+
+    getFieldMetadata(type: string | GraphQLObjectType, field: string | GraphQLField<any, any>) {
+        return this.metadata.getFieldMetadata(type, field);
+    }
+
+    withSchema(schema: GraphQLSchema) {
+        return new ExtendedSchema(schema, this.metadata);
+    }
+
+    withMetadata(metadata: SchemaMetadata) {
+        return new ExtendedSchema(this.schema, metadata);
+    }
+
+    withFieldMetadata(fieldMetadata: Map<string, FieldMetadata>) {
+        return new ExtendedSchema(this.schema, new SchemaMetadata({...this.metadata, fieldMetadata}));
+    }
+
+    public get fieldMetadata() {
+        return this.metadata.fieldMetadata;
     }
 }

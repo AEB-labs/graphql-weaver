@@ -24,7 +24,7 @@ export class ExtendedIntrospectionModule implements PipelineModule {
                     ...config,
                     [EXTENDED_INTROSPECTION_FIELD]: {
                         type: getExtendedIntrospectionType(),
-                        resolve: () => schema
+                        resolve: () => schema.metadata
                     }
                 };
             }

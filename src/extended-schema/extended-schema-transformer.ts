@@ -1,4 +1,4 @@
-import { ExtendedSchema, FieldMetadata } from './extended-schema';
+import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 import {
     FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext,
     SchemaTransformer, transformSchema
@@ -128,5 +128,5 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
     };
 
     const newSchema = transformSchema(schema.schema, regularTransformer);
-    return new ExtendedSchema(newSchema, fieldMetadata);
+    return new ExtendedSchema(newSchema, new SchemaMetadata({fieldMetadata}));
 }
