@@ -4,6 +4,7 @@ import {
     visit
 } from 'graphql';
 import { Query } from './common';
+import {flatMap} from "../utils/utils";
 
 type QueryParts = {
     fragments: FragmentDefinitionNode[],
@@ -107,10 +108,13 @@ function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: F
     return fragments;
 }
 
+/**
+ * Collects the selections of all given field nodes
+ * @param fieldNodes the selections
+ * @returns {any}
+ */
 function collectSelections(fieldNodes: FieldNode[]): SelectionNode[] {
-    return fieldNodes
-        .map(node => node.selectionSet ? node.selectionSet.selections : [])
-        .reduce((a, b) => a.concat(b), []);
+    return flatMap(fieldNodes, node => node.selectionSet ? node.selectionSet.selections : []);
 }
 
 function pickIntoArray<TValue>(object: { [key: string]: TValue }, keys: string[]): TValue[] {

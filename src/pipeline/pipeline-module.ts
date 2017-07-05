@@ -17,7 +17,10 @@ export interface SchemaPipelineModule {
     transformSchema?(schema: GraphQLSchema): GraphQLSchema;
     transformExtendedSchema?(schema: ExtendedSchema): ExtendedSchema;
 
-    getSchemaTransformer?(): ExtendedSchemaTransformer;
+    /**
+     * If defined, is called on each root schema. If the result of the defined method is undefined, the schema is left untouched.
+     */
+    getSchemaTransformer?(): ExtendedSchemaTransformer | undefined;
 }
 
 export interface QueryPipelineModule {
@@ -73,7 +76,9 @@ export function runSchemaPipelineModule(module: SchemaPipelineModule, schema: Ex
     }
     if (module.getSchemaTransformer) {
         const transformer = module.getSchemaTransformer();
-        schema = transformExtendedSchema(schema, transformer);
+        if (transformer) {
+            schema = transformExtendedSchema(schema, transformer);
+        }
     }
     return schema;
 }
@@ -92,7 +97,7 @@ export interface EndpointInfo {
 export interface PreMergeModuleContext {
     endpointConfig: EndpointConfig
     endpoint: GraphQLEndpoint
-    processQuery(query: Query, endpointName: string): Query;
+    processQuery(query: Query, endpointIdentifier: string): Query;
 }
 
 export interface PostMergeModuleContext {
@@ -100,7 +105,7 @@ export interface PostMergeModuleContext {
     endpoints: PreMergeModuleContext[]
     endpointFactory: EndpointFactory // TODO redundant with endpoint in EndpointInfo
 
-    processQuery(query: Query, endpointName: string): Query
+    processQuery(query: Query, endpointIdentifier: string): Query
 }
 
 export type PreMergeModuleFactory = (context: PreMergeModuleContext) => PipelineModule
