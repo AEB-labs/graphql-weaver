@@ -6,11 +6,12 @@ export interface ProxyConfig {
 }
 
 interface EndpointConfigBase {
-    namespace: string
-    typePrefix: string
+    namespace?: string
+    typePrefix?: string
     fieldMetadata?: {[key: string]: FieldMetadata}
     url?: string
     schema?: GraphQLSchema
+    identifier?: string
 }
 
 interface HttpEndpointConfig extends EndpointConfigBase {
