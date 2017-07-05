@@ -18,6 +18,7 @@ export class LocalEndpoint implements GraphQLEndpoint {
     }
 
     async getSchema() {
+        // Remove resolvers because this schema should not be used to execute queries
         return transformSchema(this.schema, {
             transformField(config: GraphQLNamedFieldConfig<any, any>) {
                 return {
