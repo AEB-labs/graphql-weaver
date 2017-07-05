@@ -13,7 +13,7 @@ export const TO_EQUAL_JSON_MATCHERS: CustomMatcherFactories = {
                 const pass = util.equals(actual, expected, customEqualityTesters);
                 return {
                     pass,
-                    message: pass ? 'ok' : 'JSON objects to not equal, diff:\r\n' + jsondiffpatch.formatters.console.format(jsondiffpatch.diff(expected, actual))
+                    message: pass ? 'ok' : 'JSON objects not equal. \r\nACTUAL:\r\n'+ JSON.stringify(actual, null, "\t") +'\r\nEXPECTED:\r\n:' + JSON.stringify(expected, null, "\t") + '\r\nDIFF:\r\n' + jsondiffpatch.formatters.console.format(jsondiffpatch.diff(expected, actual))
                 };
             },
         };
