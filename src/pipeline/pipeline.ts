@@ -1,5 +1,7 @@
 import {
-    EndpointInfo, PipelineModule, PostMergeModuleFactory, PreMergeModuleFactory, runQueryPipeline, runSchemaPipeline
+    EndpointInfo, PipelineModule, PostMergeModuleContext, PostMergeModuleFactory, PreMergeModuleContext,
+    PreMergeModuleFactory,
+    runQueryPipeline, runSchemaPipeline
 } from './pipeline-module';
 import { TypePrefixesModule } from './type-prefixes';
 import { NamespaceModule } from './namespaces';
@@ -13,20 +15,34 @@ import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
+import {EndpointConfig} from "../config/proxy-configuration";
 
-const preMergeModuleFactories: PreMergeModuleFactory[] = [
-    ({endpointConfig}) => new AdditionalMetadataModule(endpointConfig),
-    ({endpointConfig}) => new TypePrefixesModule(endpointConfig.typePrefix),
-    ({endpointConfig}) => new NamespaceModule(endpointConfig.namespace),
-    ({processQuery, endpoint, endpointConfig}) => new ProxyResolversModule({processQuery, endpoint, endpointConfig}),
-    () => new DefaultResolversModule(),
-    () => new AbstractTypesModule()
-];
+function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[] {
+    const preMergePipeline: PipelineModule[] = [
+        // those three make the schema fully-functional
+        new ProxyResolversModule(context),
+        new DefaultResolversModule(),
+        new AbstractTypesModule(),
 
-const postMergeModuleFactories: PostMergeModuleFactory[] = [
-    () => new LinksModule(),
-    () => new ExtendedIntrospectionModule()
-];
+        new AdditionalMetadataModule(context.endpointConfig)
+    ];
+
+    if (context.endpointConfig.typePrefix) {
+        preMergePipeline.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
+    }
+    if (context.endpointConfig.namespace) {
+        preMergePipeline.push(new NamespaceModule(context.endpointConfig.namespace))
+    }
+
+    return preMergePipeline;
+}
+
+function postMergeModulesFactory(context: PostMergeModuleContext): PipelineModule[] {
+    return [
+        new LinksModule(),
+        new ExtendedIntrospectionModule()
+    ]
+}
 
 type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
 
@@ -48,14 +64,14 @@ class Pipeline {
 
         this.preMergeModules = new Map(extendedEndpoints.map(context =>
             <[string, PipelineModule[]]>[
-                context.endpointConfig.namespace, // map key
-                preMergeModuleFactories.map(factory => factory(context)) // map value
+                context.endpointConfig.identifier, // map key
+                preMergeModulesFactory(context) // map value
             ]));
-        this.postMergeModules = postMergeModuleFactories.map(factory => factory({
+        this.postMergeModules = postMergeModulesFactory({
             endpoints: extendedEndpoints,
             processQuery: this.processQuery.bind(this),
             endpointFactory
-        }));
+        });
     }
 
     get schema() {
@@ -68,7 +84,7 @@ class Pipeline {
     private createSchema() {
         const schemas = this.endpoints.map(endpoint => {
             const schema = endpoint.schema;
-            return runSchemaPipeline(this.preMergeModules.get(endpoint.endpointConfig.namespace)!, schema);
+            return runSchemaPipeline(this.preMergeModules.get(endpoint.endpointConfig.identifier!)!, schema);
         });
 
         const schema = mergeExtendedSchemas(...schemas);
@@ -76,12 +92,12 @@ class Pipeline {
         return runSchemaPipeline(this.postMergeModules, schema);
     }
 
-    processQuery(query: Query, endpointName: string): Query {
+    processQuery(query: Query, endpointIdentifier: string): Query {
         query = runQueryPipeline([...this.postMergeModules], query);
-        if (!this.preMergeModules.has(endpointName)) {
-            throw new Error(`Endpoint ${endpointName} does not exist`);
+        if (!this.preMergeModules.has(endpointIdentifier)) {
+            throw new Error(`Endpoint ${endpointIdentifier} does not exist`);
         }
-        const preMergeModules = this.preMergeModules.get(endpointName)!;
+        const preMergeModules = this.preMergeModules.get(endpointIdentifier)!;
         return runQueryPipeline([...preMergeModules, ...this.postMergeModules].reverse(), query);
     }
 }
