@@ -1,6 +1,6 @@
 {
   "name": "@aeb/graphql-proxy",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
   "main": "index.ts",
   "scripts": {
