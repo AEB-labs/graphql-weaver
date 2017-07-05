@@ -1,0 +1,12 @@
+query {
+  car {
+    __typename
+    color
+    doorCount
+  }
+	person {
+    __typename
+    name
+    isCool
+  }
+}

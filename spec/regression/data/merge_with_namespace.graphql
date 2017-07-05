@@ -1,0 +1,8 @@
+query {
+    local1 {
+        info1
+    }
+    local2 {
+        info2
+    }
+}

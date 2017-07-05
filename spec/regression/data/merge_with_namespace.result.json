@@ -1,0 +1,8 @@
+{
+  "local1": {
+    "info1": "This is internal endpoint 1"
+  },
+  "local2": {
+    "info2": "This is internal endpoint 2"
+  }
+}
