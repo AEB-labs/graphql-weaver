@@ -14,6 +14,9 @@ import TraceError = require('trace-error');
 const endpointFactory = new DefaultEndpointFactory();
 
 export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSchema> {
+
+    validateProxyConfig(config);
+
     const endpoints = await Promise.all(config.endpoints.map(async config => {
         const endpoint = endpointFactory.getEndpoint(config);
         const schema = await endpoint.getSchema();
@@ -28,6 +31,15 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
     }));
 
     return runPipeline(endpoints, endpointFactory).schema;
+}
+
+function validateProxyConfig(config: ProxyConfig) {
+    // TODO push code to new file/class ProxyConfigValidator
+    config.endpoints.forEach(endpointConfig => {
+        if (!endpointConfig.identifier && endpointConfig.namespace) endpointConfig.identifier = endpointConfig.namespace;
+        if (!endpointConfig.identifier && endpointConfig.url) endpointConfig.identifier = endpointConfig.url;
+        if (!endpointConfig.identifier) endpointConfig.identifier = Math.random().toString(36).slice(2)
+    })
 }
 
 async function getMetadata(schema: GraphQLSchema, endpoint: GraphQLEndpoint) {

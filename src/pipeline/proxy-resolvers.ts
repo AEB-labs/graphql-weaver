@@ -1,15 +1,17 @@
-import { PipelineModule } from './pipeline-module';
-import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from '../graphql/schema-transformer';
-import { GraphQLSchema, GraphQLType } from 'graphql';
-import { getFieldAsQuery, getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
-import { Query } from '../graphql/common';
-import { EndpointConfig } from '../config/proxy-configuration';
-import { createSelectionChain } from '../graphql/language-utils';
+import {PipelineModule} from './pipeline-module';
+import {FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer} from '../graphql/schema-transformer';
+import {GraphQLResolveInfo, GraphQLSchema, GraphQLType, ResponsePath} from 'graphql';
+import {getFieldAsQuery, getFieldAsQueryParts, getQueryFromParts} from '../graphql/field-as-query';
+import {GraphQLEndpoint} from '../endpoints/graphql-endpoint';
+import {Query} from '../graphql/common';
+import {EndpointConfig} from '../config/proxy-configuration';
+import {cloneSelectionChain, collectFieldNodesInPath, createSelectionChain} from '../graphql/language-utils';
+import {walkFields} from "../graphql/schema-utils";
+import {collectAliasesInResponsePath} from "../graphql/resolver-utils";
 
 interface Config {
     readonly endpoint: GraphQLEndpoint
-    processQuery(query: Query, endpointName: string): Query
+    processQuery(query: Query, endpointIdentifier: string): Query
     readonly endpointConfig: EndpointConfig
 }
 
@@ -38,14 +40,24 @@ class ResolverTransformer implements SchemaTransformer {
 
         return {
             ...config,
-            resolve: async (source, args, context, info) => {
-                // wrap selection into field being resolved
-                const { selectionSet, ...parts} = getFieldAsQueryParts(info);
-                const newSelectionSet = createSelectionChain([config.name], selectionSet);
+            resolve: async (source, args, context, info: GraphQLResolveInfo) => {
+                const {selectionSet, ...parts} = getFieldAsQueryParts(info);
+
+                // wrap selection into the field hierarchy from root to the field being resolved
+                const aliases = collectAliasesInResponsePath(info.path);
+                const fieldNodes = collectFieldNodesInPath(info.operation.selectionSet, aliases, info.fragments);
+                // if the selection set is empty, this field node is of sclar type and does not have selections
+                const newSelectionSet = cloneSelectionChain(fieldNodes, selectionSet.selections.length ? selectionSet : undefined);
                 let query = getQueryFromParts({...parts, selectionSet: newSelectionSet});
 
-                query = this.config.processQuery(query, this.config.endpointConfig.namespace);
-                return await this.config.endpoint.query(query.document, query.variableValues, context);
+                query = this.config.processQuery(query, this.config.endpointConfig.identifier!);
+
+                const result = await this.config.endpoint.query(query.document, query.variableValues, context);
+                const propertyOnResult = aliases[aliases.length - 1];
+                if (typeof result != 'object' || !(propertyOnResult in result)) {
+                    throw new Error(`Expected GraphQL endpoint to return object with ${propertyOnResult} property`)
+                }
+                return result[propertyOnResult];
             }
         };
     }

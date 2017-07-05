@@ -15,8 +15,8 @@ export async function start() {
     const configFileName = 'config.json';
     const config: ServerConfig = await loadProxyConfig(configFileName);
     config.endpoints.push({
-        namespace: '',
         typePrefix: 'Local',
+        identifier: 'local',
         schema: new GraphQLSchema({
             query: new GraphQLObjectType({
                 name: 'Query',

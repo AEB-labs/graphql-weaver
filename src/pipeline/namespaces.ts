@@ -65,7 +65,8 @@ export class NamespaceModule implements PipelineModule {
             fields: {
                 [this.namespace]: {
                     type: type!,
-                    description: `${operation} of ${this.namespace}`
+                    description: `${operation} of ${this.namespace}`,
+                    resolve: obj => ({})
                 }
             }
         });

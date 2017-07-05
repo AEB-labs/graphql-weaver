@@ -3,6 +3,7 @@ import {
     GraphQLType, ListTypeNode, NamedTypeNode, NonNullTypeNode, SelectionNode, SelectionSetNode, TypeNode, ValueNode,
     VariableDefinitionNode, visit
 } from 'graphql';
+import {compact} from "../utils/utils";
 
 /**
  * Creates a field node with a name and an optional alias
@@ -35,17 +36,31 @@ export function createFieldNode(name: string, alias?: string): FieldNode {
  * @returns {SelectionSetNode}
  */
 export function createSelectionChain(fieldNames: string[], innermostSelectionSet: SelectionSetNode): SelectionSetNode {
-    let currentSelectionSet = innermostSelectionSet;
-    for (const fieldName of fieldNames) {
+    return cloneSelectionChain(fieldNames.map(name => createFieldNode(name)), innermostSelectionSet);
+}
+
+/**
+ * Wraps a selection set in a linear chain of selections according to an array of field nodes
+ *
+ * The input ("node1", "alias: node2", "node3(arg: true)"], selSet) yields the selection set
+ * "{ node1 { alias: node2 { node3(arg:true) { selSet } } } }"
+ *
+ * @param fieldNodes
+ * @param innermostSelectionSet
+ * @returns {SelectionSetNode}
+ */
+export function cloneSelectionChain(fieldNodes: FieldNode[], innermostSelectionSet?: SelectionSetNode): SelectionSetNode {
+    if (!fieldNodes.length && !innermostSelectionSet) {
+        throw new Error(`Either provide innermostSelectionSet or a non-empty fieldNodes array`);
+    }
+
+    let currentSelectionSet: SelectionSetNode = innermostSelectionSet!;
+    for (const fieldNode of Array.from(fieldNodes).reverse()) {
         currentSelectionSet = {
             kind: 'SelectionSet',
             selections: [
                 {
-                    kind: 'Field',
-                    name: {
-                        kind: 'Name',
-                        value: fieldName
-                    },
+                    ...fieldNode,
                     selectionSet: currentSelectionSet
                 }
             ]
@@ -218,6 +233,20 @@ export function addFieldSelectionSafely(selectionSet: SelectionSetNode, field: s
  * @param fragments an array of fragment definitions for lookup of fragment spreads
  */
 export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}) {
+    return !!findNodeByAliasInSelection(selectionSet, alias, fragments);
+}
+
+
+
+/**
+ * Finds a field node with a given alias (or name if no alias is specified) within a selection set.
+ * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
+ *
+ * @param selectionSet the selection set
+ * @param alias the name of the field or alias to check
+ * @param fragments an array of fragment definitions for lookup of fragment spreads
+ */
+export function findNodeByAliasInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode|undefined {
     function findFragment(name: string): FragmentDefinitionNode {
         if (!(name in fragments)) {
             throw new Error(`Fragment ${name} is referenced but not defined`);
@@ -225,24 +254,24 @@ export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: st
         return fragments[name];
     }
 
-    function aliasExistsInSelectionNode(node: SelectionNode): boolean {
+    function findNodeByAliasInSelectionNode(node: SelectionNode): FieldNode|undefined {
         switch (node.kind) {
             case 'Field':
-                if (node.alias) {
-                    return node.alias.value == alias;
+                if (getAlias(node) == alias) {
+                    return node;
                 }
-                return node.name.value == alias;
+                return undefined;
             case 'FragmentSpread':
                 const fragment = findFragment(node.name.value);
-                return aliasExistsInSelection(fragment.selectionSet, alias, fragments);
+                return findNodeByAliasInSelection(fragment.selectionSet, alias, fragments);
             case 'InlineFragment':
-                return aliasExistsInSelection(node.selectionSet, alias, fragments);
+                return findNodeByAliasInSelection(node.selectionSet, alias, fragments);
             default:
                 throw new Error(`Unexpected node kind: ${(<any>node).kind}`);
         }
     }
 
-    return selectionSet.selections.some(aliasExistsInSelectionNode);
+    return compact(selectionSet.selections.map(findNodeByAliasInSelectionNode))[0];
 }
 
 export function addVariableDefinitionSafely(variableDefinitions: VariableDefinitionNode[], name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
@@ -283,4 +312,32 @@ export function renameTypes<T extends ASTNode>(root: T, typeNameTransformer: (na
             };
         }
     });
+}
+
+export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases: string[], fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+    if (!aliases.length) {
+        throw new Error(`Aliases must not be empty`);
+    }
+
+    let currentSelectionSet: SelectionSetNode|undefined = selectionSet;
+    const fieldNodes = [];
+    for (const alias of aliases) {
+        if (!currentSelectionSet) {
+            throw new Error(`Expected field ${fieldNodes.length ? fieldNodes[fieldNodes.length - 1].name.value : ''} to have sub-selection but it does not`);
+        }
+        const fieldNode = findNodeByAliasInSelection(currentSelectionSet, alias, fragments);
+        if (!fieldNode) {
+            throw new Error(`Field ${alias} expected but not found`);
+        }
+        currentSelectionSet = fieldNode.selectionSet;
+        fieldNodes.push(fieldNode);
+    }
+    return fieldNodes;
+}
+
+function getAlias(fieldNode: FieldNode) {
+    if (fieldNode.alias) {
+        return fieldNode.alias.value;
+    }
+    return fieldNode.name.value;
 }
