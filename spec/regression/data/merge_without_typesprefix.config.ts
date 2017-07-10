@@ -1,21 +1,5 @@
 import {GraphQLBoolean, GraphQLInt, GraphQLNamedType, GraphQLObjectType, GraphQLSchema, GraphQLString} from "graphql";
-
-const carType = new GraphQLObjectType({
-    name: 'Car',
-    fields: {
-        color: { type: GraphQLString },
-        doorCount: { type: GraphQLInt }
-    }
-});
-
-const personType = new GraphQLObjectType({
-    name: 'Person',
-    fields: {
-        name: { type: GraphQLString },
-        isCool: { type: GraphQLBoolean }
-    }
-});
-
+import { testTypes } from "../../helpers/test-types";
 
 export async function getConfig() {
     return {
@@ -26,7 +10,7 @@ export async function getConfig() {
                         name: 'Query',
                         fields: {
                             car: {
-                                type: carType,
+                                type: testTypes.carType,
                                 resolve: () => ({
                                     color: 'blue',
                                     doorCount: 3
@@ -34,7 +18,7 @@ export async function getConfig() {
                             }
                         }
                     }),
-                    types: [carType]
+                    types: [testTypes.carType]
                 })
             },
             {
@@ -43,7 +27,7 @@ export async function getConfig() {
                         name: 'Query',
                         fields: {
                             person: {
-                                type: personType,
+                                type: testTypes.personType,
                                 resolve: () => ({
                                     name: "Chuck Norris",
                                     isCool: true
@@ -51,7 +35,7 @@ export async function getConfig() {
                             }
                         }
                     }),
-                    types: [personType]
+                    types: [testTypes.personType]
                 })
             }
 
