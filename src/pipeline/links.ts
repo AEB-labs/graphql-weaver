@@ -103,7 +103,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
         const schema = this.schema.schema;
         const link = config.metadata.link;
-        const fieldNames = [link.endpoint, ...link.field.split('.')];
+        const fieldNames = [...link.field.split('.')];
         const targetField = walkFields(this.schema.schema.getQueryType(), fieldNames);
         if (!targetField) {
             throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${fieldNames.join('.')} which does not exist in the schema`);

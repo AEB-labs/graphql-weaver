@@ -13,16 +13,14 @@
       "fieldMetadata": {
         "Post.countrySimple": {
           "link": {
-            "endpoint": "logistics",
-            "field": "Country",
+            "field": "logistics.Country",
             "argument": "identCode",
             "batchMode": false
           }
         },
         "Post.country": {
           "link": {
-            "endpoint": "logistics",
-            "field": "allCountries",
+            "field": "logistics.allCountries",
             "argument": "filter.identCode_in",
             "keyField": "identCode",
             "batchMode": true
