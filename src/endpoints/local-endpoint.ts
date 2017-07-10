@@ -9,11 +9,8 @@ export class LocalEndpoint implements GraphQLEndpoint {
     }
 
     async query(query: DocumentNode, variables?: { [name: string]: any }, context?: any) {
-        console.log('Local');
-        console.log(print(query));
         const result = await execute(this.schema, query, {}, context, variables);
         assertSuccessfulResponse(result);
-        console.log(result);
         return result.data;
     }
 

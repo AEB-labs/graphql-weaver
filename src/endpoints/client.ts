@@ -2,8 +2,6 @@ import fetch from "node-fetch";
 import TraceError = require('trace-error');
 
 export async function query(url: string, query: string, variables?: {[key: string]: any}): Promise<any> {
-    console.log(url);
-    console.log(query);
     let res;
     try {
         res = await fetch(url, {
