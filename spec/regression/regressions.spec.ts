@@ -3,13 +3,17 @@ import * as path from "path";
 import {graphql} from "graphql";
 import {testConfigWithQuery} from "./helpers";
 import {TO_EQUAL_JSON_MATCHERS} from "../helpers/equal-json";
+import {GraphQLHTTPTestEndpoint} from "../helpers/grapqhl-http-test/graphql-http-test-endpoint";
 
 declare function require(name:string): any;
 
 describe('regression tests', () => {
 
+    const httpTestEndpoint = new GraphQLHTTPTestEndpoint()
+
     beforeAll(async() => {
         jasmine.addMatchers(TO_EQUAL_JSON_MATCHERS);
+        httpTestEndpoint.start(1337);
     });
 
     const dir = path.join(__dirname, 'data');
@@ -29,4 +33,9 @@ describe('regression tests', () => {
             (<any>expect(result)).toEqualJSON(expectedResult);
         });
     }
+
+    afterAll(async() => {
+        httpTestEndpoint.stop();
+    })
+
 });
