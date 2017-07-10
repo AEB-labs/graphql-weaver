@@ -41,5 +41,4 @@ export async function start() {
         schemaProvider: schemaManager,
         port
     });
-    console.log(`Started server on http://localhost:${port}`);
 }
