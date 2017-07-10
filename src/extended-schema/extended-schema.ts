@@ -5,7 +5,6 @@ export interface FieldMetadata {
 }
 
 export interface LinkConfig {
-    // endpoint: string
     field: string
     argument: string
     batchMode: boolean
