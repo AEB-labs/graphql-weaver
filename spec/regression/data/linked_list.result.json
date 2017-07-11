@@ -1,0 +1,14 @@
+{
+  "horst": {
+    "name": "Horst",
+    "visitedCountries": [
+      {
+        "countryName": "Deutschland"
+      },
+      {
+        "countryName": "Frankreich"
+      },
+      null
+    ]
+  }
+}

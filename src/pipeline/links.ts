@@ -103,11 +103,13 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
         const schema = this.schema.schema;
         const link = config.metadata.link;
-        const fieldNames = [...link.field.split('.')];
-        const targetField = walkFields(this.schema.schema.getQueryType(), fieldNames);
+        const targetFieldPath = link.field.split('.');
+        const targetField = walkFields(this.schema.schema.getQueryType(), targetFieldPath);
         if (!targetField) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${fieldNames.join('.')} which does not exist in the schema`);
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${targetFieldPath.join('.')} which does not exist in the schema`);
         }
+
+        const isListMode = context.mapType(config.type) instanceof GraphQLList;
 
         // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
         // TODO implement links on list fields
@@ -143,7 +145,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             }
 
             // wrap selection in field node chain on target, and add the argument with the key field
-            const outerFieldNames = [...fieldNames];
+            const outerFieldNames = [...targetFieldPath];
             const innerFieldName = outerFieldNames.pop()!; // this removes the last element of outerFields in-place
             const innerFieldNode: FieldNode = {
                 ...createFieldNode(innerFieldName),
@@ -178,13 +180,13 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             assertSuccessfulResponse(result);
 
             // unwrap
-            const data = fieldNames.reduce((data, fieldName) => data![fieldName], result.data);
+            const data = targetFieldPath.reduce((data, fieldName) => data![fieldName], result.data);
 
             // unordered case: endpoints does not preserve order, so we need to remap based on a key field
             if (link.batchMode && link.keyField) {
                 // first, create a lookup table from id to item
                 if (!isArray(data)) {
-                    throw new Error(`Result of ${fieldNames.join('.')} expected to be an array because batchMode is true`);
+                    throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
                 }
                 const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
                 // Then, use the lookup table to efficiently order the result
@@ -239,11 +241,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 if (!key) {
                     return key;
                 }
-
-                const result = fetchDeferred(key, {...info, context});
-                return result;
+                return isListMode ? fetchBatch(key, {...info, context}) : fetchDeferred(key, {...info, context})
             },
-            type: targetRawType
+            type: isListMode ? new GraphQLList(targetRawType) : targetRawType
         };
     }
+
 }
