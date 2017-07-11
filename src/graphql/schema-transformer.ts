@@ -198,7 +198,6 @@ class Transformer {
         };
 
         return new GraphQLSchema({
-            types: objectValues(this.typeMap),
             directives,
             query: findNewTypeMaybe(schema.getQueryType())!,
             mutation: findNewTypeMaybe(schema.getMutationType()),
