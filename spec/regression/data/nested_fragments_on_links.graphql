@@ -1,0 +1,23 @@
+{
+  allPeople {
+    ...peopleCountries
+  }
+}
+
+fragment peopleCountries on Person {
+  name
+  id:nationality {
+  	...simpleCountry
+  }
+}
+
+fragment simpleCountry on CountryNSCountry {
+	alias: id
+  id: identCode
+  ...countryIsoCode
+}
+
+fragment countryIsoCode on CountryNSCountry {
+  identCode: isoCode
+  isoCode: description
+}

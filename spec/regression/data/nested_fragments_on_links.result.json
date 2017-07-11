@@ -1,0 +1,31 @@
+{
+  "allPeople": [
+    {
+      "name": "Horst",
+      "id": {
+        "alias": "ciz5mqjwg80bk0196qbgm1qny",
+        "id": "DE",
+        "identCode": "DE",
+        "isoCode": "Deutschland"
+      }
+    },
+    {
+      "name": "Helga",
+      "id": {
+        "alias": "ciz5mqjwg80bk0196qbgm1qny",
+        "id": "DE",
+        "identCode": "DE",
+        "isoCode": "Deutschland"
+      }
+    },
+    {
+      "name": "Jacqueline",
+      "id": {
+        "alias": "ciz5mqp0k7xga01788kd7u5ob",
+        "id": "FR",
+        "identCode": "FR",
+        "isoCode": "Frankreich"
+      }
+    }
+  ]
+}
