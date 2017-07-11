@@ -112,7 +112,6 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const isListMode = context.mapType(config.type) instanceof GraphQLList;
 
         // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
-        // TODO implement links on list fields
         const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
         const sourceRawType = getNamedType(context.mapType(config.type));
 
