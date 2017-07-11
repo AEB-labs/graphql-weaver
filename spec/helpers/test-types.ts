@@ -44,7 +44,8 @@ export namespace testTypes {
     export const countryFilterType = new GraphQLInputObjectType({
         name: 'CountryFilter',
         fields: {
-            identCode_in: { type: new GraphQLList(GraphQLString) }
+            identCode_in: { type: new GraphQLList(GraphQLString) },
+            continent: { type: continentType }
         },
 
     });

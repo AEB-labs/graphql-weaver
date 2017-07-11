@@ -13,10 +13,14 @@ export const defaultTestSchema = new GraphQLSchema({
             allCountries: {
                 type: new GraphQLList(testTypes.countryType),
                 resolve: async (obj, args) => {
+                    let countries = await allCountries;
                     if (args.filter && args.filter.identCode_in) {
-                        return (await allCountries).filter(country => args.filter.identCode_in.includes(country.identCode));
+                        countries = countries.filter(country => args.filter.identCode_in.includes(country.identCode));
                     }
-                    return await allCountries;
+                    if (args.filter && args.filter.continent) {
+                        countries = countries.filter(country => args.filter.continent == country.continent);
+                    }
+                    return countries;
                 },
                 args: {
                     filter: {type: testTypes.countryFilterType}
@@ -64,7 +68,7 @@ async function countryByIdentCode(identCode: string) {
 }
 
 async function getAllCountries() {
-    return <{ id: string, identCode: string, isoCode: string, description: string }[]> await readTestDataFromJson('countries.json');
+    return <{ id: string, identCode: string, isoCode: string, description: string, continent?: string }[]> await readTestDataFromJson('countries.json');
 }
 // async function allDeliveries() { return await readTestDataFromJson('deliveries.json') }
 
