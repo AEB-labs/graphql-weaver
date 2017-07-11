@@ -20,6 +20,7 @@ import { assertSuccessfulResponse } from '../endpoints/client';
 import { isArray } from 'util';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import DataLoader = require('dataloader');
+import { isListType } from '../graphql/schema-utils';
 
 /**
  * Adds a feature to link fields to types of other endpoints
@@ -109,10 +110,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${targetFieldPath.join('.')} which does not exist in the schema`);
         }
 
-        const isListMode = context.mapType(config.type) instanceof GraphQLList;
+        const isListMode = isListType(config.type);
 
         // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
-        // TODO implement links on list fields
         const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
         const sourceRawType = getNamedType(context.mapType(config.type));
 

@@ -1,4 +1,7 @@
-import {GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLObjectType, GraphQLType} from 'graphql';
+import {
+    getNullableType,
+    GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLType
+} from 'graphql';
 
 /**
  * Finds a field by traversing a schema from field to field
@@ -23,4 +26,11 @@ export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNa
         currentType = field.type;
     }
     return field;
+}
+
+/**
+ * Determines if the type is a List type (or a NonNull wrapper of a list type)
+ */
+export function isListType(type: GraphQLType){
+    return getNullableType(type) instanceof GraphQLList;
 }
