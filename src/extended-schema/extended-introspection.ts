@@ -27,6 +27,9 @@ export const EXTENDED_INTROSPECTION_QUERY = `{
                         batchMode
                         keyField
                     }
+                    join {
+                        linkField
+                    }
                 }
             }
         }
@@ -110,6 +113,17 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         }
     });
 
+    const joinType = new GraphQLObjectType({
+        name: '_FieldJoin',
+        description: 'Configuration on how to join filters, ordering and limiting of a linked child field into this field',
+        fields: {
+            linkField: {
+                description: 'The name of the child field that has a link configured',
+                type: new GraphQLNonNull(GraphQLString)
+            }
+        }
+    });
+
     const fieldMetadataType = new GraphQLObjectType({
         name: '_FieldMetadata',
         description: 'Metadata on a GraphQL field',
@@ -117,6 +131,10 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
             link: {
                 description: 'Specifies if this field should be resolved as a link to a different endpoint',
                 type: linkType
+            },
+            join: {
+                description: 'Specifies if and how filters, ordering and limiting of a linked child field should be joined into this field',
+                type: joinType
             }
         }
     });
