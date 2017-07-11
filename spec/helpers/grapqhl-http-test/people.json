@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "nationality": "DE",
+      "name": "Horst",
+      "isCool": true
+    },
+    {
+      "nationality": "DE",
+      "name": "Helga"
+    },
+    {
+      "nationality": "FR",
+      "name": "Jacqueline",
+      "isCool": true
+    },
+    {
+      "nationality": "CN",
+      "name": "Yin"
+    },
+    {
+      "nationality": "US",
+      "name": "John",
+      "isCool": true
+    },
+    {
+      "nationality": "US",
+      "name": "Donald",
+      "isCool": false
+    }
+  ]
+}

@@ -4,37 +4,43 @@
       "id": "ciz5mqjwg80bk0196qbgm1qny",
       "identCode": "DE",
       "isoCode": "DE",
-      "description": "Deutschland"
+      "description": "Deutschland",
+      "continent": "Europe"
     },
     {
       "id": "ciz5mqp0k7xga01788kd7u5ob",
       "identCode": "FR",
       "isoCode": "FR",
-      "description": "Frankreich"
+      "description": "Frankreich",
+      "continent": "Europe"
     },
     {
       "id": "ciz5mraih7xl70178p3r6iu9d",
       "identCode": "US",
       "isoCode": "US",
-      "description": "USA"
+      "description": "USA",
+      "continent": "NorthAmerica"
     },
     {
       "id": "ciz5mroui7xq2017807u4kpv8",
       "identCode": "CZ",
       "isoCode": "CZ",
-      "description": "Tschechische Republik"
+      "description": "Tschechische Republik",
+      "continent": "Europa"
     },
     {
       "id": "ciz5mwjoj80vb0196ce3gu8bn",
       "identCode": "CN",
       "isoCode": "CN",
-      "description": "China"
+      "description": "China",
+      "continent": "Asia"
     },
     {
       "id": "ciz5mxjo27zk501786kxkndem",
       "identCode": "HK",
       "isoCode": "HK",
-      "description": "Hongkong, China"
+      "description": "Hongkong, China",
+      "continent": "Asia"
     }
   ]
 }

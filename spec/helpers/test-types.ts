@@ -1,7 +1,9 @@
 import {
-    GraphQLBoolean, GraphQLID, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLList, GraphQLObjectType,
+    GraphQLBoolean, GraphQLEnumType, GraphQLID, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLList,
+    GraphQLObjectType,
     GraphQLString
-} from "graphql";
+} from 'graphql';
+import { arrayToObject, mapValues, objectFromKeys } from '../../src/utils/utils';
 
 export namespace testTypes {
     export const carType = new GraphQLObjectType({
@@ -21,13 +23,21 @@ export namespace testTypes {
         }
     });
 
+    const continents = ['Europe', 'NorthAmerica', 'SouthAmerica', 'Asia', 'Australia', 'Antarctica', 'Africa'];
+
+    export const continentType = new GraphQLEnumType({
+        name: 'Continent',
+        values: objectFromKeys(continents, key => ({}))
+    });
+
     export const countryType = new GraphQLObjectType({
         name: 'Country',
         fields: {
             id: { type: GraphQLID},
             identCode: { type: GraphQLString },
             isoCode: { type: GraphQLString },
-            description: { type: GraphQLString }
+            description: { type: GraphQLString },
+            continent: { type: continentType }
         }
     });
 
@@ -37,7 +47,16 @@ export namespace testTypes {
             identCode_in: { type: new GraphQLList(GraphQLString) }
         },
 
-    })
+    });
+
+
+    export const personFilterType = new GraphQLInputObjectType({
+        name: 'PersonFilter',
+        fields: {
+            isCool: { type: GraphQLBoolean }
+        },
+
+    });
 
 
 }
