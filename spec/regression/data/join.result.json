@@ -1,0 +1,18 @@
+{
+  "allPeople": [
+    {
+      "name": "Horst",
+      "isCool": true,
+      "nationality": {
+        "description": "Deutschland"
+      }
+    },
+    {
+      "name": "Jacqueline",
+      "isCool": true,
+      "nationality": {
+        "description": "Frankreich"
+      }
+    }
+  ]
+}

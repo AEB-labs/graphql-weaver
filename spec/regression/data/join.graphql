@@ -1,0 +1,11 @@
+{
+    staticData {
+        allPeople(filter: { isCool: true, nationality: { continent: Europe }}) {
+            name
+            isCool
+            nationality {
+                description
+            }
+        }
+    }
+}
