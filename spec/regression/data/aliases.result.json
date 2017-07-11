@@ -1,0 +1,17 @@
+{
+  "namespacedEndpoint": {
+    "foo": [
+      {
+        "description": "Deutschland",
+        "bar": "DE"
+      },
+      {
+        "description": "Frankreich",
+        "bar": "FR"
+      }
+    ]
+  },
+  "helga": {
+    "name": "Horst"
+  }
+}

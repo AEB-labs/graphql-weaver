@@ -1,0 +1,9 @@
+{
+   namespacedEndpoint {
+     foo: allCountries(filter: { identCode_in: ["DE", "FR"]}) {
+       description
+       bar: identCode
+     }
+   }
+   helga: horst { name }
+}
