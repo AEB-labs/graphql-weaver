@@ -10,15 +10,15 @@ import {
 } from '../extended-schema/extended-schema-transformer';
 import { FieldTransformationContext } from '../graphql/schema-transformer';
 import { getFieldAsQueryParts } from '../graphql/field-as-query';
-import { walkFields } from '../graphql/schema-utils';
 import {
     addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
     createSelectionChain
 } from '../graphql/language-utils';
-import { arrayToObject } from '../utils/utils';
+import { arrayToObject, throwError } from '../utils/utils';
 import { assertSuccessfulResponse } from '../endpoints/client';
 import { isArray } from 'util';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
+import { parseLinkTargetPath } from './helpers/link-helpers';
 import DataLoader = require('dataloader');
 import { isListType } from '../graphql/schema-utils';
 
@@ -104,11 +104,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
         const schema = this.schema.schema;
         const link = config.metadata.link;
-        const targetFieldPath = link.field.split('.');
-        const targetField = walkFields(this.schema.schema.getQueryType(), targetFieldPath);
-        if (!targetField) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${targetFieldPath.join('.')} which does not exist in the schema`);
-        }
+        const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(link.field, this.schema.schema) ||
+            throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${link.field} which does not exist in the schema`);
 
         const isListMode = isListType(config.type);
 

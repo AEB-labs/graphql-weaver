@@ -25,6 +25,14 @@ export function arrayToObject<TValue>(array: TValue[], keyFn: (obj: TValue) => s
     return result;
 }
 
+export function objectFromKeys<TValue>(keys: string[], valueFn: (obj: string) => TValue): {[name: string]: TValue} {
+    const result: {[name: string]: TValue} = {};
+    for (const key of keys) {
+        result[key] = valueFn(key);
+    }
+    return result;
+}
+
 export function objectToMap<T>(object: {[name: string]: T}): Map<string, T> {
     return new Map<string, T>(objectEntries(object));
 }
@@ -66,4 +74,8 @@ export function compact<T>(arr: (T|undefined|null)[]): T[] {
 
 export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|undefined|null): TOut[] {
     return input.map(fn).filter(a => a != undefined) as TOut[];
+}
+
+export function throwError(message: string): never {
+    throw new Error(message);
 }

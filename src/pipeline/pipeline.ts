@@ -16,6 +16,7 @@ import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas'
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
 import {EndpointConfig} from "../config/proxy-configuration";
+import { JoinModule } from './join';
 
 function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[] {
     const preMergePipeline: PipelineModule[] = [
@@ -40,6 +41,7 @@ function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[
 function postMergeModulesFactory(context: PostMergeModuleContext): PipelineModule[] {
     return [
         new LinksModule(),
+        new JoinModule(),
         new ExtendedIntrospectionModule()
     ]
 }
