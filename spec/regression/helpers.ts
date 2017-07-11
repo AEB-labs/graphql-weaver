@@ -1,6 +1,7 @@
-import {execute, parse} from "graphql";
+import { execute, parse, validate } from 'graphql';
 import {ProxyConfig} from "../../src/config/proxy-configuration";
 import {createProxySchema} from "../../src/proxy-schema";
+import { assertSuccessfulResponse } from '../../src/endpoints/client';
 
 /**
  * Create a graphql proxy for a configuration and execute a query on it.
@@ -12,6 +13,11 @@ import {createProxySchema} from "../../src/proxy-schema";
 export async function testConfigWithQuery(proxyConfig: ProxyConfig, query: string, variableValues: {[name: string]: any}) {
     const schema = await createProxySchema(proxyConfig);
     const document = parse(query, {});
-    const result = await execute(schema, document, {}, {}, variableValues, undefined);
+    const errors = validate(schema, document);
+    if (errors.length) {
+        throw new Error(JSON.stringify(errors));
+    }
+    const result = await execute(schema, document, {cariedOnRootValue: true}, {}, variableValues, undefined);
+    assertSuccessfulResponse(result);
     return result.data;
 }
