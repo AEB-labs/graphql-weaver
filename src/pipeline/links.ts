@@ -12,9 +12,9 @@ import {
     GraphQLOutputType,
     GraphQLResolveInfo,
     GraphQLScalarType,
-    ObjectValueNode,
     OperationDefinitionNode,
-    TypeInfo, ValueNode,
+    TypeInfo,
+    ValueNode,
     visit,
     visitWithTypeInfo
 } from "graphql";
@@ -26,12 +26,18 @@ import {
     transformExtendedSchema
 } from "../extended-schema/extended-schema-transformer";
 import {FieldTransformationContext} from "../graphql/schema-transformer";
-import {throwError} from "../utils/utils";
+import {compact, flatMap, groupBy, objectFromKeyValuePairs, throwError} from "../utils/utils";
 import {ArrayKeyWeakMap} from "../utils/multi-key-weak-map";
 import {fetchLinkedObjects, parseLinkTargetPath} from "./helpers/link-helpers";
 import {isListType} from "../graphql/schema-utils";
 import {Query} from "../graphql/common";
-import {addVariableDefinitionSafely} from "../graphql/language-utils";
+import {
+    addVariableDefinitionSafely,
+    expandSelections,
+    findNodesByAliasInSelections,
+    getAliasOrName
+} from "../graphql/language-utils";
+import {SlimGraphQLResolveInfo} from "../graphql/field-as-query";
 import DataLoader = require('dataloader');
 
 const FILTER_ARG = 'filter';
@@ -201,6 +207,23 @@ class SchemaTransformationInfo {
     private getJoinTransformationInfoKey(typeName: string, fieldName: string) {
         return `${typeName}.${fieldName}`;
     }
+
+    /**
+     * Maps typeName.linkField to the information gathered while transforming a link field
+     */
+    private readonly linkTransformationInfos = new Map<string, LinkTransformationInfo>();
+
+    getLinkTransformationInfo(typeName: string, fieldName: string): LinkTransformationInfo | undefined {
+        return this.linkTransformationInfos.get(this.getLinkTransformationInfoKey(typeName, fieldName));
+    }
+
+    setLinkTransformationInfo(typeName: string, fieldName: string, info: LinkTransformationInfo) {
+        this.linkTransformationInfos.set(this.getLinkTransformationInfoKey(typeName, fieldName), info);
+    }
+
+    private getLinkTransformationInfoKey(typeName: string, fieldName: string) {
+        return `${typeName}.${fieldName}`;
+    }
 }
 
 interface JoinTransformationInfo {
@@ -208,6 +231,20 @@ interface JoinTransformationInfo {
      * The original input type of the left filter, or undefined if there was no filter on the left field
      */
     readonly leftFilterArgType: GraphQLInputObjectType | undefined;
+}
+
+interface LinkTransformationInfo {
+}
+
+/**
+ * This is a token for an object which has already been resolved via the link target endpoint (as apposed to being a link key)
+ */
+class ResolvedLinkObject {
+    private _ResolvedLinkObject: never;
+
+    constructor(obj: any) {
+        Object.assign(this, obj);
+    }
 }
 
 class SchemaLinkTransformer implements ExtendedSchemaTransformer {
@@ -248,7 +285,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         /**
          * Fetches an object by its key, but collects keys before sending a batch request
          */
-        async function fetchDeferred(key: any, info: GraphQLResolveInfo & { context: any }) {
+        async function fetchDeferred(key: any, info: SlimGraphQLResolveInfo, context: any) {
             // the fieldNodes array is unique each call, but each individual fieldNode is reused). We can not easily
             // merge the selection sets because they may have collisions. However, we could merge all queries to one
             // endpoint (dataLoader over dataLoaders).
@@ -257,7 +294,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             let dataLoader = dataLoaders.get(dataLoaderKey);
             if (!dataLoader) {
                 dataLoader = new DataLoader(keys => fetchLinkedObjects({
-                    keys, info, unlinkedSchema, keyType, linkConfig
+                    keys, info, unlinkedSchema, keyType, linkConfig, context
                 }));
                 dataLoaders.set(dataLoaderKey, dataLoader);
             }
@@ -269,19 +306,18 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             ...config,
             resolve: async (source, vars, context, info) => {
                 const fieldNode = info.fieldNodes[0];
-                const alias = fieldNode.alias ? fieldNode.alias.value : fieldNode.name.value;
-                const keyOrKeys = source[alias];
-                if (!keyOrKeys) {
-                    return keyOrKeys;
+                const originalValue = config.resolve ? await config.resolve(source, vars, context, info) : source[fieldNode.name.value];
+                if (!originalValue || originalValue instanceof ResolvedLinkObject) {
+                    return originalValue;
                 }
 
                 const extendedInfo = {...info, context};
                 if (isListMode) {
-                    const keys: any[] = keyOrKeys;
-                    return Promise.all(keys.map(key => fetchDeferred(key, extendedInfo)));
+                    const keys: any[] = originalValue;
+                    return Promise.all(keys.map(key => fetchDeferred(key, info, context)));
                 } else {
-                    const key = keyOrKeys;
-                    return fetchDeferred(key, extendedInfo);
+                    const key = originalValue;
+                    return fetchDeferred(key, info, context);
                 }
             },
             type: isListMode ? new GraphQLList(targetRawType) : targetRawType
@@ -290,18 +326,21 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
     transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const linkFieldName = joinConfig.linkField;
-        const outerType = getNamedType(context.oldField.type);
-        if (!(outerType instanceof GraphQLObjectType) && !(outerType instanceof GraphQLInterfaceType)) {
-            throw new Error(`@join feature only supported on object types and interface types, but is ${outerType}`);
+        const leftType = getNamedType(context.oldField.type);
+        if (!(leftType instanceof GraphQLObjectType) && !(leftType instanceof GraphQLInterfaceType)) {
+            throw new Error(`@join feature only supported on object types and interface types, but is ${leftType}`);
         }
-        const linkField: GraphQLField<any, any> = outerType.getFields()[linkFieldName]; // why any?
+        const linkField: GraphQLField<any, any> = leftType.getFields()[linkFieldName]; // why any?
         if (!linkField) {
-            throw new Error(`linkField ${JSON.stringify(linkFieldName)} configured by @join does not exist on ${outerType.name}`);
+            throw new Error(`linkField ${JSON.stringify(linkFieldName)} configured by @join does not exist on ${leftType.name}`);
         }
-        const linkFieldMetadata = this.schema.getFieldMetadata(<GraphQLObjectType>outerType, linkField); // no metadata on interfaces yet
+        const linkFieldMetadata = this.schema.getFieldMetadata(<GraphQLObjectType>leftType, linkField); // no metadata on interfaces yet
         const linkConfig = linkFieldMetadata ? linkFieldMetadata.link : undefined;
         if (!linkConfig) {
-            throw new Error(`Field ${outerType.name}.${linkFieldName} is referenced as linkField but has no @link configuration`);
+            throw new Error(`Field ${leftType.name}.${linkFieldName} is referenced as linkField but has no @link configuration`);
+        }
+        if (!linkConfig.batchMode || !linkConfig.keyField) {
+            throw new Error(`@join only possible on @link fields with batchMode=true and keyField set`);
         }
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
@@ -311,6 +350,11 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
 
         const leftObjectType = getNamedType(context.oldField.type);
+
+        const keyType = getNamedType(context.mapType(linkField.type));
+        if (!(keyType instanceof GraphQLScalarType)) {
+            throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
+        }
 
         // terminology: left and right in the sense of a SQL join (left is link, right is target)
 
@@ -332,7 +376,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             } else {
                 const leftFilterType = context.mapType(leftFilterArg.type);
                 if (!(leftFilterType instanceof GraphQLInputObjectType)) {
-                    throw new Error(`Expected filter argument of ${outerType.name}.${linkField.name} to be of InputObjectType`);
+                    throw new Error(`Expected filter argument of ${leftType.name}.${linkField.name} to be of InputObjectType`);
                 }
 
                 newFilterFields = {
@@ -371,7 +415,49 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
         return {
             ...config,
-            args: newArguments
+            args: newArguments,
+            resolve: async (source, args, resolveContext, info: GraphQLResolveInfo) => {
+                const leftObjects: any[] = await context.oldField.resolve!(source, args, resolveContext, info);
+
+                const joinedObjectsSparse = leftObjects.map(async leftObject => {
+                    const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
+
+                    // all the names/aliases under which the link field has been requested
+                    const linkFieldNodes = expandSelections(selections)
+                        .filter(node => node.name.value == linkFieldName);
+                    const linkFieldNodesByAlias = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
+
+                    const aliasRightObjectPairs = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]): Promise<[string, any]> => {
+                        const linkFieldInfo: SlimGraphQLResolveInfo = {
+                            operation: info.operation,
+                            variableValues: info.variableValues,
+                            fragments: info.fragments,
+                            fieldNodes
+                        };
+
+                        const key = leftObject[linkFieldName];
+                        const objects = await fetchLinkedObjects({
+                            keys: [key],
+                            keyType,
+                            linkConfig,
+                            unlinkedSchema: this.schema.schema,
+                            info: linkFieldInfo,
+                            context: resolveContext
+                        });
+                        const rightObject = objects[0];
+                        return [alias, new ResolvedLinkObject(rightObject)];
+                    }));
+                    if (aliasRightObjectPairs.some(([key, value]) => !value)) {
+                        return undefined; // INNER JOIN (leave out this condition if LEFT JOIN is intended)
+                    }
+
+                    return {
+                        ...leftObject,
+                        ...objectFromKeyValuePairs(aliasRightObjectPairs)
+                    }
+                });
+                return compact(joinedObjectsSparse);
+            }
         };
     }
 

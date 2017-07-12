@@ -1,9 +1,19 @@
 import {
-    ASTNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
-    OperationDefinitionNode, OperationTypeNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode,
+    ASTNode,
+    DocumentNode,
+    FieldNode,
+    FragmentDefinitionNode,
+    FragmentSpreadNode,
+    GraphQLResolveInfo,
+    OperationDefinitionNode,
+    OperationTypeNode,
+    SelectionNode,
+    SelectionSetNode,
+    VariableDefinitionNode,
+    VariableNode,
     visit
-} from 'graphql';
-import { Query } from './common';
+} from "graphql";
+import {Query} from "./common";
 import {flatMap} from "../utils/utils";
 
 type QueryParts = {
@@ -14,10 +24,17 @@ type QueryParts = {
     operation: OperationTypeNode;
 };
 
+export interface SlimGraphQLResolveInfo {
+    fieldNodes: FieldNode[]
+    fragments: { [fragmentName: string]: FragmentDefinitionNode };
+    operation: OperationDefinitionNode;
+    variableValues: { [variableName: string]: any };
+}
+
 /**
  * Prepares all the parts necessary to construct a GraphQL query document like produced by getFieldAsQuery
  */
-export function getFieldAsQueryParts(info: GraphQLResolveInfo): QueryParts {
+export function getFieldAsQueryParts(info: SlimGraphQLResolveInfo): QueryParts {
     const fragments = collectUsedFragments(info.fieldNodes, info.fragments);
     const selections = collectSelections(info.fieldNodes);
     const selectionSet: SelectionSetNode = {
@@ -38,7 +55,7 @@ export function getFieldAsQueryParts(info: GraphQLResolveInfo): QueryParts {
  *
  * This is the basic component of a proxy - a resolver calls this method and then sends the query to the upstream server
  */
-export function getFieldAsQuery(info: GraphQLResolveInfo): Query {
+export function getFieldAsQuery(info: SlimGraphQLResolveInfo): Query {
     return getQueryFromParts(getFieldAsQueryParts(info));
 }
 

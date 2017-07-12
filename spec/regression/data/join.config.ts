@@ -16,6 +16,7 @@ export async function getConfig(): Promise<ProxyConfig> {
                         link: {
                             field: "staticData.allCountries",
                             argument: "filter.identCode_in",
+                            keyField: "identCode",
                             batchMode: true
                         }
                     },

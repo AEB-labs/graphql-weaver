@@ -1,16 +1,26 @@
 import {
-    DocumentNode, execute,
-    FieldNode, GraphQLField, GraphQLList, GraphQLNonNull, GraphQLResolveInfo, GraphQLScalarType,
-    GraphQLSchema, OperationDefinitionNode, SelectionSetNode
-} from 'graphql';
-import {getNonNullType, walkFields} from '../../graphql/schema-utils';
+    DocumentNode,
+    execute,
+    FieldNode,
+    GraphQLField,
+    GraphQLList,
+    GraphQLNonNull,
+    GraphQLScalarType,
+    GraphQLSchema,
+    OperationDefinitionNode,
+    SelectionSetNode
+} from "graphql";
+import {getNonNullType, walkFields} from "../../graphql/schema-utils";
 import {LinkConfig} from "../../extended-schema/extended-schema";
 import {arrayToObject, throwError} from "../../utils/utils";
-import {getFieldAsQueryParts} from "../../graphql/field-as-query";
+import {getFieldAsQueryParts, SlimGraphQLResolveInfo} from "../../graphql/field-as-query";
 import {
-    addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode,
-    createNestedArgumentWithVariableNode, createSelectionChain
-} from "../../graphql/language-utils"
+    addFieldSelectionSafely,
+    addVariableDefinitionSafely,
+    createFieldNode,
+    createNestedArgumentWithVariableNode,
+    createSelectionChain
+} from "../../graphql/language-utils";
 import {isArray} from "util";
 import {assertSuccessfulResponse} from "../../endpoints/client";
 
@@ -35,9 +45,10 @@ export async function fetchLinkedObjects(params: {
     keyType: GraphQLScalarType,
     linkConfig: LinkConfig,
     unlinkedSchema: GraphQLSchema,
-    info: GraphQLResolveInfo & { context: any }
+    context: any,
+    info: SlimGraphQLResolveInfo
 }) {
-    const {unlinkedSchema, keys, keyType, linkConfig, info} = params;
+    const {unlinkedSchema, keys, keyType, linkConfig, info, context} = params;
 
     const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
     throwError(`Link target field as ${linkConfig.field} which does not exist in the schema`);
@@ -46,9 +57,10 @@ export async function fetchLinkedObjects(params: {
      * Fetches one object, or a list of objects in batch mode, according to the query underlying the resolveInfo
      * @param keyOrKeys either a single key of a list of keys, depending on link.batchMode
      * @param resolveInfo the resolveInfo from the request
+     * @param context graphql execution context
      * @returns {Promise<void>}
      */
-    async function fetchSingularOrPlural(keyOrKeys: any, resolveInfo: GraphQLResolveInfo & { context: any }) {
+    async function fetchSingularOrPlural(keyOrKeys: any, resolveInfo: SlimGraphQLResolveInfo, context: any) {
         const {fragments, ...originalParts} = getFieldAsQueryParts(resolveInfo);
 
         // add variable
@@ -102,7 +114,12 @@ export async function fetchLinkedObjects(params: {
         };
 
         // execute
-        const result = await execute(unlinkedSchema, document, {} /* root */, resolveInfo.context, variableValues);
+        // note: don't need to run query pipeline on this document because it will be passed to the unlinked schema
+        // which will in turn peform their query pipeline (starting from the next module onwards) on the query in the
+        // proxy resolver. Query pipeline modules before this module have already been exectued on the whole query
+        // (because the linked fields obviously have not been truncated there)
+        // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
+        const result = await execute(unlinkedSchema, document, {} /* root */, context, variableValues);
         assertSuccessfulResponse(result);
 
         // unwrap
@@ -125,7 +142,7 @@ export async function fetchLinkedObjects(params: {
 
     if (!linkConfig.batchMode) {
         // no batch mode, so do one request per id
-        return keys.map(key => fetchSingularOrPlural(key, info));
+        return keys.map(key => fetchSingularOrPlural(key, info, context));
     }
-    return await fetchSingularOrPlural(keys, info);
+    return await fetchSingularOrPlural(keys, info, context);
 }

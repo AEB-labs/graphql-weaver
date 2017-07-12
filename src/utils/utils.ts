@@ -33,6 +33,14 @@ export function objectFromKeys<TValue>(keys: string[], valueFn: (obj: string) =>
     return result;
 }
 
+export function objectFromKeyValuePairs<TValue>(pairs: [string, TValue][]): {[name: string]: TValue} {
+    const result: {[name: string]: TValue} = {};
+    for (const [key, value] of pairs) {
+        result[key] = value;
+    }
+    return result;
+}
+
 export function objectToMap<T>(object: {[name: string]: T}): Map<string, T> {
     return new Map<string, T>(objectEntries(object));
 }
@@ -78,4 +86,18 @@ export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|
 
 export function throwError(message: string): never {
     throw new Error(message);
+}
+
+export function groupBy<TItem, TKey>(arr: TItem[], keyFn: (key: TItem) => TKey): Map<TKey, TItem[]> {
+    const map = new Map<TKey, TItem[]>();
+    for (const item of arr) {
+        const key = keyFn(item);
+        let bucket = map.get(key);
+        if (!bucket) {
+            bucket = [];
+            map.set(key, bucket);
+        }
+        bucket.push(item);
+    }
+    return map;
 }

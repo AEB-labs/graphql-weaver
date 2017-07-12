@@ -1,8 +1,22 @@
 import {
-    ArgumentNode, ASTNode, FieldNode, FragmentDefinitionNode, GraphQLList, GraphQLNamedType, GraphQLNonNull,
-    GraphQLType, ListTypeNode, NamedTypeNode, NonNullTypeNode, SelectionNode, SelectionSetNode, TypeNode, ValueNode,
-    VariableDefinitionNode, visit
-} from 'graphql';
+    ArgumentNode,
+    ASTNode,
+    FieldNode,
+    FragmentDefinitionNode,
+    GraphQLList,
+    GraphQLNamedType,
+    GraphQLNonNull,
+    GraphQLType,
+    ListTypeNode,
+    NamedTypeNode,
+    NonNullTypeNode,
+    SelectionNode,
+    SelectionSetNode,
+    TypeNode,
+    ValueNode,
+    VariableDefinitionNode,
+    visit
+} from "graphql";
 import {compact, flatMap} from "../utils/utils";
 
 /**
@@ -233,21 +247,17 @@ export function addFieldSelectionSafely(selectionSet: SelectionSetNode, field: s
  * @param fragments an array of fragment definitions for lookup of fragment spreads
  */
 export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}) {
-    return findNodesByAliasInSelection(selectionSet, alias, fragments).length > 0;
+    return findNodesByAliasInSelections(selectionSet.selections, alias, fragments).length > 0;
 }
 
-
-
 /**
- * Finds all field node with a given alias (or name if no alias is specified) within a selection set.
- * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
- * Multiple matching nodes are collected recusivily, according to GraphQL's field node merging logic
+ * Finds all the field nodes that are selected by a given selection set, by spreading all referenced fragments
  *
- * @param selectionSet the selection set
- * @param alias the name of the field or alias to check
+ * @param selections the selection set
  * @param fragments an array of fragment definitions for lookup of fragment spreads
+ * @return the field nodes
  */
-export function findNodesByAliasInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+export function expandSelections(selections: SelectionNode[], fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
     function findFragment(name: string): FragmentDefinitionNode {
         if (!(name in fragments)) {
             throw new Error(`Fragment ${name} is referenced but not defined`);
@@ -255,25 +265,32 @@ export function findNodesByAliasInSelection(selectionSet: SelectionSetNode, alia
         return fragments[name];
     }
 
-    function findNodesByAliasInSelectionNode(node: SelectionNode): FieldNode[] {
+    function expandSelection(node: SelectionNode): FieldNode[] {
         switch (node.kind) {
             case 'Field':
-                if (getAlias(node) == alias) {
-                    return [ node ];
-                }
-                return [];
+                return [node];
             case 'FragmentSpread':
                 const fragment = findFragment(node.name.value);
-                return findNodesByAliasInSelection(fragment.selectionSet, alias, fragments);
+                return expandSelections(fragment.selectionSet.selections, fragments);
             case 'InlineFragment':
-                return findNodesByAliasInSelection(node.selectionSet, alias, fragments);
+                return expandSelections(node.selectionSet.selections, fragments);
             default:
                 throw new Error(`Unexpected node kind: ${(<any>node).kind}`);
         }
     }
 
-    return flatMap(selectionSet.selections, findNodesByAliasInSelectionNode);
+    return flatMap(selections, expandSelection);
 }
+
+/*
+ * Finds all field node with a given alias (or name if no alias is specified) within a selection set.
+ * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
+ * Multiple matching nodes are collected recusivily, according to GraphQL's field node merging logic
+ */
+export function findNodesByAliasInSelections(selections: SelectionNode[], alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+    return expandSelections(selections, fragments).filter(node => getAliasOrName(node) == alias);
+}
+
 
 export function addVariableDefinitionSafely(variableDefinitions: VariableDefinitionNode[], name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
     const names = new Set(variableDefinitions.map(def => def.variable.name.value));
@@ -320,13 +337,13 @@ export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases:
         throw new Error(`Aliases must not be empty`);
     }
 
-    let currentSelectionSets: SelectionSetNode[] = [ selectionSet ];
+    let currentSelectionSets: SelectionSetNode[] = [selectionSet];
     const fieldNodesInPath: FieldNode[] = [];
     for (const alias of aliases) {
         if (!currentSelectionSets.length) {
             throw new Error(`Expected field ${fieldNodesInPath.length ? fieldNodesInPath[fieldNodesInPath.length - 1].name.value : ''} to have sub-selection but it does not`);
         }
-        const matchingFieldNodes = flatMap(currentSelectionSets, selSet => findNodesByAliasInSelection(selSet, alias, fragments));
+        const matchingFieldNodes = flatMap(currentSelectionSets, selSet => findNodesByAliasInSelections(selSet.selections, alias, fragments));
         if (!matchingFieldNodes.length) {
             throw new Error(`Field ${alias} expected but not found`);
         }
@@ -338,7 +355,12 @@ export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases:
     return fieldNodesInPath;
 }
 
-function getAlias(fieldNode: FieldNode) {
+/**
+ * Gets the alias of a field node, or the field name if it does not have an alias
+ * @param fieldNode
+ * @returns {string}
+ */
+export function getAliasOrName(fieldNode: FieldNode) {
     if (fieldNode.alias) {
         return fieldNode.alias.value;
     }

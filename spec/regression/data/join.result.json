@@ -1,18 +1,20 @@
 {
-  "allPeople": [
-    {
-      "name": "Horst",
-      "isCool": true,
-      "nationality": {
-        "description": "Deutschland"
+  "staticData": {
+    "allPeople": [
+      {
+        "name": "Horst",
+        "isCool": true,
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "isCool": true,
+        "nationality": {
+          "description": "Frankreich"
+        }
       }
-    },
-    {
-      "name": "Jacqueline",
-      "isCool": true,
-      "nationality": {
-        "description": "Frankreich"
-      }
-    }
-  ]
+    ]
+  }
 }
