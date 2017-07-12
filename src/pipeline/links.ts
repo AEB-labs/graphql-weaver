@@ -1,18 +1,25 @@
 import {
-    ASTNode,
     FieldNode,
     getNamedType,
+    GraphQLField,
+    GraphQLFieldConfigArgumentMap,
+    GraphQLInputFieldConfigMap,
+    GraphQLInputObjectType,
+    GraphQLInputType,
+    GraphQLInterfaceType,
     GraphQLList,
     GraphQLObjectType,
     GraphQLOutputType,
     GraphQLResolveInfo,
     GraphQLScalarType,
-    TypeInfo,
+    ObjectValueNode,
+    OperationDefinitionNode,
+    TypeInfo, ValueNode,
     visit,
     visitWithTypeInfo
 } from "graphql";
 import {PipelineModule} from "./pipeline-module";
-import {ExtendedSchema} from "../extended-schema/extended-schema";
+import {ExtendedSchema, JoinConfig, LinkConfig} from "../extended-schema/extended-schema";
 import {
     ExtendedSchemaTransformer,
     GraphQLNamedFieldConfigWithMetadata,
@@ -23,7 +30,12 @@ import {throwError} from "../utils/utils";
 import {ArrayKeyWeakMap} from "../utils/multi-key-weak-map";
 import {fetchLinkedObjects, parseLinkTargetPath} from "./helpers/link-helpers";
 import {isListType} from "../graphql/schema-utils";
+import {Query} from "../graphql/common";
+import {addVariableDefinitionSafely} from "../graphql/language-utils";
 import DataLoader = require('dataloader');
+
+const FILTER_ARG = 'filter';
+const ORDER_BY_ARG = 'orderBy';
 
 /**
  * Adds a feature to link fields to types of other endpoints
@@ -31,10 +43,13 @@ import DataLoader = require('dataloader');
 export class LinksModule implements PipelineModule {
     private unlinkedSchema: ExtendedSchema | undefined;
     private linkedSchema: ExtendedSchema | undefined;
+    private transformationInfo: SchemaTransformationInfo | undefined;
 
     transformExtendedSchema(schema: ExtendedSchema): ExtendedSchema {
         this.unlinkedSchema = schema;
-        this.linkedSchema = transformExtendedSchema(schema, new SchemaLinkTransformer(schema));
+        const transformer = new SchemaLinkTransformer(schema);
+        this.linkedSchema = transformExtendedSchema(schema, transformer);
+        this.transformationInfo = transformer.transformationInfo;
         return this.linkedSchema!;
     }
 
@@ -48,37 +63,108 @@ export class LinksModule implements PipelineModule {
      *
      * The resolver of the linked field will do the fetch of the linked object, so here we just need the scalar value
      */
-    transformNode(node: ASTNode): ASTNode {
+    transformQuery(query: Query): Query {
         if (!this.linkedSchema || !this.unlinkedSchema) {
             throw new Error(`Schema is not built yet`);
         }
 
         let layer = 0;
         const typeInfo = new TypeInfo(this.linkedSchema.schema);
+        let variableValues = query.variableValues;
+        const operation = <OperationDefinitionNode | undefined>query.document.definitions.filter(def => def.kind == 'OperationDefinition')[0];
+        if (!operation) {
+            throw new Error(`Operation not found`);
+        }
+        let variableDefinitions = operation.variableDefinitions || [];
 
-        // first-level fields would be nested calls, there we want the link data
-        const ignoreFirstLayer = node.kind != 'FragmentDefinition';
-
-        return visit(node, visitWithTypeInfo(typeInfo, {
+        const document = visit(query.document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
-                    if (ignoreFirstLayer && layer < 2) {
-                        layer++;
-                        return;
-                    }
                     layer++;
-                    const type = typeInfo.getParentType();
-                    if (!type || !(type instanceof GraphQLObjectType)) {
+                    const parentType = typeInfo.getParentType();
+                    if (!parentType || !(parentType instanceof GraphQLObjectType)) {
                         throw new Error(`Failed to retrieve type for field ${child.name.value}`);
                     }
-                    const metadata = this.unlinkedSchema!.getFieldMetadata(type, typeInfo.getFieldDef());
+                    const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
+
                     if (metadata && metadata.link) {
-                        return {
+                        child = {
                             ...child,
                             selectionSet: undefined
                         };
                     }
-                    return undefined;
+
+                    if (metadata && metadata.join) {
+                        const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name)
+                        if (!transformationInfo) {
+                            throw new Error(`Missing joinTransformationInfo`);
+                        }
+
+                        // remove right filter
+                        const filterArg = (child.arguments || []).filter(arg => arg.name.value == FILTER_ARG)[0];
+                        const rightFilterFieldName = metadata.join.linkField;
+                        if (filterArg) {
+                            const leftFilterType = transformationInfo.leftFilterArgType;
+
+                            // first, remove the joined filter arg
+                            child = {
+                                ...child,
+                                arguments: child.arguments!.filter(arg => arg != filterArg)
+                            };
+
+                            // now see if we need the filter arg for the left field again
+                            if (leftFilterType) {
+                                let newValue: ValueNode;
+                                switch (filterArg.value.kind) {
+                                    case 'Variable':
+                                        const value = variableValues[filterArg.value.name.value];
+                                        const valueWithoutRightFilter = {...value, [rightFilterFieldName]: undefined};
+                                        const {name: varName, variableDefinitions: newVariableDefinitions} =
+                                            addVariableDefinitionSafely(variableDefinitions, filterArg.value.name.value, leftFilterType);
+                                        variableDefinitions = newVariableDefinitions;
+                                        variableValues = {
+                                            ...variableValues,
+                                            [varName]: valueWithoutRightFilter
+                                        };
+                                        newValue = {
+                                            kind: 'Variable',
+                                            name: {
+                                                kind: 'Name',
+                                                value: varName
+                                            }
+                                        };
+                                        break;
+                                    case 'ObjectValue':
+                                        newValue = {
+                                            kind: 'ObjectValue',
+                                            ...filterArg.value,
+                                            fields: filterArg.value.fields.filter(field => field.name.value != rightFilterFieldName)
+                                        };
+
+                                        break;
+                                    default:
+                                        throw new Error(`Invalid value for filter arg: ${filterArg.value.kind}`);
+                                }
+
+                                child = {
+                                    ...child,
+                                    arguments: [
+                                        ...(child.arguments || []),
+                                        {
+                                            kind: 'Argument',
+                                            name: {
+                                                kind: 'Name',
+                                                value: FILTER_ARG
+                                            },
+                                            value: newValue
+                                        }
+                                    ]
+                                };
+                            }
+
+                        }
+                    }
+                    return child;
                 },
 
                 leave() {
@@ -86,22 +172,66 @@ export class LinksModule implements PipelineModule {
                 }
             }
         }));
+
+        return {
+            ...query,
+            document: {
+                ...document,
+                variableDefinitions: variableDefinitions.length ? variableDefinitions : undefined
+            },
+            variableValues
+        };
     }
 }
 
+class SchemaTransformationInfo {
+    /**
+     * Maps typeName.joinField to the information gathered while transforming a join field
+     */
+    private readonly joinTransformationInfos = new Map<string, JoinTransformationInfo>();
+
+    getJoinTransformationInfo(typeName: string, fieldName: string): JoinTransformationInfo | undefined {
+        return this.joinTransformationInfos.get(this.getJoinTransformationInfoKey(typeName, fieldName));
+    }
+
+    setJoinTransformationInfo(typeName: string, fieldName: string, info: JoinTransformationInfo) {
+        this.joinTransformationInfos.set(this.getJoinTransformationInfoKey(typeName, fieldName), info);
+    }
+
+    private getJoinTransformationInfoKey(typeName: string, fieldName: string) {
+        return `${typeName}.${fieldName}`;
+    }
+}
+
+interface JoinTransformationInfo {
+    /**
+     * The original input type of the left filter, or undefined if there was no filter on the left field
+     */
+    readonly leftFilterArgType: GraphQLInputObjectType | undefined;
+}
+
 class SchemaLinkTransformer implements ExtendedSchemaTransformer {
+    public readonly transformationInfo = new SchemaTransformationInfo();
+
     constructor(private readonly schema: ExtendedSchema) {
 
     }
 
     transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
-        if (!config.metadata || !config.metadata.link) {
-            return config;
+        if (config.metadata && config.metadata.link) {
+            config = this.transformLinkField(config, context, config.metadata.link)
         }
+        if (config.metadata && config.metadata.join) {
+            config = this.transformJoinField(config, context, config.metadata.join)
+        }
+
+        return config;
+    }
+
+    transformLinkField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, linkConfig: LinkConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const unlinkedSchema = this.schema.schema;
-        const linkConfig = config.metadata.link;
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
-            throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
+        throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
 
         const isListMode = isListType(config.type);
 
@@ -155,6 +285,93 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 }
             },
             type: isListMode ? new GraphQLList(targetRawType) : targetRawType
+        };
+    }
+
+    transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
+        const linkFieldName = joinConfig.linkField;
+        const outerType = getNamedType(context.oldField.type);
+        if (!(outerType instanceof GraphQLObjectType) && !(outerType instanceof GraphQLInterfaceType)) {
+            throw new Error(`@join feature only supported on object types and interface types, but is ${outerType}`);
+        }
+        const linkField: GraphQLField<any, any> = outerType.getFields()[linkFieldName]; // why any?
+        if (!linkField) {
+            throw new Error(`linkField ${JSON.stringify(linkFieldName)} configured by @join does not exist on ${outerType.name}`);
+        }
+        const linkFieldMetadata = this.schema.getFieldMetadata(<GraphQLObjectType>outerType, linkField); // no metadata on interfaces yet
+        const linkConfig = linkFieldMetadata ? linkFieldMetadata.link : undefined;
+        if (!linkConfig) {
+            throw new Error(`Field ${outerType.name}.${linkFieldName} is referenced as linkField but has no @link configuration`);
+        }
+        const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
+        throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
+
+        if (isListType(linkField.type)) {
+            throw new Error(`@join not available for linkFields with array type (${context.oldOuterType}.${config.name} specifies @join with linkName ${linkFieldName}`);
+        }
+
+        const leftObjectType = getNamedType(context.oldField.type);
+
+        // terminology: left and right in the sense of a SQL join (left is link, right is target)
+
+
+        // filter
+        const leftFilterArg = context.oldField.args.filter(arg => arg.name == FILTER_ARG)[0];
+        const rightFilterArg = targetField.args.filter(arg => arg.name == FILTER_ARG)[0];
+
+        let newFilterType: GraphQLInputType | undefined;
+        if (rightFilterArg) {
+            const newFilterTypeName = leftObjectType.name + 'Filter';
+            let newFilterFields: GraphQLInputFieldConfigMap;
+            if (!leftFilterArg) {
+                newFilterFields = {
+                    [linkFieldName]: {
+                        type: context.mapType(rightFilterArg.type)
+                    }
+                };
+            } else {
+                const leftFilterType = context.mapType(leftFilterArg.type);
+                if (!(leftFilterType instanceof GraphQLInputObjectType)) {
+                    throw new Error(`Expected filter argument of ${outerType.name}.${linkField.name} to be of InputObjectType`);
+                }
+
+                newFilterFields = {
+                    ...leftFilterType.getFields(),
+                    [linkFieldName]: {
+                        type: context.mapType(rightFilterArg.type)
+                    }
+                };
+            }
+            newFilterType = new GraphQLInputObjectType({
+                name: newFilterTypeName,
+                fields: newFilterFields
+            });
+        } else {
+            newFilterType = leftFilterArg ? leftFilterArg.type : undefined;
+        }
+
+        let newArguments: GraphQLFieldConfigArgumentMap = config.args || {};
+
+        if (newFilterType) {
+            newArguments = {
+                ...newArguments,
+                [FILTER_ARG]: {
+                    type: newFilterType
+                }
+            }
+        }
+
+        const leftOrderByArg = linkField.args.filter(arg => arg.name == ORDER_BY_ARG)[0];
+        const rightOrderByArg = targetField.args.filter(arg => arg.name == ORDER_BY_ARG)[0];
+
+
+        this.transformationInfo.setJoinTransformationInfo(context.newOuterType.name, config.name, {
+            leftFilterArgType: leftFilterArg ? <GraphQLInputObjectType>leftFilterArg.type : undefined
+        });
+
+        return {
+            ...config,
+            args: newArguments
         };
     }
 

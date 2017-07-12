@@ -1,22 +1,23 @@
 import {
-    EndpointInfo, PipelineModule, PostMergeModuleContext, PostMergeModuleFactory, PreMergeModuleContext,
-    PreMergeModuleFactory,
-    runQueryPipeline, runSchemaPipeline
-} from './pipeline-module';
-import { TypePrefixesModule } from './type-prefixes';
-import { NamespaceModule } from './namespaces';
-import { DefaultResolversModule } from './default-resolvers';
-import { AbstractTypesModule } from './abstract-types';
-import { LinksModule } from './links';
-import { DocumentNode } from 'graphql';
-import { ProxyResolversModule } from './proxy-resolvers';
-import { EndpointFactory } from '../endpoints/endpoint-factory';
-import { ExtendedSchema } from '../extended-schema/extended-schema';
-import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
-import { ExtendedIntrospectionModule } from './extended-introspection';
-import { AdditionalMetadataModule } from './additional-metadata';
-import {EndpointConfig} from "../config/proxy-configuration";
-import { JoinModule } from './join';
+    EndpointInfo,
+    PipelineModule,
+    PostMergeModuleContext,
+    PreMergeModuleContext,
+    runQueryPipeline,
+    runSchemaPipeline
+} from "./pipeline-module";
+import {TypePrefixesModule} from "./type-prefixes";
+import {NamespaceModule} from "./namespaces";
+import {DefaultResolversModule} from "./default-resolvers";
+import {AbstractTypesModule} from "./abstract-types";
+import {LinksModule} from "./links";
+import {DocumentNode} from "graphql";
+import {ProxyResolversModule} from "./proxy-resolvers";
+import {EndpointFactory} from "../endpoints/endpoint-factory";
+import {ExtendedSchema} from "../extended-schema/extended-schema";
+import {mergeExtendedSchemas} from "../extended-schema/merge-extended-schemas";
+import {ExtendedIntrospectionModule} from "./extended-introspection";
+import {AdditionalMetadataModule} from "./additional-metadata";
 
 function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[] {
     const preMergePipeline: PipelineModule[] = [
@@ -41,7 +42,6 @@ function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[
 function postMergeModulesFactory(context: PostMergeModuleContext): PipelineModule[] {
     return [
         new LinksModule(),
-        new JoinModule(),
         new ExtendedIntrospectionModule()
     ]
 }
