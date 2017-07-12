@@ -1,14 +1,15 @@
 import {
+    ArgumentNode,
     DocumentNode,
     execute,
-    FieldNode,
+    FieldNode, FragmentDefinitionNode,
     GraphQLField,
     GraphQLList,
     GraphQLNonNull,
     GraphQLScalarType,
     GraphQLSchema,
     OperationDefinitionNode,
-    SelectionSetNode
+    SelectionSetNode, VariableDefinitionNode
 } from "graphql";
 import {getNonNullType, walkFields} from "../../graphql/schema-utils";
 import {LinkConfig} from "../../extended-schema/extended-schema";
@@ -33,6 +34,60 @@ export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { fiel
     return {field, fieldPath};
 }
 
+async function basicResolve(params: {
+    targetFieldPath: string[],
+    payloadSelectionSet: SelectionSetNode,
+    args?: ArgumentNode[],
+    variableDefinitions: VariableDefinitionNode[],
+    variableValues: { [name: string]: any },
+    fragments: FragmentDefinitionNode[],
+    context: any,
+    schema: GraphQLSchema
+}) {
+    const {payloadSelectionSet, variableValues, variableDefinitions, context, schema, targetFieldPath, args, fragments} = params;
+
+    // wrap selection in field node chain on target, and add the argument with the key field
+    const outerFieldNames = [...targetFieldPath];
+    const innerFieldName = outerFieldNames.pop()!; // this removes the last element of outerFields in-place
+    const innerFieldNode: FieldNode = {
+        ...createFieldNode(innerFieldName),
+        selectionSet: payloadSelectionSet,
+        arguments: args
+    };
+    const innerSelectionSet: SelectionSetNode = {
+        kind: 'SelectionSet',
+        selections: [innerFieldNode]
+    };
+    const selectionSet = createSelectionChain(outerFieldNames, innerSelectionSet);
+
+    // create document
+    const operation: OperationDefinitionNode = {
+        kind: 'OperationDefinition',
+        operation: 'query',
+        variableDefinitions,
+        selectionSet
+    };
+    const document: DocumentNode = {
+        kind: 'Document',
+        definitions: [
+            operation,
+            ...fragments
+        ]
+    };
+
+    // execute
+    // note: don't need to run query pipeline on this document because it will be passed to the unlinked schema
+    // which will in turn peform their query pipeline (starting from the next module onwards) on the query in the
+    // proxy resolver. Query pipeline modules before this module have already been exectued on the whole query
+    // (because the linked fields obviously have not been truncated there)
+    // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
+    const result = await execute(schema, document, {} /* root */, context, variableValues);
+    assertSuccessfulResponse(result);
+
+    // unwrap
+    return targetFieldPath.reduce((data, fieldName) => data![fieldName], result.data);
+}
+
 /**
  * Fetches a list of objects by their keys
  *
@@ -47,7 +102,7 @@ export async function fetchLinkedObjects(params: {
     unlinkedSchema: GraphQLSchema,
     context: any,
     info: SlimGraphQLResolveInfo
-}) {
+}): Promise<any[]> {
     const {unlinkedSchema, keys, keyType, linkConfig, info, context} = params;
 
     const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
@@ -82,48 +137,19 @@ export async function fetchLinkedObjects(params: {
             payloadSelectionSet = newSelectionSet;
         }
 
-        // wrap selection in field node chain on target, and add the argument with the key field
-        const outerFieldNames = [...targetFieldPath];
-        const innerFieldName = outerFieldNames.pop()!; // this removes the last element of outerFields in-place
-        const innerFieldNode: FieldNode = {
-            ...createFieldNode(innerFieldName),
-            selectionSet: payloadSelectionSet,
-            arguments: [
-                createNestedArgumentWithVariableNode(linkConfig.argument, varName)
-            ]
-        };
-        const innerSelectionSet: SelectionSetNode = {
-            kind: 'SelectionSet',
-            selections: [innerFieldNode]
-        };
-        const selectionSet = createSelectionChain(outerFieldNames, innerSelectionSet);
-
-        // create document
-        const operation: OperationDefinitionNode = {
-            kind: 'OperationDefinition',
-            operation: 'query',
+        const args = [
+            createNestedArgumentWithVariableNode(linkConfig.argument, varName)
+        ];
+        const data = await basicResolve({
+            targetFieldPath,
+            schema: unlinkedSchema,
+            context,
             variableDefinitions,
-            selectionSet
-        };
-        const document: DocumentNode = {
-            kind: 'Document',
-            definitions: [
-                operation,
-                ...fragments
-            ]
-        };
-
-        // execute
-        // note: don't need to run query pipeline on this document because it will be passed to the unlinked schema
-        // which will in turn peform their query pipeline (starting from the next module onwards) on the query in the
-        // proxy resolver. Query pipeline modules before this module have already been exectued on the whole query
-        // (because the linked fields obviously have not been truncated there)
-        // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
-        const result = await execute(unlinkedSchema, document, {} /* root */, context, variableValues);
-        assertSuccessfulResponse(result);
-
-        // unwrap
-        const data = targetFieldPath.reduce((data, fieldName) => data![fieldName], result.data);
+            variableValues,
+            fragments,
+            args,
+            payloadSelectionSet
+        });
 
         // unordered case: endpoints does not preserve order, so we need to remap based on a key field
         if (linkConfig.batchMode && linkConfig.keyField) {
