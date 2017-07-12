@@ -1,26 +1,44 @@
 import {
-    ASTNode, DocumentNode, execute, FieldNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType,
-    GraphQLOutputType, GraphQLResolveInfo, GraphQLType, OperationDefinitionNode, SelectionSetNode, TypeInfo, visit,
+    ASTNode,
+    DocumentNode,
+    execute,
+    FieldNode,
+    getNamedType,
+    GraphQLList,
+    GraphQLNonNull,
+    GraphQLObjectType,
+    GraphQLOutputType,
+    GraphQLResolveInfo,
+    GraphQLType,
+    OperationDefinitionNode,
+    SelectionSetNode,
+    TypeInfo,
+    visit,
     visitWithTypeInfo
-} from 'graphql';
-import { PipelineModule } from './pipeline-module';
-import { ExtendedSchema } from '../extended-schema/extended-schema';
+} from "graphql";
+import {PipelineModule} from "./pipeline-module";
+import {ExtendedSchema} from "../extended-schema/extended-schema";
 import {
-    ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
-} from '../extended-schema/extended-schema-transformer';
-import { FieldTransformationContext } from '../graphql/schema-transformer';
-import { getFieldAsQueryParts } from '../graphql/field-as-query';
+    ExtendedSchemaTransformer,
+    GraphQLNamedFieldConfigWithMetadata,
+    transformExtendedSchema
+} from "../extended-schema/extended-schema-transformer";
+import {FieldTransformationContext} from "../graphql/schema-transformer";
+import {getFieldAsQueryParts} from "../graphql/field-as-query";
 import {
-    addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
+    addFieldSelectionSafely,
+    addVariableDefinitionSafely,
+    createFieldNode,
+    createNestedArgumentWithVariableNode,
     createSelectionChain
-} from '../graphql/language-utils';
-import { arrayToObject, throwError } from '../utils/utils';
-import { assertSuccessfulResponse } from '../endpoints/client';
-import { isArray } from 'util';
-import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
-import { parseLinkTargetPath } from './helpers/link-helpers';
+} from "../graphql/language-utils";
+import {arrayToObject, throwError} from "../utils/utils";
+import {assertSuccessfulResponse} from "../endpoints/client";
+import {isArray} from "util";
+import {ArrayKeyWeakMap} from "../utils/multi-key-weak-map";
+import {parseLinkTargetPath} from "./helpers/link-helpers";
+import {isListType} from "../graphql/schema-utils";
 import DataLoader = require('dataloader');
-import { isListType } from '../graphql/schema-utils';
 
 /**
  * Adds a feature to link fields to types of other endpoints
@@ -234,11 +252,19 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             resolve: async (source, vars, context, info) => {
                 const fieldNode = info.fieldNodes[0];
                 const alias = fieldNode.alias ? fieldNode.alias.value : fieldNode.name.value;
-                const key = source[alias];
-                if (!key) {
-                    return key;
+                const keyOrKeys = source[alias];
+                if (!keyOrKeys) {
+                    return keyOrKeys;
                 }
-                return isListMode ? fetchBatch(key, {...info, context}) : fetchDeferred(key, {...info, context})
+
+                const extendedInfo = {...info, context};
+                if (isListMode) {
+                    const keys: any[] = keyOrKeys;
+                    return Promise.all(keys.map(key => fetchDeferred(key, extendedInfo)));
+                } else {
+                    const key = keyOrKeys;
+                    return fetchDeferred(key, extendedInfo);
+                }
             },
             type: isListMode ? new GraphQLList(targetRawType) : targetRawType
         };
