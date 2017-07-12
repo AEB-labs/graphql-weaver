@@ -1,6 +1,6 @@
 import {
     getNullableType,
-    GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLType
+    GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLType
 } from 'graphql';
 
 /**
@@ -33,4 +33,11 @@ export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNa
  */
 export function isListType(type: GraphQLType){
     return getNullableType(type) instanceof GraphQLList;
+}
+
+export function getNonNullType<T extends GraphQLType>(type: T | GraphQLNonNull<T>): GraphQLNonNull<T> {
+    if (type instanceof GraphQLNonNull) {
+        return type;
+    }
+    return new GraphQLNonNull(type);
 }
