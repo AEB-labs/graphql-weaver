@@ -7,5 +7,9 @@
                 description
             }
         }
+
+        horst: allPeople(filter: { isCool: true, nationality: { identCode_in: ["DE"], continent: Europe }}) {
+            name
+        }
     }
 }

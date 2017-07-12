@@ -28,13 +28,13 @@ import {
 import {FieldTransformationContext} from "../graphql/schema-transformer";
 import {compact, flatMap, groupBy, objectFromKeyValuePairs, throwError} from "../utils/utils";
 import {ArrayKeyWeakMap} from "../utils/multi-key-weak-map";
-import {fetchLinkedObjects, parseLinkTargetPath} from "./helpers/link-helpers";
+import {fetchJoinedObjects, fetchLinkedObjects, parseLinkTargetPath} from "./helpers/link-helpers";
 import {isListType} from "../graphql/schema-utils";
 import {Query} from "../graphql/common";
 import {
     addVariableDefinitionSafely,
+    createFieldNode,
     expandSelections,
-    findNodesByAliasInSelections,
     getAliasOrName
 } from "../graphql/language-utils";
 import {SlimGraphQLResolveInfo} from "../graphql/field-as-query";
@@ -42,6 +42,7 @@ import DataLoader = require('dataloader');
 
 const FILTER_ARG = 'filter';
 const ORDER_BY_ARG = 'orderBy';
+const JOIN_ALIAS = '_joined'; // used when a joined field is not selected
 
 /**
  * Adds a feature to link fields to types of other endpoints
@@ -74,7 +75,6 @@ export class LinksModule implements PipelineModule {
             throw new Error(`Schema is not built yet`);
         }
 
-        let layer = 0;
         const typeInfo = new TypeInfo(this.linkedSchema.schema);
         let variableValues = query.variableValues;
         const operation = <OperationDefinitionNode | undefined>query.document.definitions.filter(def => def.kind == 'OperationDefinition')[0];
@@ -83,10 +83,16 @@ export class LinksModule implements PipelineModule {
         }
         let variableDefinitions = operation.variableDefinitions || [];
 
+        type FieldStackEntry = {joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean};
+        let fieldStack: FieldStackEntry[] = [];
+
         const document = visit(query.document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
-                    layer++;
+                    const fieldStackOuter = fieldStack[fieldStack.length - 1];
+                    const fieldStackTop: FieldStackEntry = {};
+                    fieldStack.push(fieldStackTop);
+
                     const parentType = typeInfo.getParentType();
                     if (!parentType || !(parentType instanceof GraphQLObjectType)) {
                         throw new Error(`Failed to retrieve type for field ${child.name.value}`);
@@ -94,6 +100,10 @@ export class LinksModule implements PipelineModule {
                     const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
 
                     if (metadata && metadata.link) {
+                        if (fieldStackOuter && fieldStackOuter.joinConfig && fieldStackOuter.joinConfig.linkField == child.name.value) {
+                            fieldStackOuter.isLinkFieldSelectedYet = true;
+                        }
+
                         child = {
                             ...child,
                             selectionSet: undefined
@@ -101,6 +111,8 @@ export class LinksModule implements PipelineModule {
                     }
 
                     if (metadata && metadata.join) {
+                        fieldStackTop.joinConfig = metadata.join;
+                        fieldStackTop.isLinkFieldSelectedYet = false;
                         const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name)
                         if (!transformationInfo) {
                             throw new Error(`Missing joinTransformationInfo`);
@@ -173,8 +185,21 @@ export class LinksModule implements PipelineModule {
                     return child;
                 },
 
-                leave() {
-                    layer--;
+                leave(child: FieldNode): FieldNode|undefined {
+                    const fieldStackTop = fieldStack.pop();
+                    if (fieldStackTop && fieldStackTop.joinConfig && !fieldStackTop.isLinkFieldSelectedYet) {
+                        return {
+                            ...child,
+                            selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                    ...(child.selectionSet ? child.selectionSet.selections : []),
+                                    createFieldNode(fieldStackTop.joinConfig.linkField, JOIN_ALIAS)
+                                ]
+                            }
+                        }
+                    }
+                    return undefined;
                 }
             }
         }));
@@ -419,15 +444,35 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             resolve: async (source, args, resolveContext, info: GraphQLResolveInfo) => {
                 const leftObjects: any[] = await context.oldField.resolve!(source, args, resolveContext, info);
 
-                const joinedObjectsSparse = leftObjects.map(async leftObject => {
+                let rightFilter: any = undefined;
+                if (FILTER_ARG in args) {
+                    rightFilter = args[FILTER_ARG][linkFieldName];
+                }
+
+                const joinedObjectsSparse = await Promise.all(leftObjects.map(async leftObject => {
                     const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
 
                     // all the names/aliases under which the link field has been requested
                     const linkFieldNodes = expandSelections(selections)
                         .filter(node => node.name.value == linkFieldName);
-                    const linkFieldNodesByAlias = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
+                    const linkFieldNodesByAlias: [string|undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
 
-                    const aliasRightObjectPairs = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]): Promise<[string, any]> => {
+                    // If the link field does not occur in the selection set, do one request anyway just to apply the filtering
+                    // the alias is "undefined" so that it will not occur in the result object
+                    if (rightFilter && !linkFieldNodesByAlias.length) {
+                        linkFieldNodesByAlias.push([undefined, [{
+                            kind: 'Field',
+                            name: {
+                                kind: 'Name',
+                                value: linkFieldName
+                            }
+                        }]]);
+                    }
+
+                    const aliasRightObjectPairs = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]): Promise<[string|undefined, any]> => {
+                        // undefined means that the link field was never selected by the user, so it has been added as
+                        // an alias to JOIN_ALIAS by the query transformer
+                        const key = leftObject[alias || JOIN_ALIAS];
                         const linkFieldInfo: SlimGraphQLResolveInfo = {
                             operation: info.operation,
                             variableValues: info.variableValues,
@@ -435,9 +480,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                             fieldNodes
                         };
 
-                        const key = leftObject[linkFieldName];
-                        const objects = await fetchLinkedObjects({
+                        const objects = await fetchJoinedObjects({
                             keys: [key],
+                            additionalFilter: rightFilter,
+                            filterType: rightFilterArg.type,
                             keyType,
                             linkConfig,
                             unlinkedSchema: this.schema.schema,
@@ -445,7 +491,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                             context: resolveContext
                         });
                         const rightObject = objects[0];
-                        return [alias, new ResolvedLinkObject(rightObject)];
+                        return [alias, rightObject ? new ResolvedLinkObject(rightObject) : rightObject];
                     }));
                     if (aliasRightObjectPairs.some(([key, value]) => !value)) {
                         return undefined; // INNER JOIN (leave out this condition if LEFT JOIN is intended)
@@ -453,9 +499,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                     return {
                         ...leftObject,
-                        ...objectFromKeyValuePairs(aliasRightObjectPairs)
+                        ...objectFromKeyValuePairs(<[string, {}][]>aliasRightObjectPairs.filter(([key]) => key))
                     }
-                });
+                }));
                 return compact(joinedObjectsSparse);
             }
         };

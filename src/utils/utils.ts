@@ -101,3 +101,8 @@ export function groupBy<TItem, TKey>(arr: TItem[], keyFn: (key: TItem) => TKey):
     }
     return map;
 }
+
+export function intersect<T>(lhs: T[], rhs: T[]): T[] {
+    const set = new Set(lhs);
+    return rhs.filter(val => set.has(val));
+}

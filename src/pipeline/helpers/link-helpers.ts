@@ -3,7 +3,7 @@ import {
     DocumentNode,
     execute,
     FieldNode, FragmentDefinitionNode,
-    GraphQLField,
+    GraphQLField, GraphQLInputType,
     GraphQLList,
     GraphQLNonNull,
     GraphQLScalarType,
@@ -13,7 +13,7 @@ import {
 } from "graphql";
 import {getNonNullType, walkFields} from "../../graphql/schema-utils";
 import {LinkConfig} from "../../extended-schema/extended-schema";
-import {arrayToObject, throwError} from "../../utils/utils";
+import {arrayToObject, throwError, intersect} from "../../utils/utils";
 import {getFieldAsQueryParts, SlimGraphQLResolveInfo} from "../../graphql/field-as-query";
 import {
     addFieldSelectionSafely,
@@ -105,8 +105,41 @@ export async function fetchLinkedObjects(params: {
 }): Promise<any[]> {
     const {unlinkedSchema, keys, keyType, linkConfig, info, context} = params;
 
-    const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
+    const {fieldPath: targetFieldPath} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
     throwError(`Link target field as ${linkConfig.field} which does not exist in the schema`);
+
+    /**
+     * Fetches one object, or a list of objects in batch mode, according to the query underlying the resolveInfo
+     * @param key the key
+     * @param resolveInfo the resolveInfo from the request
+     * @param context graphql execution context
+     * @returns {Promise<void>}
+     */
+    async function fetchSingular(key: any) {
+        const {fragments, ...originalParts} = getFieldAsQueryParts(info);
+
+        // add variable
+        const varType = getNonNullType(keyType);
+        const varNameBase = linkConfig.argument.split('.').pop()!;
+        const {variableDefinitions, name: varName} = addVariableDefinitionSafely(originalParts.variableDefinitions, varNameBase, varType);
+        const variableValues = {
+            ...originalParts.variableValues,
+            [varName]: key
+        };
+
+        return await basicResolve({
+            targetFieldPath,
+            schema: unlinkedSchema,
+            context,
+            variableDefinitions,
+            variableValues,
+            fragments,
+            args: [
+                createNestedArgumentWithVariableNode(linkConfig.argument, varName)
+            ],
+            payloadSelectionSet: originalParts.selectionSet
+        });
+    }
 
     /**
      * Fetches one object, or a list of objects in batch mode, according to the query underlying the resolveInfo
@@ -115,11 +148,45 @@ export async function fetchLinkedObjects(params: {
      * @param context graphql execution context
      * @returns {Promise<void>}
      */
-    async function fetchSingularOrPlural(keyOrKeys: any, resolveInfo: SlimGraphQLResolveInfo, context: any) {
-        const {fragments, ...originalParts} = getFieldAsQueryParts(resolveInfo);
+    async function fetchBatchOneToOne(keys: any) {
+        const {fragments, ...originalParts} = getFieldAsQueryParts(info);
 
         // add variable
-        const varType = linkConfig.batchMode ? new GraphQLNonNull(new GraphQLList(getNonNullType(keyType))) : getNonNullType(keyType);
+        const varType = new GraphQLNonNull(new GraphQLList(getNonNullType(keyType)));
+        const varNameBase = linkConfig.argument.split('.').pop()!;
+        const {variableDefinitions, name: varName} = addVariableDefinitionSafely(originalParts.variableDefinitions, varNameBase, varType);
+        const variableValues = {
+            ...originalParts.variableValues,
+            [varName]: keys
+        };
+
+        return basicResolve({
+            targetFieldPath,
+            schema: unlinkedSchema,
+            context,
+            variableDefinitions,
+            variableValues,
+            fragments,
+            args: [
+                createNestedArgumentWithVariableNode(linkConfig.argument, varName)
+            ],
+            payloadSelectionSet: originalParts.selectionSet
+        });
+    }
+
+
+    /**
+     * Fetches one object, or a list of objects in batch mode, according to the query underlying the resolveInfo
+     * @param keyOrKeys either a single key of a list of keys, depending on link.batchMode
+     * @param resolveInfo the resolveInfo from the request
+     * @param context graphql execution context
+     * @returns {Promise<void>}
+     */
+    async function fetchBatchWithKeyField(keyOrKeys: any) {
+        const {fragments, ...originalParts} = getFieldAsQueryParts(info);
+
+        // add variable
+        const varType = new GraphQLNonNull(new GraphQLList(getNonNullType(keyType)));
         const varNameBase = linkConfig.argument.split('.').pop()!;
         const {variableDefinitions, name: varName} = addVariableDefinitionSafely(originalParts.variableDefinitions, varNameBase, varType);
         const variableValues = {
@@ -127,19 +194,10 @@ export async function fetchLinkedObjects(params: {
             [varName]: keyOrKeys
         };
 
-        // add keyField if needed
-        let payloadSelectionSet = originalParts.selectionSet;
-        let keyFieldAlias: string | undefined;
-        if (linkConfig.batchMode && linkConfig.keyField) {
-            const {alias, selectionSet: newSelectionSet} =
-                addFieldSelectionSafely(payloadSelectionSet, linkConfig.keyField, arrayToObject(fragments, f => f.name.value));
-            keyFieldAlias = alias;
-            payloadSelectionSet = newSelectionSet;
-        }
+        // add keyField
+        const {alias: keyFieldAlias, selectionSet: payloadSelectionSet} =
+            addFieldSelectionSafely(originalParts.selectionSet, linkConfig.keyField!, arrayToObject(fragments, f => f.name.value));
 
-        const args = [
-            createNestedArgumentWithVariableNode(linkConfig.argument, varName)
-        ];
         const data = await basicResolve({
             targetFieldPath,
             schema: unlinkedSchema,
@@ -147,28 +205,112 @@ export async function fetchLinkedObjects(params: {
             variableDefinitions,
             variableValues,
             fragments,
-            args,
+            args: [
+                createNestedArgumentWithVariableNode(linkConfig.argument, varName)
+            ],
             payloadSelectionSet
         });
 
         // unordered case: endpoints does not preserve order, so we need to remap based on a key field
-        if (linkConfig.batchMode && linkConfig.keyField) {
-            // first, create a lookup table from id to item
-            if (!isArray(data)) {
-                throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
-            }
-            const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
-            // Then, use the lookup table to efficiently order the result
-            return (keyOrKeys as any[]).map(key => map.get(key));
+        // first, create a lookup table from id to item
+        if (!isArray(data)) {
+            throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
         }
-
-        // ordered case (plural) or singular case
-        return data;
+        const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
+        // Then, use the lookup table to efficiently order the result
+        return (keyOrKeys as any[]).map(key => map.get(key));
     }
 
     if (!linkConfig.batchMode) {
-        // no batch mode, so do one request per id
-        return keys.map(key => fetchSingularOrPlural(key, info, context));
+        return keys.map(key => fetchSingular(key));
     }
-    return await fetchSingularOrPlural(keys, info, context);
+
+    if (linkConfig.keyField) {
+        return fetchBatchWithKeyField(keys);
+    }
+    return fetchBatchOneToOne(keys);
+}
+
+function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: string[]): { [key: string]: any } {
+    if (!path.length) {
+        return obj;
+    }
+    const [segment, ...rest] = path;
+    obj = obj || {};
+    const val = obj[segment];
+    return {
+        ...obj,
+        [segment]: rest.length ? modifyPropertyAtPath(val, fn, rest) : fn(val)
+    };
+}
+
+export async function fetchJoinedObjects(params: {
+    keys: any[],
+    additionalFilter: any,
+    filterType: GraphQLInputType,
+    keyType: GraphQLScalarType,
+    linkConfig: LinkConfig,
+    unlinkedSchema: GraphQLSchema,
+    context: any,
+    info: SlimGraphQLResolveInfo
+}) {
+    const {unlinkedSchema, additionalFilter, filterType, linkConfig, info, context, keys} = params;
+    const {fragments, ...originalParts} = getFieldAsQueryParts(info);
+
+    const {fieldPath: targetFieldPath} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
+    throwError(`Link target field as ${linkConfig.field} which does not exist in the schema`);
+
+    const [filterArgumentName, ...keyFieldPath] = linkConfig.argument.split('.');
+    if (!keyFieldPath) {
+        throw new Error(`argument on @link for @join must contain a dot`);
+    }
+
+    const filterValue = modifyPropertyAtPath(additionalFilter, existingKeys => existingKeys ? intersect(existingKeys, keys) : keys, keyFieldPath);
+
+    // add variable
+    const varNameBase = info.fieldNodes[0].name.value + 'Filter';
+    const {variableDefinitions, name: varName} = addVariableDefinitionSafely(originalParts.variableDefinitions, varNameBase, filterType);
+    const variableValues = {
+        ...originalParts.variableValues,
+        [varName]: filterValue
+    };
+
+    // add keyField
+    const {alias: keyFieldAlias, selectionSet: payloadSelectionSet} =
+        addFieldSelectionSafely(originalParts.selectionSet, linkConfig.keyField!, arrayToObject(fragments, f => f.name.value));
+
+    const argument: ArgumentNode = {
+        kind: "Argument",
+        name: {
+            kind: "Name",
+            value: filterArgumentName,
+        },
+        value: {
+            kind: "Variable",
+            name: {
+                kind: 'Name',
+                value: varName
+            }
+        }
+    };
+
+    const data = await basicResolve({
+        targetFieldPath,
+        schema: unlinkedSchema,
+        context,
+        variableDefinitions,
+        variableValues,
+        fragments,
+        args: [argument],
+        payloadSelectionSet
+    });
+
+    // unordered case: endpoints does not preserve order, so we need to remap based on a key field
+    // first, create a lookup table from id to item
+    if (!isArray(data)) {
+        throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
+    }
+    const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
+    // Then, use the lookup table to efficiently order the result
+    return (keys as any[]).map(key => map.get(key));
 }
