@@ -1,8 +1,8 @@
 {
   "name": "@aeb/graphql-proxy",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
