@@ -1,4 +1,6 @@
-import {GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLObjectType, GraphQLType} from 'graphql';
+import {
+    GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLObjectType, GraphQLSchema, GraphQLType
+} from 'graphql';
 
 /**
  * Finds a field by traversing a schema from field to field
@@ -23,4 +25,13 @@ export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNa
         currentType = field.type;
     }
     return field;
+}
+
+/**
+ * Determines whether the given type is one of the operation root types (query, mutation, subscription) of a schema
+ */
+export function isRootType(type: GraphQLType, schema: GraphQLSchema) {
+    return type == schema.getQueryType() ||
+        type == schema.getMutationType() ||
+        type == schema.getSubscriptionType();
 }
