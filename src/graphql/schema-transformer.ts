@@ -4,7 +4,7 @@ import {
     GraphQLInputFieldConfig, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig,
     GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
     GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
-    GraphQLTypeResolver, GraphQLUnionType, GraphQLUnionTypeConfig
+    GraphQLTypeResolver, GraphQLUnionType, GraphQLUnionTypeConfig, isInputType
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
@@ -218,7 +218,11 @@ class Transformer {
             directives,
             query: findNewTypeMaybe(schema.getQueryType())!,
             mutation: findNewTypeMaybe(schema.getMutationType()),
-            subscription: findNewTypeMaybe(schema.getSubscriptionType())
+            subscription: findNewTypeMaybe(schema.getSubscriptionType()),
+
+            // carry on object types, to avoid losing implementations of interfaces that are not referenced elsewhere
+            // we don't need to carry on other types. This allows us to implicitly drop input types by no longer using them
+            types: objectValues(this.typeMap).filter(type => type instanceof GraphQLObjectType)
         });
     }
 
