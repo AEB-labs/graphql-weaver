@@ -1,51 +1,71 @@
 import { PipelineModule } from './pipeline-module';
 import {
-    ASTNode, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLTypeResolver,
-    GraphQLUnionTypeConfig, SelectionSetNode, visit
+    ASTNode,
+    FieldNode, getNamedType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLSchema,
+    GraphQLTypeResolver, GraphQLUnionTypeConfig, isAbstractType, SelectionSetNode, TypeInfo, visit, visitWithTypeInfo
 } from 'graphql';
-import { SchemaTransformationContext, SchemaTransformer } from '../graphql/schema-transformer';
+import { SchemaTransformationContext, SchemaTransformer, transformSchema } from '../graphql/schema-transformer';
+import { Query } from '../graphql/common';
+import { getAliasOrName } from '../graphql/language-utils';
 
 /**
  * Ensures that resolveType in abstract types works correctly
  */
 export class AbstractTypesModule implements PipelineModule {
-    getSchemaTransformer() {
-        return new TypeResolversTransformer();
+    private schema: GraphQLSchema | undefined;
+
+    transformSchema(schema: GraphQLSchema) {
+        const newSchema = transformSchema(schema, new TypeResolversTransformer());
+        this.schema = schema;
+        return newSchema;
     }
 
-    transformNode(node: ASTNode) {
-        // The default implementation of resolveType of an interface looks at __typename.
-        // Thus, it is simplest to just request that field whenever there is a fragment
-        // This will cause a collision if the user requests a different field under __typename alias
-        // This also means that the result always includes __typename if fragments are used, even when not requested
-        return visit(node, {
+    transformNode(document: ASTNode) {
+        const typeInfo = new TypeInfo(this.schema!);
+
+        // To determine the concrete type of an abstract type, we need to fetch the __typename field.
+        // This is necessary even if it was not originally requested, e.g. for fragment support.
+        // In addition, it seems graphqljs calls resolveType() even if none of these conditions are met, just to complete values properly
+        // If __typename was not requested, graphql will drop it (more precisely, it will just not select it for the result)
+        return visit(document, visitWithTypeInfo(typeInfo, {
             SelectionSet(node: SelectionSetNode) {
-                // TODO we also need to fetch the __typename if the outer type is abstract (don't know why, but GraphQL demands it)
-                // this means we need a TypeInfo. Might be worth running the TypeInfo thing once and plug in multiple visitors
-                const requiresTypename = node.selections.some(sel => sel.kind == 'FragmentSpread' || sel.kind == 'InlineFragment');
-                const requestsTypename = node.selections.some(sel => sel.kind == 'Field' && sel.name.value == '__typename');
-                const isTypenameAilased = node.selections.some(sel => sel.kind == 'Field' && sel.name.value != '__typename' && !!sel.alias && sel.alias.value == '__typename');
-                if (isTypenameAilased) {
-                    throw new Error(`Fields must not be aliased to __typename because this is a reserved field.`);
+                const type = typeInfo.getType();
+                if (!type) {
+                    throw new Error(`Failed to determine type of SelectionSet node`);
                 }
-                if (requiresTypename && !requestsTypename) {
-                    return {
-                        ...node,
-                        selections: [
-                            ...node.selections,
-                            {
-                                kind: 'Field',
-                                name: {
-                                    kind: 'Name',
-                                    value: '__typename'
-                                }
+
+                if (!isAbstractType(getNamedType(type))) {
+                    // only need __typename for abstract types
+                    return undefined;
+                }
+
+                // this does not check if __typename is aliased in a fragment spread. That would cause a GraphQL error.
+                // but seriously... nobody would do that. This saves the performance impact of traversing all fragment spreads
+                const typenameRequest = node.selections.filter(sel => sel.kind == 'Field' && getAliasOrName(sel) == '__typename')[0] as FieldNode | undefined;
+                if (typenameRequest) {
+                    // make sure nothing else is requested as __typename
+                    if (typenameRequest.name.value != '__typename') {
+                        throw new Error(`Fields must not be aliased to __typename because this is a reserved field.`);
+                    }
+                    // __typename is requested, so no change needed
+                    return undefined;
+                }
+
+                return {
+                    ...node,
+                    selections: [
+                        ...node.selections,
+                        {
+                            kind: 'Field',
+                            name: {
+                                kind: 'Name',
+                                value: '__typename'
                             }
-                        ]
-                    };
-                }
-                return undefined;
+                        }
+                    ]
+                };
             }
-        });
+        }));
     }
 }
 
@@ -69,14 +89,14 @@ class TypeResolversTransformer implements SchemaTransformer {
         return {
             ...config,
             resolveType: this.getResolver(config.name, context)
-        }
+        };
     };
 
     transformUnionType(config: GraphQLUnionTypeConfig<any, any>, context: SchemaTransformationContext): GraphQLUnionTypeConfig<any, any> {
         return {
             ...config,
             resolveType: this.getResolver(config.name, context)
-        }
+        };
     };
 
     getResolver(abstractTypeName: string, context: SchemaTransformationContext): GraphQLTypeResolver<any, any> {

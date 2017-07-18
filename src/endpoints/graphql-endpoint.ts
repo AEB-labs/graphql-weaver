@@ -14,9 +14,9 @@ export interface GraphQLEndpoint {
     query(query: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<any>;
 
     /**
-     * Fetches the schema of the endpoint. May be expensive, so user should cache the result.
+     * Gets a client schema of the endpoint. May be expensive, so user should cache the result.
      *
-     * Field resolvers are guaranteed to be unset.
+     * The schema does include any resolver logic (field resolvers, type resolvers, scalar conversion...)
      */
     getSchema(): Promise<GraphQLSchema>
 }

@@ -6,7 +6,7 @@ import {GraphQLEndpoint} from '../endpoints/graphql-endpoint';
 import {Query} from '../graphql/common';
 import {EndpointConfig} from '../config/proxy-configuration';
 import {cloneSelectionChain, collectFieldNodesInPath, createSelectionChain} from '../graphql/language-utils';
-import {walkFields} from "../graphql/schema-utils";
+import { isRootType, walkFields } from '../graphql/schema-utils';
 import {collectAliasesInResponsePath} from "../graphql/resolver-utils";
 
 interface Config {
@@ -61,13 +61,4 @@ class ResolverTransformer implements SchemaTransformer {
             }
         };
     }
-}
-
-/**
- * Determines whether the given type is one of the operation root types (query, mutation, subscription) of a schema
- */
-function isRootType(type: GraphQLType, schema: GraphQLSchema) {
-    return type == schema.getQueryType() ||
-        type == schema.getMutationType() ||
-        type == schema.getSubscriptionType();
 }

@@ -1,0 +1,54 @@
+query {
+    field1 {
+        a
+    }
+    field2 {
+        a
+    }
+
+    field1WithTypename: field1 {
+        a
+        __typename
+    }
+    field2WithTypename: field2 {
+        a
+        __typename
+    }
+
+    field1WithFragment: field1 {
+        ...on Type1 {
+            a
+            a1
+        }
+    }
+
+    field1NonMatched: field1 {
+        ...on Type2 {
+            a
+            a2
+        }
+    }
+
+    field2WithFragment: field2 {
+        ...on Type2 {
+            a
+            a2
+        }
+    }
+
+    field1WithFragmentAndTypename: field1 {
+        __typename
+        ...on Type1 {
+            a
+            a1
+        }
+    }
+
+    field2WithFragmentAndTypename: field2 {
+        __typename
+        ...on Type2 {
+            a
+            a2
+        }
+    }
+}

@@ -1,5 +1,6 @@
 import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 import {
+    bindTransformerFunctions,
     FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext,
     SchemaTransformer, transformSchema
 } from '../graphql/schema-transformer';
@@ -51,7 +52,7 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
 
     // not using methods in here to work around https://github.com/Microsoft/TypeScript/issues/16765
     const regularTransformer = {
-        ...transformer,
+        ...bindTransformerFunctions(transformer),
 
         transformField: (config: GraphQLNamedFieldConfig<any, any>, context: FieldTransformationContext) => {
             // non-object (interface) fields have no metadata
