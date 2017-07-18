@@ -74,8 +74,12 @@ export class LinksModule implements PipelineModule {
                     fieldStack.push(fieldStackTop);
 
                     const parentType = typeInfo.getParentType();
-                    if (!parentType || !(parentType instanceof GraphQLObjectType)) {
-                        throw new Error(`Failed to retrieve type for field ${child.name.value}`);
+                    if (!parentType) {
+                        throw new Error(`Failed to retrieve parent type for field ${child.name.value}`);
+                    }
+                    if (!(parentType instanceof GraphQLObjectType)) {
+                        // field metadata only exists on object types
+                        return undefined;
                     }
                     const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
 
