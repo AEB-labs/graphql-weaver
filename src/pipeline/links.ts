@@ -1,5 +1,6 @@
 import {
-    ASTNode, DocumentNode, execute, FieldNode, getNamedType, GraphQLList, GraphQLNonNull, GraphQLObjectType,
+    ASTNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLList, GraphQLNonNull,
+    GraphQLObjectType,
     GraphQLOutputType, GraphQLResolveInfo, GraphQLType, OperationDefinitionNode, SelectionSetNode, TypeInfo, visit,
     visitWithTypeInfo
 } from 'graphql';
@@ -9,7 +10,7 @@ import {
     ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
 import { FieldTransformationContext } from '../graphql/schema-transformer';
-import { getFieldAsQueryParts } from '../graphql/field-as-query';
+import { collectUsedFragments, dropUnusedFragments, getFieldAsQueryParts } from '../graphql/field-as-query';
 import { walkFields } from '../graphql/schema-utils';
 import {
     addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
@@ -44,25 +45,16 @@ export class LinksModule implements PipelineModule {
      *
      * The resolver of the linked field will do the fetch of the linked object, so here we just need the scalar value
      */
-    transformNode(node: ASTNode): ASTNode {
+    transformNode(document: ASTNode): ASTNode {
         if (!this.linkedSchema || !this.unlinkedSchema) {
             throw new Error(`Schema is not built yet`);
         }
 
-        let layer = 0;
         const typeInfo = new TypeInfo(this.linkedSchema.schema);
 
-        // first-level fields would be nested calls, there we want the link data
-        const ignoreFirstLayer = node.kind != 'FragmentDefinition';
-
-        return visit(node, visitWithTypeInfo(typeInfo, {
+        const truncatedNode: DocumentNode = visit(document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
-                    if (ignoreFirstLayer && layer < 2) {
-                        layer++;
-                        return;
-                    }
-                    layer++;
                     const type = typeInfo.getParentType();
                     if (!type) {
                         throw new Error(`Failed to retrieve type for field ${child.name.value}`);
@@ -78,13 +70,12 @@ export class LinksModule implements PipelineModule {
                     }
 
                     return undefined;
-                },
-
-                leave() {
-                    layer--;
                 }
             }
         }));
+
+        // Remove now unnecessary fragments, to avoid processing them in further modules
+        return dropUnusedFragments(truncatedNode);
     }
 }
 

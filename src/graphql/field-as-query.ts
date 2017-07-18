@@ -4,7 +4,7 @@ import {
     visit
 } from 'graphql';
 import { Query } from './common';
-import {flatMap} from "../utils/utils";
+import { arrayToObject, divideArrayByPredicate, flatMap } from '../utils/utils';
 
 type QueryParts = {
     fragments: FragmentDefinitionNode[],
@@ -90,7 +90,7 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
     return variables;
 }
 
-function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }) {
+export function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }) {
     let fragments: FragmentDefinitionNode[] = [];
     let originalFragments = new Set<FragmentDefinitionNode>();
     let hasChanged = false;
@@ -106,6 +106,27 @@ function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: F
         }
     } while (hasChanged);
     return fragments;
+}
+
+function buildFragmentMap(definitions: FragmentDefinitionNode[]): { [name: string]: FragmentDefinitionNode } {
+    return arrayToObject(definitions, def => def.name.value);
+}
+
+/**
+ * Gets a new, semantically equal document where unused fragments are removed
+ */
+export function dropUnusedFragments(document: DocumentNode): DocumentNode {
+    const [fragments, nonFragmentDefs] = divideArrayByPredicate(document.definitions, def => def.kind == 'FragmentDefinition');
+    const fragmentMap = buildFragmentMap(fragments as FragmentDefinitionNode[]);
+    const usedFragments = collectUsedFragments(nonFragmentDefs, fragmentMap);
+
+    return {
+        ...document,
+        definitions: [
+            ...nonFragmentDefs,
+            ...usedFragments
+        ]
+    };
 }
 
 /**

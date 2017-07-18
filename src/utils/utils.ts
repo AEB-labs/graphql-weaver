@@ -77,3 +77,22 @@ export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|
 export function bindNullable<T>(fn: (T & Function)|undefined, obj: any): (T&Function) | undefined {
     return fn ? fn.bind(obj) : fn;
 }
+
+/**
+ * Takes an array and filters those matching a predicate into one new array, those not matching into a second
+ * @param {T[]} items
+ * @param {(item: T) => boolean} predicate
+ * @returns {[T[] , T[]]} a tuple with the matching ones (first) and the non-matching ones (second)
+ */
+export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => boolean): [T[], T[]] {
+    const trues = [];
+    const falses = [];
+    for (const def of items) {
+        if (predicate(def)) {
+            trues.push(def);
+        } else {
+            falses.push(def);
+        }
+    }
+    return [trues, falses];
+}

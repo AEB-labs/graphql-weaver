@@ -257,7 +257,7 @@ export function findNodeByAliasInSelection(selectionSet: SelectionSetNode, alias
     function findNodeByAliasInSelectionNode(node: SelectionNode): FieldNode|undefined {
         switch (node.kind) {
             case 'Field':
-                if (getAlias(node) == alias) {
+                if (getAliasOrName(node) == alias) {
                     return node;
                 }
                 return undefined;
@@ -335,7 +335,12 @@ export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases:
     return fieldNodes;
 }
 
-function getAlias(fieldNode: FieldNode) {
+/**
+ * Gets the alias of a field node, or the field name if it does not have an alias
+ * @param fieldNode
+ * @returns {string}
+ */
+export function getAliasOrName(fieldNode: FieldNode) {
     if (fieldNode.alias) {
         return fieldNode.alias.value;
     }
