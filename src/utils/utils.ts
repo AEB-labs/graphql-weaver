@@ -67,3 +67,13 @@ export function compact<T>(arr: (T|undefined|null)[]): T[] {
 export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|undefined|null): TOut[] {
     return input.map(fn).filter(a => a != undefined) as TOut[];
 }
+
+/**
+ * Binds a function, to an object, or returns undefined if the function is undefined
+ * @param fn the function to bind
+ * @param obj the object to bind the function to
+ * @returns the bound function, or undefined
+ */
+export function bindNullable<T>(fn: (T & Function)|undefined, obj: any): (T&Function) | undefined {
+    return fn ? fn.bind(obj) : fn;
+}
