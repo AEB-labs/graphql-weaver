@@ -1,7 +1,4 @@
-import {
-    getNullableType,
-    GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLType
-} from 'graphql';
+import {getNullableType,GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull,GraphQLObjectType, GraphQLSchema,GraphQLType} from 'graphql';
 
 /**
  * Finds a field by traversing a schema from field to field
@@ -40,4 +37,13 @@ export function getNonNullType<T extends GraphQLType>(type: T | GraphQLNonNull<T
         return type;
     }
     return new GraphQLNonNull(type);
+}
+
+/**
+ * Determines whether the given type is one of the operation root types (query, mutation, subscription) of a schema
+ */
+export function isRootType(type: GraphQLType, schema: GraphQLSchema) {
+    return type == schema.getQueryType() ||
+        type == schema.getMutationType() ||
+        type == schema.getSubscriptionType();
 }

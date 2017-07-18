@@ -1,43 +1,23 @@
 import {
-    FieldNode,
-    getNamedType,
-    GraphQLField,
-    GraphQLFieldConfigArgumentMap,
-    GraphQLInputFieldConfigMap,
-    GraphQLInputObjectType,
-    GraphQLInputType,
-    GraphQLInterfaceType,
-    GraphQLList,
-    GraphQLObjectType,
-    GraphQLOutputType,
-    GraphQLResolveInfo,
-    GraphQLScalarType,
-    OperationDefinitionNode,
-    TypeInfo,
-    ValueNode,
-    visit,
-    visitWithTypeInfo
-} from "graphql";
-import {PipelineModule} from "./pipeline-module";
-import {ExtendedSchema, JoinConfig, LinkConfig} from "../extended-schema/extended-schema";
+    FieldNode, getNamedType, GraphQLField, GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap,
+    GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLOutputType,
+    GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo, ValueNode, visit, visitWithTypeInfo
+} from 'graphql';
+import { PipelineModule } from './pipeline-module';
+import { ExtendedSchema, JoinConfig, LinkConfig } from '../extended-schema/extended-schema';
 import {
-    ExtendedSchemaTransformer,
-    GraphQLNamedFieldConfigWithMetadata,
-    transformExtendedSchema
-} from "../extended-schema/extended-schema-transformer";
-import {FieldTransformationContext} from "../graphql/schema-transformer";
-import {compact, flatMap, groupBy, objectFromKeyValuePairs, throwError} from "../utils/utils";
-import {ArrayKeyWeakMap} from "../utils/multi-key-weak-map";
-import {fetchJoinedObjects, fetchLinkedObjects, parseLinkTargetPath} from "./helpers/link-helpers";
-import {isListType} from "../graphql/schema-utils";
-import {Query} from "../graphql/common";
+    ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
+} from '../extended-schema/extended-schema-transformer';
+import { FieldTransformationContext } from '../graphql/schema-transformer';
+import { compact, flatMap, groupBy, objectFromKeyValuePairs, throwError } from '../utils/utils';
+import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
+import { fetchJoinedObjects, fetchLinkedObjects, parseLinkTargetPath } from './helpers/link-helpers';
+import { isListType } from '../graphql/schema-utils';
+import { Query } from '../graphql/common';
+import { dropUnusedFragments, SlimGraphQLResolveInfo } from '../graphql/field-as-query';
 import {
-    addVariableDefinitionSafely,
-    createFieldNode,
-    expandSelections,
-    getAliasOrName
-} from "../graphql/language-utils";
-import {SlimGraphQLResolveInfo} from "../graphql/field-as-query";
+    addVariableDefinitionSafely, createFieldNode, expandSelections, getAliasOrName
+} from '../graphql/language-utils';
 import DataLoader = require('dataloader');
 
 const FILTER_ARG = 'filter';
@@ -86,7 +66,7 @@ export class LinksModule implements PipelineModule {
         type FieldStackEntry = {joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean};
         let fieldStack: FieldStackEntry[] = [];
 
-        const document = visit(query.document, visitWithTypeInfo(typeInfo, {
+        let document = visit(query.document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
                     const fieldStackOuter = fieldStack[fieldStack.length - 1];
@@ -113,7 +93,7 @@ export class LinksModule implements PipelineModule {
                     if (metadata && metadata.join) {
                         fieldStackTop.joinConfig = metadata.join;
                         fieldStackTop.isLinkFieldSelectedYet = false;
-                        const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name)
+                        const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
                         if (!transformationInfo) {
                             throw new Error(`Missing joinTransformationInfo`);
                         }
@@ -197,12 +177,15 @@ export class LinksModule implements PipelineModule {
                                     createFieldNode(fieldStackTop.joinConfig.linkField, JOIN_ALIAS)
                                 ]
                             }
-                        }
+                        };
                     }
                     return undefined;
                 }
             }
         }));
+
+        // Remove now unnecessary fragments, to avoid processing them in further modules
+        document = dropUnusedFragments(document);
 
         return {
             ...query,
@@ -281,10 +264,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
     transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
         if (config.metadata && config.metadata.link) {
-            config = this.transformLinkField(config, context, config.metadata.link)
+            config = this.transformLinkField(config, context, config.metadata.link);
         }
         if (config.metadata && config.metadata.join) {
-            config = this.transformJoinField(config, context, config.metadata.join)
+            config = this.transformJoinField(config, context, config.metadata.join);
         }
 
         return config;
@@ -427,7 +410,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 [FILTER_ARG]: {
                     type: newFilterType
                 }
-            }
+            };
         }
 
         const leftOrderByArg = linkField.args.filter(arg => arg.name == ORDER_BY_ARG)[0];
@@ -500,7 +483,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     return {
                         ...leftObject,
                         ...objectFromKeyValuePairs(<[string, {}][]>aliasRightObjectPairs.filter(([key]) => key))
-                    }
+                    };
                 }));
                 return compact(joinedObjectsSparse);
             }

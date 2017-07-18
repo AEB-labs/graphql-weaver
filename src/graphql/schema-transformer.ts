@@ -8,7 +8,7 @@ import {
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
-import { compact, objectValues } from '../utils/utils';
+import { bindNullable, compact, objectValues } from '../utils/utils';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -128,24 +128,41 @@ function combineTransformationFunctions<TConfig, TContext extends SchemaTransfor
     return (config, context) => definedFns.reduce((config, fn) => fn(config, context), config);
 }
 
-function bind<TConfig, TContext extends SchemaTransformationContext>(fn: TransformationFunction<TConfig, TContext> | undefined, obj: any): TransformationFunction<TConfig, TContext> | undefined {
-    return fn ? fn.bind(obj) : fn;
+/**
+ * Binds all SchemaTransformer methods to the SchemaTransformer itself, effectively converting a class to a function tuple
+ * @param {SchemaTransformer[]} t
+ * @returns {SchemaTransformer}
+ */
+export function bindTransformerFunctions(t: SchemaTransformer): SchemaTransformer {
+    return {
+        transformScalarType: bindNullable(t.transformScalarType, t),
+        transformEnumType: bindNullable(t.transformEnumType, t),
+        transformInterfaceType: bindNullable(t.transformInterfaceType, t),
+        transformInputObjectType: bindNullable(t.transformInputObjectType, t),
+        transformUnionType: bindNullable(t.transformUnionType, t),
+        transformObjectType: bindNullable(t.transformObjectType, t),
+        transformDirective: bindNullable(t.transformDirective, t),
+        transformField: bindNullable(t.transformField, t),
+        transformInputField: bindNullable(t.transformInputField, t)
+    };
 }
 
 /**
  * Combines multiple transformers that into one that executes the transformation functions in the given order
  */
 export function combineTransformers(...transformers: SchemaTransformer[]): SchemaTransformer {
+    const boundTransformers = transformers.map(t => bindTransformerFunctions(t));
+
     return {
-        transformScalarType: combineTransformationFunctions(transformers.map(t => bind(t.transformScalarType, t))),
-        transformEnumType: combineTransformationFunctions(transformers.map(t => bind(t.transformEnumType, t))),
-        transformInterfaceType: combineTransformationFunctions(transformers.map(t => bind(t.transformInterfaceType, t))),
-        transformInputObjectType: combineTransformationFunctions(transformers.map(t => bind(t.transformInputObjectType, t))),
-        transformUnionType: combineTransformationFunctions(transformers.map(t => bind(t.transformUnionType, t))),
-        transformObjectType: combineTransformationFunctions(transformers.map(t => bind(t.transformObjectType, t))),
-        transformDirective: combineTransformationFunctions(transformers.map(t => bind(t.transformDirective, t))),
-        transformField: combineTransformationFunctions(transformers.map(t => bind(t.transformField, t))),
-        transformInputField: combineTransformationFunctions(transformers.map(t => bind(t.transformInputField, t)))
+        transformScalarType: combineTransformationFunctions(boundTransformers.map(t => t.transformScalarType)),
+        transformEnumType: combineTransformationFunctions(boundTransformers.map(t => t.transformEnumType)),
+        transformInterfaceType: combineTransformationFunctions(boundTransformers.map(t => t.transformInterfaceType)),
+        transformInputObjectType: combineTransformationFunctions(boundTransformers.map(t => t.transformInputObjectType)),
+        transformUnionType: combineTransformationFunctions(boundTransformers.map(t => t.transformUnionType)),
+        transformObjectType: combineTransformationFunctions(boundTransformers.map(t => t.transformObjectType)),
+        transformDirective: combineTransformationFunctions(boundTransformers.map(t => t.transformDirective)),
+        transformField: combineTransformationFunctions(boundTransformers.map(t => t.transformField)),
+        transformInputField: combineTransformationFunctions(boundTransformers.map(t => t.transformInputField))
     };
 }
 

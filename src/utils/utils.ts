@@ -1,8 +1,8 @@
-export function objectValues(obj: {[name: string]: any}): any[] {
+export function objectValues(obj: { [name: string]: any }): any[] {
     return Object.keys(obj).map(i => obj[i]);
 }
 
-export function objectEntries(obj: {[name: string]: any}): any[] {
+export function objectEntries(obj: { [name: string]: any }): any[] {
     return Object.keys(obj).map(k => [k, obj[k]]);
 }
 
@@ -10,15 +10,15 @@ export function capitalize(string: string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-export function maybeDo<TIn, TOut>(input: TIn|null|undefined, fn: (input: TIn) => TOut): TOut|undefined {
+export function maybeDo<TIn, TOut>(input: TIn | null | undefined, fn: (input: TIn) => TOut): TOut | undefined {
     if (input == undefined) {
         return undefined;
     }
     return fn(input);
 }
 
-export function arrayToObject<TValue>(array: TValue[], keyFn: (obj: TValue) => string): {[name: string]: TValue} {
-    const result: {[name: string]: TValue} = {};
+export function arrayToObject<TValue>(array: TValue[], keyFn: (obj: TValue) => string): { [name: string]: TValue } {
+    const result: { [name: string]: TValue } = {};
     for (const item of array) {
         result[keyFn(item)] = item;
     }
@@ -45,8 +45,8 @@ export function objectToMap<T>(object: {[name: string]: T}): Map<string, T> {
     return new Map<string, T>(objectEntries(object));
 }
 
-export function mapValues<TIn, TOut>(obj: {[key: string]: TIn}, fn: (value: TIn, key: string) => TOut): {[key: string]: TOut} {
-    const result: {[key: string]: TOut} = {};
+export function mapValues<TIn, TOut>(obj: { [key: string]: TIn }, fn: (value: TIn, key: string) => TOut): { [key: string]: TOut } {
+    const result: { [key: string]: TOut } = {};
     for (const key in obj) {
         result[key] = fn(obj[key], key);
     }
@@ -76,11 +76,11 @@ export function flatMap<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut[]): TO
     return flatten(input.map(fn));
 }
 
-export function compact<T>(arr: (T|undefined|null)[]): T[] {
+export function compact<T>(arr: (T | undefined | null)[]): T[] {
     return arr.filter(a => a != undefined) as T[];
 }
 
-export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut|undefined|null): TOut[] {
+export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut | undefined | null): TOut[] {
     return input.map(fn).filter(a => a != undefined) as TOut[];
 }
 
@@ -105,4 +105,33 @@ export function groupBy<TItem, TKey>(arr: TItem[], keyFn: (key: TItem) => TKey):
 export function intersect<T>(lhs: T[], rhs: T[]): T[] {
     const set = new Set(lhs);
     return rhs.filter(val => set.has(val));
+}
+
+/**
+ * Binds a function, to an object, or returns undefined if the function is undefined
+ * @param fn the function to bind
+ * @param obj the object to bind the function to
+ * @returns the bound function, or undefined
+ */
+export function bindNullable<T>(fn: (T & Function) | undefined, obj: any): (T & Function) | undefined {
+    return fn ? fn.bind(obj) : fn;
+}
+
+/**
+ * Takes an array and filters those matching a predicate into one new array, those not matching into a second
+ * @param {T[]} items
+ * @param {(item: T) => boolean} predicate
+ * @returns {[T[] , T[]]} a tuple with the matching ones (first) and the non-matching ones (second)
+ */
+export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => boolean): [T[], T[]] {
+    const trues = [];
+    const falses = [];
+    for (const def of items) {
+        if (predicate(def)) {
+            trues.push(def);
+        } else {
+            falses.push(def);
+        }
+    }
+    return [trues, falses];
 }
