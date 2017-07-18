@@ -64,16 +64,19 @@ export class LinksModule implements PipelineModule {
                     }
                     layer++;
                     const type = typeInfo.getParentType();
-                    if (!type || !(type instanceof GraphQLObjectType)) {
+                    if (!type) {
                         throw new Error(`Failed to retrieve type for field ${child.name.value}`);
                     }
-                    const metadata = this.unlinkedSchema!.getFieldMetadata(type, typeInfo.getFieldDef());
-                    if (metadata && metadata.link) {
-                        return {
-                            ...child,
-                            selectionSet: undefined
-                        };
+                    if (type instanceof GraphQLObjectType) {
+                        const metadata = this.unlinkedSchema!.getFieldMetadata(type, typeInfo.getFieldDef());
+                        if (metadata && metadata.link) {
+                            return {
+                                ...child,
+                                selectionSet: undefined
+                            };
+                        }
                     }
+
                     return undefined;
                 },
 
