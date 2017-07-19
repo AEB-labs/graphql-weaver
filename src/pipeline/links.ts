@@ -1,7 +1,10 @@
 import {
-    FieldNode, getNamedType, GraphQLField, GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap,
-    GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLOutputType,
-    GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo, ValueNode, visit, visitWithTypeInfo
+    FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLEnumValueConfig, GraphQLEnumValueConfigMap,
+    GraphQLField,
+    GraphQLFieldConfigArgumentMap,
+    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
+    GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
+    ValueNode, visit, visitWithTypeInfo
 } from 'graphql';
 import { PipelineModule } from './pipeline-module';
 import { ExtendedSchema, JoinConfig, LinkConfig } from '../extended-schema/extended-schema';
@@ -9,7 +12,7 @@ import {
     ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
 import { FieldTransformationContext } from '../graphql/schema-transformer';
-import { compact, flatMap, groupBy, objectFromKeyValuePairs, throwError } from '../utils/utils';
+import { arrayToObject, compact, flatMap, groupBy, objectFromKeyValuePairs, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import { fetchJoinedObjects, fetchLinkedObjects, parseLinkTargetPath } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
@@ -164,6 +167,29 @@ export class LinksModule implements PipelineModule {
                                 };
                             }
 
+                        }
+
+                        // remove order clause if it actually applies to the right side
+                        const orderBy = (child.arguments || []).filter(arg => arg.name.value == ORDER_BY_ARG)[0];
+                        if (orderBy) {
+                            let orderByValue: string;
+                            switch (orderBy.value.kind) {
+                                case 'Variable':
+                                    orderByValue = variableValues[orderBy.value.name.value];
+                                    break;
+                                case 'EnumValue':
+                                    orderByValue = orderBy.value.value;
+                                    break;
+                                default:
+                                    throw new Error(`Invalid value for orderBy arg: ${orderBy.value.kind}`);
+                            }
+
+                            if (orderByValue.startsWith(metadata.join.linkField + '_')) {
+                                child = {
+                                    ...child,
+                                    arguments: child.arguments!.filter(arg => arg != orderBy)
+                                };
+                            }
                         }
                     }
                     return child;
@@ -417,9 +443,47 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             };
         }
 
-        const leftOrderByArg = linkField.args.filter(arg => arg.name == ORDER_BY_ARG)[0];
+        // order
+        const leftOrderByArg = config.args ? config.args[ORDER_BY_ARG] : undefined;
         const rightOrderByArg = targetField.args.filter(arg => arg.name == ORDER_BY_ARG)[0];
 
+        let newOrderByType: GraphQLInputType | undefined;
+        if (rightOrderByArg) {
+            const rightOrderByType = rightOrderByArg.type;
+            if (!(rightOrderByType instanceof GraphQLEnumType)) {
+                throw new Error(`Expected orderBy argument of ${targetField.name} to be of enum type`);
+            }
+            const newOrderByTypeName = leftObjectType.name + 'OrderBy';
+            let newEnumValues: GraphQLEnumValue[] = [];
+            if (leftOrderByArg) {
+                const leftOrderByType = leftOrderByArg.type;
+                if (!(leftOrderByType instanceof GraphQLEnumType)) {
+                    throw new Error(`Expected orderBy argument of ${config.name} to be of enum type`);
+                }
+                newEnumValues = leftOrderByType.getValues();
+            }
+            newEnumValues = [
+                ...newEnumValues,
+                ...(rightOrderByType.getValues().map(val => ({...val, name: `${linkFieldName}_${val.name}`})))
+            ];
+
+
+            newOrderByType = new GraphQLEnumType({
+                name: newOrderByTypeName,
+                values: arrayToObject(newEnumValues.map(({name, value, deprecationReason}) => ({name, value, deprecationReason})), val => val.name)
+            });
+        } else {
+            newOrderByType = leftOrderByArg ? leftOrderByArg.type : undefined;
+        }
+
+        if (newOrderByType) {
+            newArguments = {
+                ...newArguments,
+                [ORDER_BY_ARG]: {
+                    type: newOrderByType
+                }
+            };
+        }
 
         this.transformationInfo.setJoinTransformationInfo(context.newOuterType.name, config.name, {
             leftFilterArgType: leftFilterArg ? <GraphQLInputObjectType>leftFilterArg.type : undefined
