@@ -1,4 +1,5 @@
 import {
+    DocumentNode,
     FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldConfigArgumentMap,
     GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
     GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
@@ -17,7 +18,7 @@ import {
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
-import { dropUnusedFragments, SlimGraphQLResolveInfo } from '../graphql/field-as-query';
+import { dropUnusedFragments, dropUnusedVariables, SlimGraphQLResolveInfo } from '../graphql/field-as-query';
 import {
     addVariableDefinitionSafely, createFieldNode, expandSelections, getAliasOrName
 } from '../graphql/language-utils';
@@ -67,7 +68,7 @@ export class LinksModule implements PipelineModule {
         type FieldStackEntry = { joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean };
         let fieldStack: FieldStackEntry[] = [];
 
-        let document = visit(query.document, visitWithTypeInfo(typeInfo, {
+        let document: DocumentNode = visit(query.document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
                     const fieldStackOuter = fieldStack[fieldStack.length - 1];
@@ -213,16 +214,27 @@ export class LinksModule implements PipelineModule {
         }));
 
         // Remove now unnecessary fragments, to avoid processing them in further modules
+        // Remove unnecessary variables, e.g. the joined filters
         document = dropUnusedFragments(document);
 
-        return {
+        const operationWithVariables = {
+            ...document.definitions.filter(def => def.kind == 'OperationDefinition')[0],
+            variableDefinitions: variableDefinitions.length ? variableDefinitions : undefined
+        };
+
+        query = {
             ...query,
             document: {
                 ...document,
-                variableDefinitions: variableDefinitions.length ? variableDefinitions : undefined
+                definitions: [
+                    ...document.definitions.filter(def => def.kind != 'OperationDefinition'),
+                    operationWithVariables
+                ]
             },
             variableValues
         };
+
+        return dropUnusedVariables(query);
     }
 }
 

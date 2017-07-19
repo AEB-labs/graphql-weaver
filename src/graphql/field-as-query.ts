@@ -1,19 +1,9 @@
 import {
-    ASTNode,
-    DocumentNode,
-    FieldNode,
-    FragmentDefinitionNode,
-    FragmentSpreadNode,
-    GraphQLResolveInfo,
-    OperationDefinitionNode,
-    OperationTypeNode,
-    SelectionNode,
-    SelectionSetNode,
-    VariableDefinitionNode,
-    VariableNode,
+    ASTNode, DefinitionNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode,
+    OperationDefinitionNode, OperationTypeNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode,
     visit
-} from "graphql";
-import {Query} from "./common";
+} from 'graphql';
+import { Query } from './common';
 import { arrayToObject, divideArrayByPredicate, flatMap } from '../utils/utils';
 
 type QueryParts = {
@@ -99,6 +89,9 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
     const variables = new Set<string>();
     for (const root of roots) {
         visit(root, {
+            VariableDefinition() {
+                return false; // don't regard var definitions as usages
+            },
             Variable(node: VariableNode) {
                 variables.add(node.name.value);
             }
@@ -143,6 +136,40 @@ export function dropUnusedFragments(document: DocumentNode): DocumentNode {
             ...nonFragmentDefs,
             ...usedFragments
         ]
+    };
+}
+
+/**
+ * Gets a new, semantically equal query where unused variables are removed
+ */
+export function dropUnusedVariables(query: Query): Query {
+    const [operations, nonOperationDefs] =
+        divideArrayByPredicate(query.document.definitions, def => def.kind == 'OperationDefinition') as [OperationDefinitionNode[], DefinitionNode[]];
+    const usedVarNames = collectUsedVariableNames([query.document]);
+    if (operations.length == 0) {
+        return query;
+    }
+    if (operations.length > 1) {
+        throw new Error(`Multiple operations not supported in dropUnusedVariables`);
+    }
+    const operation = operations[0];
+    const newOperation: OperationDefinitionNode = {
+        ...operation,
+        variableDefinitions: operation.variableDefinitions ? operation.variableDefinitions.filter(variable => usedVarNames.has(variable.variable.name.value)) : undefined
+    };
+
+    const variableValues = pickIntoObject(query.variableValues, Array.from(usedVarNames));
+
+    return {
+        ...query,
+        variableValues,
+        document: {
+            ...query.document,
+            definitions: [
+                ...nonOperationDefs,
+                newOperation
+            ]
+        }
     };
 }
 
