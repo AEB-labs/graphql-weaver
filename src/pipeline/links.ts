@@ -506,6 +506,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 if (FILTER_ARG in args) {
                     rightFilter = args[FILTER_ARG][linkFieldName];
                 }
+                const doInnerJoin = !!rightFilter;
 
                 let rightOrderBy: string | undefined = undefined;
                 if (ORDER_BY_ARG in args) {
@@ -523,9 +524,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 const linkFieldNodesByAlias: [string | undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
                 const linkFieldAliases = linkFieldNodesByAlias.map(([alias]) => alias);
 
-                // If the link field does not occur in the selection set, do one request anyway just to apply the filtering
+                // If the link field does not occur in the selection set, do one request anyway just to apply the filtering or ordering
                 // the alias is "undefined" so that it will not occur in the result object
-                if (rightFilter && !linkFieldNodesByAlias.length) {
+                if ((rightFilter || rightOrderBy) && !linkFieldNodesByAlias.length) {
                     linkFieldNodesByAlias.push([
                         undefined, [
                             {
@@ -540,8 +541,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 }
                 // undefined means that the link field was never selected by the user, so it has been added as
                 // an alias to JOIN_ALIAS by the query transformer
-                const anyLinkFieldAlias = linkFieldNodesByAlias[0][0] || JOIN_ALIAS;
-                const rightKeysToLeftObjects = groupBy(leftObjects, obj => obj[anyLinkFieldAlias]);
+                const anyAliasFieldNodePair = linkFieldNodesByAlias[0] as  [string | undefined, FieldNode[]]|undefined;
+                const anyLinkFieldAlias = anyAliasFieldNodePair ? anyAliasFieldNodePair[0] || JOIN_ALIAS : JOIN_ALIAS;
+                const rightKeysToLeftObjects = anyAliasFieldNodePair ? groupBy(leftObjects, obj => obj[anyLinkFieldAlias]) : new Map<any, any[]>();
                 const rightKeys = Array.from(rightKeysToLeftObjects.keys());
 
                 const aliasesToRightObjectLists = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]) => {
@@ -594,15 +596,26 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                         leftObjectList.push(...leftObjectsWithCompleteRightObjects);
                     }
 
+                    if (!doInnerJoin) {
+                        const isDescSort = rightOrderBy.toUpperCase().endsWith('_DESC');
+                        if (!isDescSort && !rightOrderBy.toUpperCase().endsWith('_ASC')) {
+                            throw new Error(`Expected order by clause ${rightOrderBy} to end with _ASC or _DESC`);
+                        }
+                        const leftObjectsWithoutRightObject = leftObjects.filter(obj => !leftObjectsSoFar.has(obj));
+                        if (isDescSort) {
+                            leftObjectList.push(...leftObjectsWithoutRightObject);
+                        } else {
+                            leftObjectList.unshift(...leftObjectsWithoutRightObject);
+                        }
+                    }
+
                     return leftObjectList;
-                    // do this if LEFT OUTER is required
-                    /*const leftObjectsWithoutRightObject = leftObjects.filter(obj => !leftObjectsSoFar.has(obj));
-                    leftObjectList.push(...leftObjectsWithoutRightObject);*/
                 } else {
                     // apply order from left side
 
-                    // don't do this if LEFT OUTER is required
-                    leftObjects = leftObjects.filter(leftObject => aliasesToRightObjectLists.every(({objectsByID, alias}) => objectsByID.has(leftObject[alias || JOIN_ALIAS])));
+                    if (doInnerJoin) {
+                        leftObjects = leftObjects.filter(leftObject => aliasesToRightObjectLists.every(({objectsByID, alias}) => objectsByID.has(leftObject[alias || JOIN_ALIAS])));
+                    }
 
                     for (const leftObject of leftObjects) {
                         for (const {alias, objectsByID} of aliasesToRightObjectLists) {

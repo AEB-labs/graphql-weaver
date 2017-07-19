@@ -1,29 +1,20 @@
 import {
-    ArgumentNode,
-    DocumentNode,
-    execute,
-    FieldNode, FragmentDefinitionNode,
-    GraphQLField, GraphQLInputType,
-    GraphQLList,
-    GraphQLNonNull,
-    GraphQLScalarType,
-    GraphQLSchema,
-    OperationDefinitionNode,
-    SelectionSetNode, VariableDefinitionNode
-} from "graphql";
-import {getNonNullType, walkFields} from "../../graphql/schema-utils";
-import {LinkConfig} from "../../extended-schema/extended-schema";
-import {arrayToObject, throwError, intersect} from "../../utils/utils";
-import {getFieldAsQueryParts, SlimGraphQLResolveInfo} from "../../graphql/field-as-query";
+    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, GraphQLField, GraphQLInputType, GraphQLList,
+    GraphQLNonNull, GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode
+} from 'graphql';
+import { getNonNullType, walkFields } from '../../graphql/schema-utils';
+import { LinkConfig } from '../../extended-schema/extended-schema';
+import { arrayToObject, intersect, throwError } from '../../utils/utils';
+import { getFieldAsQueryParts, SlimGraphQLResolveInfo } from '../../graphql/field-as-query';
 import {
-    addFieldSelectionSafely,
-    addVariableDefinitionSafely,
-    createFieldNode,
-    createNestedArgumentWithVariableNode,
+    addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
     createSelectionChain
-} from "../../graphql/language-utils";
-import {isArray} from "util";
-import {assertSuccessfulResponse} from "../../endpoints/client";
+} from '../../graphql/language-utils';
+import { isArray } from 'util';
+import { assertSuccessfulResponse } from '../../endpoints/client';
+
+export const FILTER_ARG = 'filter';
+export const ORDER_BY_ARG = 'orderBy';
 
 export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { field: GraphQLField<any, any>, fieldPath: string[] } | undefined {
     const fieldPath = path.split('.');
@@ -216,7 +207,7 @@ export async function fetchLinkedObjects(params: {
         if (!isArray(data)) {
             throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
         }
-        const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
+        const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias], item]));
         // Then, use the lookup table to efficiently order the result
         return (keyOrKeys as any[]).map(key => map.get(key));
     }
@@ -247,14 +238,15 @@ function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: string[])
 export async function fetchJoinedObjects(params: {
     keys: any[],
     additionalFilter: any,
+    orderBy?: string,
     filterType: GraphQLInputType,
     keyType: GraphQLScalarType,
     linkConfig: LinkConfig,
     unlinkedSchema: GraphQLSchema,
     context: any,
     info: SlimGraphQLResolveInfo
-}) {
-    const {unlinkedSchema, additionalFilter, filterType, linkConfig, info, context, keys} = params;
+}): Promise<{ orderedObjects: any[], objectsByID: Map<string, any>, keyFieldAlias: string }> {
+    const {unlinkedSchema, additionalFilter, orderBy, filterType, linkConfig, info, context, keys} = params;
     const {fragments, ...originalParts} = getFieldAsQueryParts(info);
 
     const {fieldPath: targetFieldPath} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
@@ -279,20 +271,37 @@ export async function fetchJoinedObjects(params: {
     const {alias: keyFieldAlias, selectionSet: payloadSelectionSet} =
         addFieldSelectionSafely(originalParts.selectionSet, linkConfig.keyField!, arrayToObject(fragments, f => f.name.value));
 
-    const argument: ArgumentNode = {
-        kind: "Argument",
+    const filterArgument: ArgumentNode = {
+        kind: 'Argument',
         name: {
-            kind: "Name",
-            value: filterArgumentName,
+            kind: 'Name',
+            value: filterArgumentName
         },
         value: {
-            kind: "Variable",
+            kind: 'Variable',
             name: {
                 kind: 'Name',
                 value: varName
             }
         }
     };
+
+    let args = [filterArgument];
+
+    if (orderBy) {
+        const orderByArg: ArgumentNode = {
+            kind: 'Argument',
+            name: {
+                kind: 'Name',
+                value: ORDER_BY_ARG
+            },
+            value: {
+                kind: 'EnumValue',
+                value: orderBy
+            }
+        };
+        args = [...args, orderByArg];
+    }
 
     const data = await basicResolve({
         targetFieldPath,
@@ -301,16 +310,19 @@ export async function fetchJoinedObjects(params: {
         variableDefinitions,
         variableValues,
         fragments,
-        args: [argument],
+        args,
         payloadSelectionSet
     });
 
-    // unordered case: endpoints does not preserve order, so we need to remap based on a key field
-    // first, create a lookup table from id to item
     if (!isArray(data)) {
         throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
     }
-    const map = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias!], item]));
-    // Then, use the lookup table to efficiently order the result
-    return (keys as any[]).map(key => map.get(key));
+
+    const objectsByID = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias], item]));
+
+    return {
+        orderedObjects: data,
+        objectsByID,
+        keyFieldAlias
+    };
 }
