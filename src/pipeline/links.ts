@@ -599,8 +599,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                     // optimization: if "first" had to be scratched from the left query, do it at least on the right query
                     // we can do this because count(right) >= count(left) always
+                    // this is not possible for outer joins, because there we need to detect if an object *has* a right
+                    // object, and limiting the results would miss some right objects
                     let first: number|undefined = undefined;
-                    if ((rightFilter || rightOrderBy) && FIRST_ARG in args) {
+                    if ((rightFilter || rightOrderBy) && doInnerJoin && FIRST_ARG in args) {
                         first = args[FIRST_ARG];
                     }
 
