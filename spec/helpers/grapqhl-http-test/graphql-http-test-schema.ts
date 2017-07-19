@@ -1,4 +1,4 @@
-import { GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
+import { GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { testTypes } from '../test-types';
@@ -57,11 +57,19 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.orderBy) {
                         countries = [...countries].sort(comparator(args.orderBy));
                     }
+                    if (args.first) {
+                        countries = countries.slice(0, args.first /* exclusive end */);
+                    }
+                    if (args.last) {
+                        countries = countries.slice(countries.length - args.last);
+                    }
                     return countries;
                 },
                 args: {
                     filter: {type: testTypes.countryFilterType},
-                    orderBy: {type: testTypes.countryOrderType}
+                    orderBy: {type: testTypes.countryOrderType},
+                    last: {type: GraphQLInt},
+                    first: {type: GraphQLInt}
                 }
             },
             Country: {
@@ -90,11 +98,19 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.orderBy) {
                         people = [...people].sort(comparator(args.orderBy));
                     }
+                    if (args.first) {
+                        people = people.slice(0, args.first /* exclusive end */);
+                    }
+                    if (args.last) {
+                        people = people.slice(people.length - args.last);
+                    }
                     return people;
                 },
                 args: {
                     filter: {type: testTypes.personFilterType},
-                    orderBy: {type: testTypes.personOrderType}
+                    orderBy: {type: testTypes.personOrderType},
+                    last: {type: GraphQLInt},
+                    first: {type: GraphQLInt}
                 }
             }
         }

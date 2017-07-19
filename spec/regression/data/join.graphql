@@ -57,6 +57,26 @@
             nationality {
                 continent
             }
+        },
+
+        first: allPeople(first: 1) {
+            name
+        }
+
+        firstAmerican: allPeople(filter: { nationality: { continent: NorthAmerica }}, first: 1) {
+            name
+        },
+
+        firstByContinent: allPeople(orderBy: nationality_continent_ASC, first: 2) {
+            name
+        },
+
+        firstWithNationalityByContinent: allPeople(orderBy: nationality_continent_ASC, filter: { nationality: { }} first: 2) {
+            name
+        },
+
+        fristAmerican: allPeople(filter: { nationality: { continent: NorthAmerica }}, orderBy: name_ASC, first: 1) {
+            name
         }
     }
 }

@@ -240,6 +240,37 @@
           "continent": "Europe"
         }
       }
+    ],
+    "first": [
+      {
+        "name": "Horst"
+      }
+    ],
+    "firstAmerican": [
+      {
+        "name": "John"
+      }
+    ],
+    "firstByContinent": [
+      {
+        "name": "Fred"
+      },
+      {
+        "name": "Yin"
+      }
+    ],
+    "firstWithNationalityByContinent": [
+      {
+        "name": "Yin"
+      },
+      {
+        "name": "Horst"
+      }
+    ],
+    "fristAmerican": [
+      {
+        "name": "Donald"
+      }
     ]
   }
 }
