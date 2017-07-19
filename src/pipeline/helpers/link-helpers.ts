@@ -15,6 +15,7 @@ import { assertSuccessfulResponse } from '../../endpoints/client';
 
 export const FILTER_ARG = 'filter';
 export const ORDER_BY_ARG = 'orderBy';
+export const FIRST_ARG = 'first';
 
 export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { field: GraphQLField<any, any>, fieldPath: string[] } | undefined {
     const fieldPath = path.split('.');
@@ -239,6 +240,7 @@ export async function fetchJoinedObjects(params: {
     keys: any[],
     additionalFilter: any,
     orderBy?: string,
+    first?: number,
     filterType: GraphQLInputType,
     keyType: GraphQLScalarType,
     linkConfig: LinkConfig,
@@ -301,6 +303,21 @@ export async function fetchJoinedObjects(params: {
             }
         };
         args = [...args, orderByArg];
+    }
+
+    if (params.first != undefined) {
+        const firstArg: ArgumentNode = {
+            kind: 'Argument',
+            name: {
+                kind: 'Name',
+                value: FIRST_ARG
+            },
+            value: {
+                kind: 'IntValue',
+                value: params.first + ""
+            }
+        };
+        args = [...args, firstArg];
     }
 
     const data = await basicResolve({

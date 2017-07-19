@@ -14,7 +14,7 @@ import { FieldTransformationContext } from '../graphql/schema-transformer';
 import { arrayToObject, flatMap, groupBy, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
-    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, ORDER_BY_ARG, parseLinkTargetPath
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, ORDER_BY_ARG, parseLinkTargetPath
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
@@ -104,6 +104,8 @@ export class LinksModule implements PipelineModule {
                             throw new Error(`Missing joinTransformationInfo`);
                         }
 
+                        let hasRightFilter = false;
+
                         // remove right filter
                         const filterArg = (child.arguments || []).filter(arg => arg.name.value == FILTER_ARG)[0];
                         const rightFilterFieldName = metadata.join.linkField;
@@ -122,6 +124,7 @@ export class LinksModule implements PipelineModule {
                                 switch (filterArg.value.kind) {
                                     case 'Variable':
                                         const value = variableValues[filterArg.value.name.value];
+                                        hasRightFilter = rightFilterFieldName in value;
                                         const valueWithoutRightFilter = {...value, [rightFilterFieldName]: undefined};
                                         const {name: varName, variableDefinitions: newVariableDefinitions} =
                                             addVariableDefinitionSafely(variableDefinitions, filterArg.value.name.value, leftFilterType);
@@ -139,11 +142,16 @@ export class LinksModule implements PipelineModule {
                                         };
                                         break;
                                     case 'ObjectValue':
-                                        newValue = {
-                                            kind: 'ObjectValue',
-                                            ...filterArg.value,
-                                            fields: filterArg.value.fields.filter(field => field.name.value != rightFilterFieldName)
-                                        };
+                                        hasRightFilter = filterArg.value.fields.some(field => field.name.value == rightFilterFieldName);
+                                        if (hasRightFilter) {
+                                            newValue = {
+                                                kind: 'ObjectValue',
+                                                ...filterArg.value,
+                                                fields: filterArg.value.fields.filter(field => field.name.value != rightFilterFieldName)
+                                            };
+                                        } else {
+                                            newValue = filterArg.value;
+                                        }
 
                                         break;
                                     default:
@@ -168,6 +176,8 @@ export class LinksModule implements PipelineModule {
 
                         }
 
+                        let hasRightOrderBy = false;
+
                         // remove order clause if it actually applies to the right side
                         const orderBy = (child.arguments || []).filter(arg => arg.name.value == ORDER_BY_ARG)[0];
                         if (orderBy) {
@@ -183,12 +193,21 @@ export class LinksModule implements PipelineModule {
                                     throw new Error(`Invalid value for orderBy arg: ${orderBy.value.kind}`);
                             }
 
-                            if (orderByValue.startsWith(metadata.join.linkField + '_')) {
+                            hasRightOrderBy = orderByValue.startsWith(metadata.join.linkField + '_');
+                            if (hasRightOrderBy) {
                                 child = {
                                     ...child,
                                     arguments: child.arguments!.filter(arg => arg != orderBy)
                                 };
                             }
+                        }
+
+                        if (child.arguments && (hasRightOrderBy || hasRightFilter)) {
+                            // can't limit the number of left objects if the result set depends on the right side
+                            child = {
+                                ...child,
+                                arguments: child.arguments!.filter(arg => arg.name.value != FIRST_ARG)
+                            };
                         }
                     }
                     return child;
@@ -502,6 +521,17 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             };
         }
 
+        // first
+
+        const leftFirstArgument = config.args ? config.args[FIRST_ARG] : undefined;
+        const rightFirstArgument = targetField.args.filter(arg => arg.name == FIRST_ARG)[0];
+        if (leftFirstArgument) {
+            newArguments = {
+                ...newArguments,
+                [FIRST_ARG]: leftFirstArgument
+            };
+        }
+
         this.transformationInfo.setJoinTransformationInfo(context.newOuterType.name, config.name, {
             leftFilterArgType: leftFilterArg ? <GraphQLInputObjectType>leftFilterArg.type : undefined
         });
@@ -567,11 +597,19 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                         fieldNodes
                     };
 
+                    // optimization: if "first" had to be scratched from the left query, do it at least on the right query
+                    // we can do this because count(right) >= count(left) always
+                    let first: number|undefined = undefined;
+                    if ((rightFilter || rightOrderBy) && FIRST_ARG in args) {
+                        first = args[FIRST_ARG];
+                    }
+
                     const res = await fetchJoinedObjects({
                         keys: rightKeys,
                         additionalFilter: rightFilter,
                         filterType: rightFilterArg.type,
                         orderBy: rightOrderBy,
+                        first,
                         keyType,
                         linkConfig,
                         unlinkedSchema: this.schema.schema,
@@ -582,10 +620,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     return {alias, ...res};
                 }));
 
+                let leftObjectList = [];
                 if (rightOrderBy) {
                     // apply order from right side
                     const anyRightObjectList = aliasesToRightObjectLists[0];
-                    const leftObjectList = [];
                     const leftObjectsSoFar = new Set<any>();
                     for (const rightObject of anyRightObjectList.orderedObjects) {
                         const rightObjectKey = rightObject[anyRightObjectList.keyFieldAlias];
@@ -621,8 +659,6 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                             leftObjectList.unshift(...leftObjectsWithoutRightObject);
                         }
                     }
-
-                    return leftObjectList;
                 } else {
                     // apply order from left side
 
@@ -639,8 +675,14 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                             }
                         }
                     }
-                    return leftObjects;
+                    leftObjectList = leftObjects;
                 }
+
+                if (args[FIRST_ARG] != undefined) {
+                    const first = args[FIRST_ARG];
+                    leftObjectList = leftObjectList.slice(0, first);
+                }
+                return leftObjectList;
             }
         };
     }
