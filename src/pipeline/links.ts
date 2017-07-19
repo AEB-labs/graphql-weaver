@@ -1,7 +1,5 @@
 import {
-    FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLEnumValueConfig, GraphQLEnumValueConfigMap,
-    GraphQLField,
-    GraphQLFieldConfigArgumentMap,
+    FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldConfigArgumentMap,
     GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
     GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
     ValueNode, visit, visitWithTypeInfo
@@ -12,9 +10,11 @@ import {
     ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
 import { FieldTransformationContext } from '../graphql/schema-transformer';
-import { arrayToObject, compact, flatMap, groupBy, objectFromKeyValuePairs, throwError } from '../utils/utils';
+import { arrayToObject, flatMap, groupBy, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
-import { fetchJoinedObjects, fetchLinkedObjects, parseLinkTargetPath } from './helpers/link-helpers';
+import {
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, ORDER_BY_ARG, parseLinkTargetPath
+} from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
 import { dropUnusedFragments, SlimGraphQLResolveInfo } from '../graphql/field-as-query';
@@ -23,8 +23,6 @@ import {
 } from '../graphql/language-utils';
 import DataLoader = require('dataloader');
 
-const FILTER_ARG = 'filter';
-const ORDER_BY_ARG = 'orderBy';
 const JOIN_ALIAS = '_joined'; // used when a joined field is not selected
 
 /**
@@ -66,7 +64,7 @@ export class LinksModule implements PipelineModule {
         }
         let variableDefinitions = operation.variableDefinitions || [];
 
-        type FieldStackEntry = {joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean};
+        type FieldStackEntry = { joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean };
         let fieldStack: FieldStackEntry[] = [];
 
         let document = visit(query.document, visitWithTypeInfo(typeInfo, {
@@ -195,7 +193,7 @@ export class LinksModule implements PipelineModule {
                     return child;
                 },
 
-                leave(child: FieldNode): FieldNode|undefined {
+                leave(child: FieldNode): FieldNode | undefined {
                     const fieldStackTop = fieldStack.pop();
                     if (fieldStackTop && fieldStackTop.joinConfig && !fieldStackTop.isLinkFieldSelectedYet) {
                         return {
@@ -464,13 +462,19 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             }
             newEnumValues = [
                 ...newEnumValues,
-                ...(rightOrderByType.getValues().map(val => ({...val, name: `${linkFieldName}_${val.name}`})))
+                ...(rightOrderByType.getValues().map(val => ({
+                    ...val,
+                    name: `${linkFieldName}_${val.name}`,
+                    value: `${linkFieldName}_${val.value}`
+                })))
             ];
 
 
             newOrderByType = new GraphQLEnumType({
                 name: newOrderByTypeName,
-                values: arrayToObject(newEnumValues.map(({name, value, deprecationReason}) => ({name, value, deprecationReason})), val => val.name)
+                values: arrayToObject(newEnumValues.map(({name, value, deprecationReason}) => ({
+                    name, value, deprecationReason
+                })), val => val.name)
             });
         } else {
             newOrderByType = leftOrderByArg ? leftOrderByArg.type : undefined;
@@ -493,67 +497,124 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             ...config,
             args: newArguments,
             resolve: async (source, args, resolveContext, info: GraphQLResolveInfo) => {
-                const leftObjects: any[] = await context.oldField.resolve!(source, args, resolveContext, info);
+                let leftObjects: any[] = await context.oldField.resolve!(source, args, resolveContext, info);
+
+                // Copy the objects so we can add aliases
+                leftObjects = [...leftObjects];
 
                 let rightFilter: any = undefined;
                 if (FILTER_ARG in args) {
                     rightFilter = args[FILTER_ARG][linkFieldName];
                 }
 
-                const joinedObjectsSparse = await Promise.all(leftObjects.map(async leftObject => {
-                    const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
+                let rightOrderBy: string | undefined = undefined;
+                if (ORDER_BY_ARG in args) {
+                    const orderByValue = args[ORDER_BY_ARG];
+                    if (orderByValue.startsWith(linkFieldName + '_')) {
+                        rightOrderBy = orderByValue.substr((linkFieldName + '_').length);
+                    }
+                }
 
-                    // all the names/aliases under which the link field has been requested
-                    const linkFieldNodes = expandSelections(selections)
-                        .filter(node => node.name.value == linkFieldName);
-                    const linkFieldNodesByAlias: [string|undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
+                const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
 
-                    // If the link field does not occur in the selection set, do one request anyway just to apply the filtering
-                    // the alias is "undefined" so that it will not occur in the result object
-                    if (rightFilter && !linkFieldNodesByAlias.length) {
-                        linkFieldNodesByAlias.push([undefined, [{
-                            kind: 'Field',
-                            name: {
-                                kind: 'Name',
-                                value: linkFieldName
+                // all the names/aliases under which the link field has been requested
+                const linkFieldNodes = expandSelections(selections)
+                    .filter(node => node.name.value == linkFieldName);
+                const linkFieldNodesByAlias: [string | undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
+                const linkFieldAliases = linkFieldNodesByAlias.map(([alias]) => alias);
+
+                // If the link field does not occur in the selection set, do one request anyway just to apply the filtering
+                // the alias is "undefined" so that it will not occur in the result object
+                if (rightFilter && !linkFieldNodesByAlias.length) {
+                    linkFieldNodesByAlias.push([
+                        undefined, [
+                            {
+                                kind: 'Field',
+                                name: {
+                                    kind: 'Name',
+                                    value: linkFieldName
+                                }
                             }
-                        }]]);
-                    }
+                        ]
+                    ]);
+                }
+                // undefined means that the link field was never selected by the user, so it has been added as
+                // an alias to JOIN_ALIAS by the query transformer
+                const anyLinkFieldAlias = linkFieldNodesByAlias[0][0] || JOIN_ALIAS;
+                const rightKeysToLeftObjects = groupBy(leftObjects, obj => obj[anyLinkFieldAlias]);
+                const rightKeys = Array.from(rightKeysToLeftObjects.keys());
 
-                    const aliasRightObjectPairs = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]): Promise<[string|undefined, any]> => {
-                        // undefined means that the link field was never selected by the user, so it has been added as
-                        // an alias to JOIN_ALIAS by the query transformer
-                        const key = leftObject[alias || JOIN_ALIAS];
-                        const linkFieldInfo: SlimGraphQLResolveInfo = {
-                            operation: info.operation,
-                            variableValues: info.variableValues,
-                            fragments: info.fragments,
-                            fieldNodes
-                        };
-
-                        const objects = await fetchJoinedObjects({
-                            keys: [key],
-                            additionalFilter: rightFilter,
-                            filterType: rightFilterArg.type,
-                            keyType,
-                            linkConfig,
-                            unlinkedSchema: this.schema.schema,
-                            info: linkFieldInfo,
-                            context: resolveContext
-                        });
-                        const rightObject = objects[0];
-                        return [alias, rightObject ? new ResolvedLinkObject(rightObject) : rightObject];
-                    }));
-                    if (aliasRightObjectPairs.some(([key, value]) => !value)) {
-                        return undefined; // INNER JOIN (leave out this condition if LEFT JOIN is intended)
-                    }
-
-                    return {
-                        ...leftObject,
-                        ...objectFromKeyValuePairs(<[string, {}][]>aliasRightObjectPairs.filter(([key]) => key))
+                const aliasesToRightObjectLists = await Promise.all(linkFieldNodesByAlias.map(async ([alias, fieldNodes]) => {
+                    const linkFieldInfo: SlimGraphQLResolveInfo = {
+                        operation: info.operation,
+                        variableValues: info.variableValues,
+                        fragments: info.fragments,
+                        fieldNodes
                     };
+
+                    const res = await fetchJoinedObjects({
+                        keys: rightKeys,
+                        additionalFilter: rightFilter,
+                        filterType: rightFilterArg.type,
+                        orderBy: rightOrderBy,
+                        keyType,
+                        linkConfig,
+                        unlinkedSchema: this.schema.schema,
+                        info: linkFieldInfo,
+                        context: resolveContext
+                    });
+
+                    return {alias, ...res};
                 }));
-                return compact(joinedObjectsSparse);
+
+                if (rightOrderBy) {
+                    // apply order from right side
+                    const anyRightObjectList = aliasesToRightObjectLists[0];
+                    const leftObjectList = [];
+                    const leftObjectsSoFar = new Set<any>();
+                    for (const rightObject of anyRightObjectList.orderedObjects) {
+                        const rightObjectKey = rightObject[anyRightObjectList.keyFieldAlias];
+                        const leftObjectForRightObject = rightKeysToLeftObjects.get(rightObjectKey) || [];
+
+                        // Filter out left object where one alias found a linked object, but another one did not. This
+                        // is more consistent and uses would not expect a linked field to be Null with an INNER JOIN.
+                        const leftObjectKeyAlias = anyRightObjectList.alias || JOIN_ALIAS;
+                        const leftObjectsWithCompleteRightObjects =
+                            leftObjectForRightObject.filter(leftObject => aliasesToRightObjectLists.every(({objectsByID}) => objectsByID.has(leftObject[leftObjectKeyAlias])));
+                        for (const {alias, orderedObjects, objectsByID} of aliasesToRightObjectLists) {
+                            for (const leftObject of leftObjectsWithCompleteRightObjects) {
+                                leftObjectsSoFar.add(leftObject);
+                                const key = leftObject[alias || JOIN_ALIAS];
+                                const rightObject = objectsByID.get(key);
+                                if (alias) {
+                                    leftObject[alias] = new ResolvedLinkObject(rightObject);
+                                }
+                            }
+                        }
+                        leftObjectList.push(...leftObjectsWithCompleteRightObjects);
+                    }
+
+                    return leftObjectList;
+                    // do this if LEFT OUTER is required
+                    /*const leftObjectsWithoutRightObject = leftObjects.filter(obj => !leftObjectsSoFar.has(obj));
+                    leftObjectList.push(...leftObjectsWithoutRightObject);*/
+                } else {
+                    // apply order from left side
+
+                    // don't do this if LEFT OUTER is required
+                    leftObjects = leftObjects.filter(leftObject => aliasesToRightObjectLists.every(({objectsByID, alias}) => objectsByID.has(leftObject[alias || JOIN_ALIAS])));
+
+                    for (const leftObject of leftObjects) {
+                        for (const {alias, objectsByID} of aliasesToRightObjectLists) {
+                            const key = leftObject[alias || JOIN_ALIAS];
+                            const rightObject = objectsByID.get(key);
+                            if (alias) {
+                                leftObject[alias] = new ResolvedLinkObject(rightObject);
+                            }
+                        }
+                    }
+                    return leftObjects;
+                }
             }
         };
     }
