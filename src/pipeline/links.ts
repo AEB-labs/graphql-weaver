@@ -430,7 +430,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             newFilterType = leftFilterArg ? leftFilterArg.type : undefined;
         }
 
-        let newArguments: GraphQLFieldConfigArgumentMap = config.args || {};
+        // only provide explicitly supported arguments, as unsupported arguments likely cause unforseen errors in the result
+        let newArguments: GraphQLFieldConfigArgumentMap = {};
 
         if (newFilterType) {
             newArguments = {
