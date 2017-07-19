@@ -300,7 +300,7 @@ export function addVariableDefinitionSafely(variableDefinitions: VariableDefinit
         do {
             varName = name + number;
             number++;
-        } while (names.has(name));
+        } while (names.has(varName));
     }
 
     return {
