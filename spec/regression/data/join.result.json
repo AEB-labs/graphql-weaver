@@ -1,0 +1,276 @@
+{
+  "staticData": {
+    "allPeople": [
+      {
+        "name": "Horst",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "description": "Frankreich"
+        }
+      },
+      {
+        "name": "Yin",
+        "nationality": {
+          "description": "China"
+        }
+      },
+      {
+        "name": "John",
+        "nationality": {
+          "description": "USA"
+        }
+      },
+      {
+        "name": "Donald",
+        "nationality": {
+          "description": "USA"
+        }
+      },
+      {
+        "name": "Fred",
+        "nationality": {
+          "description": null
+        }
+      }
+    ],
+    "coolEuropeans": [
+      {
+        "name": "Horst",
+        "isCool": true,
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "isCool": true,
+        "nationality": {
+          "description": "Frankreich"
+        }
+      }
+    ],
+    "horst": [
+      {
+        "name": "Horst"
+      }
+    ],
+    "allPeopleByContinent": [
+      {
+        "name": "Fred",
+        "nationality": null
+      },
+      {
+        "name": "Yin",
+        "nationality": {
+          "continent": "Asia"
+        }
+      },
+      {
+        "name": "Horst",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "John",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      },
+      {
+        "name": "Donald",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      }
+    ],
+    "allPeopleByContinentDesc": [
+      {
+        "name": "John",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      },
+      {
+        "name": "Donald",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      },
+      {
+        "name": "Horst",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Yin",
+        "nationality": {
+          "continent": "Asia"
+        }
+      },
+      {
+        "name": "Fred",
+        "nationality": null
+      }
+    ],
+    "allPeopleWithNationalityByContinent": [
+      {
+        "name": "Yin",
+        "nationality": {
+          "continent": "Asia"
+        }
+      },
+      {
+        "name": "Horst",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "John",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      },
+      {
+        "name": "Donald",
+        "nationality": {
+          "continent": "NorthAmerica"
+        }
+      }
+    ],
+    "allPeopleWithNationalityByContinentDesc": [
+      {
+        "name": "John"
+      },
+      {
+        "name": "Donald"
+      },
+      {
+        "name": "Horst"
+      },
+      {
+        "name": "Helga"
+      },
+      {
+        "name": "Jacqueline"
+      },
+      {
+        "name": "Yin"
+      }
+    ],
+    "europeansByCountryDesc": [
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "description": "Frankreich"
+        }
+      },
+      {
+        "name": "Horst",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      }
+    ],
+    "coolEuropeansByCountryDesc": [
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "continent": "Europe"
+        }
+      },
+      {
+        "name": "Horst",
+        "nationality": {
+          "continent": "Europe"
+        }
+      }
+    ],
+    "first": [
+      {
+        "name": "Horst"
+      }
+    ],
+    "firstAmerican": [
+      {
+        "name": "John"
+      }
+    ],
+    "firstByContinent": [
+      {
+        "name": "Fred"
+      },
+      {
+        "name": "Yin"
+      }
+    ],
+    "firstWithNationalityByContinent": [
+      {
+        "name": "Yin"
+      },
+      {
+        "name": "Horst"
+      }
+    ],
+    "fristAmerican": [
+      {
+        "name": "Donald"
+      }
+    ]
+  }
+}

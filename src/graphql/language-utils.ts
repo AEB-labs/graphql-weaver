@@ -1,9 +1,23 @@
 import {
-    ArgumentNode, ASTNode, FieldNode, FragmentDefinitionNode, GraphQLList, GraphQLNamedType, GraphQLNonNull,
-    GraphQLType, ListTypeNode, NamedTypeNode, NonNullTypeNode, SelectionNode, SelectionSetNode, TypeNode, ValueNode,
-    VariableDefinitionNode, visit
-} from 'graphql';
-import {compact} from "../utils/utils";
+    ArgumentNode,
+    ASTNode,
+    FieldNode,
+    FragmentDefinitionNode,
+    GraphQLList,
+    GraphQLNamedType,
+    GraphQLNonNull,
+    GraphQLType,
+    ListTypeNode,
+    NamedTypeNode,
+    NonNullTypeNode,
+    SelectionNode,
+    SelectionSetNode,
+    TypeNode,
+    ValueNode,
+    VariableDefinitionNode,
+    visit
+} from "graphql";
+import {compact, flatMap} from "../utils/utils";
 
 /**
  * Creates a field node with a name and an optional alias
@@ -233,20 +247,17 @@ export function addFieldSelectionSafely(selectionSet: SelectionSetNode, field: s
  * @param fragments an array of fragment definitions for lookup of fragment spreads
  */
 export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}) {
-    return !!findNodeByAliasInSelection(selectionSet, alias, fragments);
+    return findNodesByAliasInSelections(selectionSet.selections, alias, fragments).length > 0;
 }
 
-
-
 /**
- * Finds a field node with a given alias (or name if no alias is specified) within a selection set.
- * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
+ * Finds all the field nodes that are selected by a given selection set, by spreading all referenced fragments
  *
- * @param selectionSet the selection set
- * @param alias the name of the field or alias to check
+ * @param selections the selection set
  * @param fragments an array of fragment definitions for lookup of fragment spreads
+ * @return the field nodes
  */
-export function findNodeByAliasInSelection(selectionSet: SelectionSetNode, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode|undefined {
+export function expandSelections(selections: SelectionNode[], fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
     function findFragment(name: string): FragmentDefinitionNode {
         if (!(name in fragments)) {
             throw new Error(`Fragment ${name} is referenced but not defined`);
@@ -254,25 +265,32 @@ export function findNodeByAliasInSelection(selectionSet: SelectionSetNode, alias
         return fragments[name];
     }
 
-    function findNodeByAliasInSelectionNode(node: SelectionNode): FieldNode|undefined {
+    function expandSelection(node: SelectionNode): FieldNode[] {
         switch (node.kind) {
             case 'Field':
-                if (getAliasOrName(node) == alias) {
-                    return node;
-                }
-                return undefined;
+                return [node];
             case 'FragmentSpread':
                 const fragment = findFragment(node.name.value);
-                return findNodeByAliasInSelection(fragment.selectionSet, alias, fragments);
+                return expandSelections(fragment.selectionSet.selections, fragments);
             case 'InlineFragment':
-                return findNodeByAliasInSelection(node.selectionSet, alias, fragments);
+                return expandSelections(node.selectionSet.selections, fragments);
             default:
                 throw new Error(`Unexpected node kind: ${(<any>node).kind}`);
         }
     }
 
-    return compact(selectionSet.selections.map(findNodeByAliasInSelectionNode))[0];
+    return flatMap(selections, expandSelection);
 }
+
+/*
+ * Finds all field node with a given alias (or name if no alias is specified) within a selection set.
+ * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
+ * Multiple matching nodes are collected recusivily, according to GraphQL's field node merging logic
+ */
+export function findNodesByAliasInSelections(selections: SelectionNode[], alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+    return expandSelections(selections, fragments).filter(node => getAliasOrName(node) == alias);
+}
+
 
 export function addVariableDefinitionSafely(variableDefinitions: VariableDefinitionNode[], name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
     const names = new Set(variableDefinitions.map(def => def.variable.name.value));
@@ -282,7 +300,7 @@ export function addVariableDefinitionSafely(variableDefinitions: VariableDefinit
         do {
             varName = name + number;
             number++;
-        } while (names.has(name));
+        } while (names.has(varName));
     }
 
     return {
@@ -319,20 +337,22 @@ export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases:
         throw new Error(`Aliases must not be empty`);
     }
 
-    let currentSelectionSet: SelectionSetNode|undefined = selectionSet;
-    const fieldNodes = [];
+    let currentSelectionSets: SelectionSetNode[] = [selectionSet];
+    const fieldNodesInPath: FieldNode[] = [];
     for (const alias of aliases) {
-        if (!currentSelectionSet) {
-            throw new Error(`Expected field ${fieldNodes.length ? fieldNodes[fieldNodes.length - 1].name.value : ''} to have sub-selection but it does not`);
+        if (!currentSelectionSets.length) {
+            throw new Error(`Expected field ${fieldNodesInPath.length ? fieldNodesInPath[fieldNodesInPath.length - 1].name.value : ''} to have sub-selection but it does not`);
         }
-        const fieldNode = findNodeByAliasInSelection(currentSelectionSet, alias, fragments);
-        if (!fieldNode) {
+        const matchingFieldNodes = flatMap(currentSelectionSets, selSet => findNodesByAliasInSelections(selSet.selections, alias, fragments));
+        if (!matchingFieldNodes.length) {
             throw new Error(`Field ${alias} expected but not found`);
         }
-        currentSelectionSet = fieldNode.selectionSet;
-        fieldNodes.push(fieldNode);
+        currentSelectionSets = compact(matchingFieldNodes.map(node => node.selectionSet));
+        // those matching nodes all need to be compatible - except their selection sets (which will be merged)
+        // As the consumer probably does not care about the selection set (this function here is there to process them, after all), this is probably ok
+        fieldNodesInPath.push(matchingFieldNodes[0]);
     }
-    return fieldNodes;
+    return fieldNodesInPath;
 }
 
 /**

@@ -19,6 +19,20 @@ export async function query(url: string, query: string, variables?: {[key: strin
         throw new TraceError(`Error connecting to GraphQL endpoint at ${url}: ${error.message}`, error)
     }
     if (!res.ok) {
+        if (res.headers.get('Content-Type') == 'application/json') {
+            // try to parse for a GraphQL response with errors
+            let json;
+            try {
+                json = await res.json();
+            } catch (error) {
+                // fall through
+            }
+            if (json) {
+                assertSuccessfulResponse(json);
+            }
+            // if it was indeed a successful response, something is odd (res.ok should have been true), so report HTTP error
+        }
+
         throw new Error(`GraphQL endpoint at ${url} reported ${res.status} ${res.statusText}`);
     }
 

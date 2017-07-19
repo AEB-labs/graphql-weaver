@@ -1,5 +1,5 @@
 import {
-    ASTNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, GraphQLResolveInfo,
+    ASTNode, DefinitionNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode,
     OperationDefinitionNode, OperationTypeNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode,
     visit
 } from 'graphql';
@@ -14,10 +14,17 @@ type QueryParts = {
     operation: OperationTypeNode;
 };
 
+export interface SlimGraphQLResolveInfo {
+    fieldNodes: FieldNode[]
+    fragments: { [fragmentName: string]: FragmentDefinitionNode };
+    operation: OperationDefinitionNode;
+    variableValues: { [variableName: string]: any };
+}
+
 /**
  * Prepares all the parts necessary to construct a GraphQL query document like produced by getFieldAsQuery
  */
-export function getFieldAsQueryParts(info: GraphQLResolveInfo): QueryParts {
+export function getFieldAsQueryParts(info: SlimGraphQLResolveInfo): QueryParts {
     const fragments = collectUsedFragments(info.fieldNodes, info.fragments);
     const selections = collectSelections(info.fieldNodes);
     const selectionSet: SelectionSetNode = {
@@ -38,7 +45,7 @@ export function getFieldAsQueryParts(info: GraphQLResolveInfo): QueryParts {
  *
  * This is the basic component of a proxy - a resolver calls this method and then sends the query to the upstream server
  */
-export function getFieldAsQuery(info: GraphQLResolveInfo): Query {
+export function getFieldAsQuery(info: SlimGraphQLResolveInfo): Query {
     return getQueryFromParts(getFieldAsQueryParts(info));
 }
 
@@ -82,6 +89,9 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
     const variables = new Set<string>();
     for (const root of roots) {
         visit(root, {
+            VariableDefinition() {
+                return false; // don't regard var definitions as usages
+            },
             Variable(node: VariableNode) {
                 variables.add(node.name.value);
             }
@@ -126,6 +136,40 @@ export function dropUnusedFragments(document: DocumentNode): DocumentNode {
             ...nonFragmentDefs,
             ...usedFragments
         ]
+    };
+}
+
+/**
+ * Gets a new, semantically equal query where unused variables are removed
+ */
+export function dropUnusedVariables(query: Query): Query {
+    const [operations, nonOperationDefs] =
+        divideArrayByPredicate(query.document.definitions, def => def.kind == 'OperationDefinition') as [OperationDefinitionNode[], DefinitionNode[]];
+    const usedVarNames = collectUsedVariableNames([query.document]);
+    if (operations.length == 0) {
+        return query;
+    }
+    if (operations.length > 1) {
+        throw new Error(`Multiple operations not supported in dropUnusedVariables`);
+    }
+    const operation = operations[0];
+    const newOperation: OperationDefinitionNode = {
+        ...operation,
+        variableDefinitions: operation.variableDefinitions ? operation.variableDefinitions.filter(variable => usedVarNames.has(variable.variable.name.value)) : undefined
+    };
+
+    const variableValues = pickIntoObject(query.variableValues, Array.from(usedVarNames));
+
+    return {
+        ...query,
+        variableValues,
+        document: {
+            ...query.document,
+            definitions: [
+                ...nonOperationDefs,
+                newOperation
+            ]
+        }
     };
 }
 

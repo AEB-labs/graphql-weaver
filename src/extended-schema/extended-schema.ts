@@ -2,6 +2,7 @@ import { GraphQLField, GraphQLObjectType, GraphQLSchema } from 'graphql';
 
 export interface FieldMetadata {
     link?: LinkConfig
+    join?: JoinConfig
 }
 
 export interface LinkConfig {
@@ -9,6 +10,10 @@ export interface LinkConfig {
     argument: string
     batchMode: boolean
     keyField?: string
+}
+
+export interface JoinConfig {
+    linkField: string
 }
 
 /**

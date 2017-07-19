@@ -26,39 +26,29 @@ export interface SchemaPipelineModule {
 export interface QueryPipelineModule {
     /**
      * If defined, is called on each root node of a proxied field - on all fieldNodes, the fragments and variables
+     * @deprecated use transformQuery
      * @param node the node to process
      * @return the new node to replace the old one
      */
     transformNode?(node: ASTNode): ASTNode;
 
     /**
-     * If defined, is called on each root node of a proxied field - on all fieldNodes, the fragments and variables.
-     *
-     * In contrast to {@link transformNode(ASTNode)}, this method is more expensive as a TypeInfo instance has to be
-     * prepared.
-     *
-     * @param node
-     * @param typeInfo a TypeInfo instance that is initialized at the node and can be used with visitWithTypeInfo
+     * If defined, is called on a query executed by the proxy resolver
      */
-    transformNodeWithTypeInfo?(node: ASTNode, typeInfo: TypeInfo): ASTNode;
+    transformQuery?(node: Query): Query;
 }
 
 export function runQueryPipelineModule(module: QueryPipelineModule, query: Query) {
-    // which schema?
+    if (module.transformQuery) {
+        query = module.transformQuery(query);
+    }
+
     if (module.transformNode) {
         query = {
             ...query,
             document: <DocumentNode>module.transformNode(query.document)
         };
     }
-    /*if (module.transformNodeWithTypeInfo) {
-        // don't think we really have the correct schema here. Also, type-info-initializer anywhere?
-        const typeInfo = new TypeInfo(schema);
-        query = {
-            ...query,
-            document: <DocumentNode>module.transformNodeWithTypeInfo(query.document, typeInfo)
-        };
-    }*/
 
     return query;
 }
