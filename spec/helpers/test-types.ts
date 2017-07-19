@@ -3,7 +3,7 @@ import {
     GraphQLObjectType,
     GraphQLString
 } from 'graphql';
-import { arrayToObject, mapValues, objectFromKeys } from '../../src/utils/utils';
+import { arrayToObject, flatMap, mapValues, objectFromKeys } from '../../src/utils/utils';
 
 export namespace testTypes {
     export const carType = new GraphQLObjectType({
@@ -59,5 +59,13 @@ export namespace testTypes {
 
     });
 
+    export const personOrderType = createOrderByType('Person', ['name', 'isCool']);
+    export const countryOrderType = createOrderByType('Country', ['isoCode', 'description', 'continent']);
+}
 
+function createOrderByType(typeName: string, fields: string[]) {
+    return new GraphQLEnumType({
+        name: `${typeName}OrderBy`,
+        values: objectFromKeys(flatMap(fields, field => [field + '_ASC', field + '_DESC']), key => ({})),
+    });
 }

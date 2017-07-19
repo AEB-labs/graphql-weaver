@@ -6,6 +6,40 @@ import { testTypes } from '../test-types';
 const allCountries = getAllCountries();
 const allPeople = getAllPeople();
 
+function comparator(orderBy: string) {
+    let dir: number;
+    let field: string;
+    if (orderBy.endsWith('_ASC')) {
+        field = orderBy.substr(0, orderBy.length - '_ASC'.length);
+        dir = 1;
+    } else if (orderBy.endsWith('_DESC')) {
+        field = orderBy.substr(0, orderBy.length - '_DESC'.length);
+        dir = -1;
+    } else {
+        return (a: any) => 0;
+    }
+
+    function compareAsc(lhs: any, rhs: any) {
+        const lhsValue = lhs[field];
+        const rhsValue = rhs[field];
+        if (lhsValue == null && rhsValue != null) {
+            return -1;
+        }
+        if (rhsValue == null && lhsValue != null) {
+            return 1;
+        }
+        if (lhsValue < rhsValue) {
+            return -1;
+        }
+        if (lhsValue > rhsValue) {
+            return 1;
+        }
+        return 0;
+    }
+
+    return (lhs: any, rhs: any) => compareAsc(lhs, rhs) * dir;
+}
+
 export const defaultTestSchema = new GraphQLSchema({
     query: new GraphQLObjectType({
         name: 'Query',
@@ -20,10 +54,14 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.filter && args.filter.continent) {
                         countries = countries.filter(country => args.filter.continent == country.continent);
                     }
+                    if (args.orderBy) {
+                        countries = countries.sort(comparator(args.orderBy));
+                    }
                     return countries;
                 },
                 args: {
-                    filter: {type: testTypes.countryFilterType}
+                    filter: {type: testTypes.countryFilterType},
+                    orderBy: {type: testTypes.countryOrderType}
                 }
             },
             Country: {
@@ -49,10 +87,14 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.filter && args.filter.isCool != undefined) {
                         people = people.filter(person => args.filter.isCool === person.isCool);
                     }
-                    return await people;
+                    if (args.orderBy) {
+                        people = people.sort(comparator(args.orderBy));
+                    }
+                    return people;
                 },
                 args: {
-                    filter: {type: testTypes.personFilterType}
+                    filter: {type: testTypes.personFilterType},
+                    orderBy: {type: testTypes.personOrderType}
                 }
             }
         }
@@ -70,6 +112,7 @@ async function countryByIdentCode(identCode: string) {
 async function getAllCountries() {
     return <{ id: string, identCode: string, isoCode: string, description: string, continent?: string }[]> await readTestDataFromJson('countries.json');
 }
+
 // async function allDeliveries() { return await readTestDataFromJson('deliveries.json') }
 
 async function getAllPeople() {

@@ -23,7 +23,7 @@ export class GraphQLServer {
         app.use('/graphql', bodyParser.json(), graphqlExpress(() => this.getGraphQLOptions()));
         app.use('/graphiql', graphiqlExpress({endpointURL: '/graphql'}));
         this.server = app.listen(config.port, () => {
-            console.log(`GraphQL server started on port ${config.port}.`);
+            console.log(`GraphQL server started on http://localhost:${config.port}.`);
         });
     }
 
