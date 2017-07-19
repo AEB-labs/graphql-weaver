@@ -55,7 +55,7 @@ export const defaultTestSchema = new GraphQLSchema({
                         countries = countries.filter(country => args.filter.continent == country.continent);
                     }
                     if (args.orderBy) {
-                        countries = countries.sort(comparator(args.orderBy));
+                        countries = [...countries].sort(comparator(args.orderBy));
                     }
                     return countries;
                 },
@@ -88,7 +88,7 @@ export const defaultTestSchema = new GraphQLSchema({
                         people = people.filter(person => args.filter.isCool === person.isCool);
                     }
                     if (args.orderBy) {
-                        people = people.sort(comparator(args.orderBy));
+                        people = [...people].sort(comparator(args.orderBy));
                     }
                     return people;
                 },

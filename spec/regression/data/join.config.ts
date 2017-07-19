@@ -1,8 +1,4 @@
-import {GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString} from 'graphql';
-import * as path from 'path';
-import {loadProxyConfig} from '../../../src/config/load-config';
-import {ProxyConfig} from "../../../src/config/proxy-configuration";
-import {testTypes} from "../../helpers/test-types";
+import { ProxyConfig } from '../../../src/config/proxy-configuration';
 
 export async function getConfig(): Promise<ProxyConfig> {
     return {

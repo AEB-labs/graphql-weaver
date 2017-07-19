@@ -27,6 +27,10 @@
       "nationality": "US",
       "name": "Donald",
       "isCool": false
+    },
+    {
+      "name": "Fred",
+      "isCool": true
     }
   ]
 }

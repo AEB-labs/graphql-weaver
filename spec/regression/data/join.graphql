@@ -1,6 +1,13 @@
 {
     staticData {
-        allPeople(filter: { isCool: true, nationality: { continent: Europe }}) {
+        allPeople {
+            name
+            nationality {
+                description
+            }
+        },
+
+        coolEuropeans: allPeople(filter: { isCool: true, nationality: { continent: Europe }}) {
             name
             isCool
             nationality {
@@ -10,6 +17,46 @@
 
         horst: allPeople(filter: { isCool: true, nationality: { identCode_in: ["DE"], continent: Europe }}) {
             name
+        },
+
+        allPeopleByContinent: allPeople(orderBy: nationality_continent_ASC) {
+            name
+            nationality {
+                continent
+            }
+        },
+
+        allPeopleByContinentDesc: allPeople(orderBy: nationality_continent_DESC) {
+            name
+            nationality {
+                continent
+            }
+        },
+
+        allPeopleWithNationalityByContinent: allPeople(filter: { nationality: { }} orderBy: nationality_continent_ASC) {
+            name
+            nationality {
+                continent
+            }
+        },
+
+        allPeopleWithNationalityByContinentDesc: allPeople(filter: { nationality: { }} orderBy: nationality_continent_DESC) {
+            name
+            # not selecting nationality to test if that's ok with ordering
+        },
+
+        europeansByCountryDesc: allPeople(filter: { nationality: { continent: Europe }} orderBy: nationality_description_DESC) {
+            name
+            nationality {
+                description
+            }
+        },
+
+        coolEuropeansByCountryDesc: allPeople(filter: { isCool: true, nationality: { continent: Europe }} orderBy: nationality_description_DESC) {
+            name
+            nationality {
+                continent
+            }
         }
     }
 }
