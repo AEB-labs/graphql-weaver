@@ -1,82 +1,68 @@
-{
-    staticData {
-        allPeople {
-            name
-            nationality {
-                description
-            }
-        },
-
-        coolEuropeans: allPeople(filter: { isCool: true, nationality: { continent: Europe }}) {
-            name
-            isCool
-            nationality {
-                description
-            }
-        }
-
-        horst: allPeople(filter: { isCool: true, nationality: { identCode_in: ["DE"], continent: Europe }}) {
-            name
-        },
-
-        allPeopleByContinent: allPeople(orderBy: nationality_continent_ASC) {
-            name
-            nationality {
-                continent
-            }
-        },
-
-        allPeopleByContinentDesc: allPeople(orderBy: nationality_continent_DESC) {
-            name
-            nationality {
-                continent
-            }
-        },
-
-        allPeopleWithNationalityByContinent: allPeople(filter: { nationality: { }} orderBy: nationality_continent_ASC) {
-            name
-            nationality {
-                continent
-            }
-        },
-
-        allPeopleWithNationalityByContinentDesc: allPeople(filter: { nationality: { }} orderBy: nationality_continent_DESC) {
-            name
-            # not selecting nationality to test if that's ok with ordering
-        },
-
-        europeansByCountryDesc: allPeople(filter: { nationality: { continent: Europe }} orderBy: nationality_description_DESC) {
-            name
-            nationality {
-                description
-            }
-        },
-
-        coolEuropeansByCountryDesc: allPeople(filter: { isCool: true, nationality: { continent: Europe }} orderBy: nationality_description_DESC) {
-            name
-            nationality {
-                continent
-            }
-        },
-
-        first: allPeople(first: 1) {
-            name
-        }
-
-        firstAmerican: allPeople(filter: { nationality: { continent: NorthAmerica }}, first: 1) {
-            name
-        },
-
-        firstByContinent: allPeople(orderBy: nationality_continent_ASC, first: 2) {
-            name
-        },
-
-        firstWithNationalityByContinent: allPeople(orderBy: nationality_continent_ASC, filter: { nationality: { }} first: 2) {
-            name
-        },
-
-        fristAmerican: allPeople(filter: { nationality: { continent: NorthAmerica }}, orderBy: name_ASC, first: 1) {
-            name
-        }
+query ($orderBy: CountryNSPersonOrderBy){
+  staticData {
+    allPeople {
+      name
+      nationality {
+        description
+      }
     }
+    coolEuropeans: allPeople(filter: {isCool: true, nationality: {continent: Europe}}) {
+      name
+      isCool
+      nationality {
+        description
+      }
+    }
+    horst: allPeople(filter: {isCool: true, nationality: {identCode_in: ["DE"], continent: Europe}}) {
+      name
+    }
+    allPeopleByContinent: allPeople(orderBy: $orderBy) {
+      name
+      nationality {
+        continent
+      }
+    }
+    allPeopleByContinentDesc: allPeople(orderBy: nationality_continent_DESC) {
+      name
+      nationality {
+        continent
+      }
+    }
+    allPeopleWithNationalityByContinent: allPeople(filter: {nationality: {}}, orderBy: nationality_continent_ASC) {
+      name
+      nationality {
+        continent
+      }
+    }
+    allPeopleWithNationalityByContinentDesc: allPeople(filter: {nationality: {}}, orderBy: nationality_continent_DESC) {
+      name
+    }
+    europeansByCountryDesc: allPeople(filter: {nationality: {continent: Europe}}, orderBy: nationality_description_DESC) {
+      name
+      nationality {
+        description
+      }
+    }
+    coolEuropeansByCountryDesc: allPeople(filter: {isCool: true, nationality: {continent: Europe}}, orderBy: nationality_description_DESC) {
+      name
+      nationality {
+        continent
+      }
+    }
+    first: allPeople(first: 1) {
+      name
+    }
+    firstAmerican: allPeople(filter: {nationality: {continent: NorthAmerica}}, first: 1) {
+      name
+    }
+    firstByContinent: allPeople(orderBy: $orderBy, first: 2) {
+      name
+    }
+    firstWithNationalityByContinent: allPeople(orderBy: $orderBy, filter: {nationality: {}}, first: 2) {
+      name
+    }
+    fristAmerican: allPeople(filter: {nationality: {continent: NorthAmerica}}, orderBy: name_ASC, first: 1) {
+      name
+    }
+  }
 }
