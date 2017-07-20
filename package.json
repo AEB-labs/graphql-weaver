@@ -7,6 +7,9 @@
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
   },
+  "publishConfig" : {
+   "registry" : "https://registry.next.labs.aeb.com/repository/next.npm.releases/"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
