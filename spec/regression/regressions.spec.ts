@@ -27,8 +27,8 @@ describe('regression tests', () => {
         it(fileName, async() => {
             const configFile = require(path.join(dir, fileName.replace(/.graphql$/, '.config.ts')));
             const expectedResult = JSON.parse(fs.readFileSync(path.join(dir, fileName.replace(/.graphql$/, '.result.json')), 'utf-8'));
-            const variablesPath = path.join(dir, fileName.replace(/.graphql$/, '.variables.json'));
-            const variableValues = fs.exists(variablesPath) ? JSON.parse(fs.readFileSync(variablesPath, 'utf-8')) : {};
+            const variablesPath = path.join(dir, fileName.replace(/.graphql$/, '.vars.json'));
+            const variableValues = fs.existsSync(variablesPath) ? JSON.parse(fs.readFileSync(variablesPath, 'utf-8')) : {};
             const result = await testConfigWithQuery(await configFile.getConfig(), queryString, variableValues);
             (<any>expect(result)).toEqualJSON(expectedResult);
         });
