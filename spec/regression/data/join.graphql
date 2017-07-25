@@ -1,4 +1,4 @@
-query ($orderBy: CountryNSPersonOrderBy){
+query ($orderBy: CountryNSPersonWithCountryNSCountryOrderBy){
   staticData {
     allPeople {
       name

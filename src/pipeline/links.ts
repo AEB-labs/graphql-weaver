@@ -417,6 +417,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
 
         const leftObjectType = getNamedType(context.oldField.type);
+        const rightObjectType = getNamedType(targetField.type);
+
 
         const keyType = getNamedType(context.mapType(linkField.type));
         if (!(keyType instanceof GraphQLScalarType)) {
@@ -432,7 +434,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
         let newFilterType: GraphQLInputType | undefined;
         if (rightFilterArg) {
-            const newFilterTypeName = leftObjectType.name + 'Filter';
+            const newFilterTypeName = leftObjectType.name + 'With' + rightObjectType.name + 'Filter';
             let newFilterFields: GraphQLInputFieldConfigMap;
             if (!leftFilterArg) {
                 newFilterFields = {
@@ -483,7 +485,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             if (!(rightOrderByType instanceof GraphQLEnumType)) {
                 throw new Error(`Expected orderBy argument of ${targetField.name} to be of enum type`);
             }
-            const newOrderByTypeName = leftObjectType.name + 'OrderBy';
+            const newOrderByTypeName = leftObjectType.name + 'With' + rightObjectType.name + 'OrderBy';
             let newEnumValues: GraphQLEnumValue[] = [];
             if (leftOrderByArg) {
                 const leftOrderByType = leftOrderByArg.type;
