@@ -1,0 +1,10 @@
+{allDeliveries(first:10) {
+    consigneeName
+    consigneeCountryISO
+    deliveryType
+    parties {
+        accountNumber
+        city
+        roleQualifier
+    }
+}}
