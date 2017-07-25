@@ -12,6 +12,11 @@ export interface BenchmarkConfig {
     readonly before?: (info: {count: number}) => Promise<any>;
     readonly beforeAll?: () => Promise<any>;
     readonly maxTime?: number;
+
+    /**
+     * Number of cycles to be done before actual benchmark
+     */
+    readonly warmupCycles?: number;
 }
 
 export type BenchmarkFactories = Array<() => BenchmarkConfig>;
@@ -187,6 +192,10 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
         config: config,
         timings: getTimings(times)
     };
+
+    if (config.warmupCycles) {
+        await cycle(config.warmupCycles);
+    }
 
     while (true) {
         // Preparation

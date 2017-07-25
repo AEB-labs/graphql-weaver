@@ -3,7 +3,7 @@ import {benchmark, BenchmarkFactories, time} from "./async-bench";
 const colors = require('colors');
 colors.enabled = true;
 
-const SHOW_CYCLE_INFO = true;
+const SHOW_CYCLE_INFO = false;
 
 function formatTimings({meanTime, relativeMarginOfError}: { meanTime: number, relativeMarginOfError: number}) {
     return `${(meanTime * 1000).toFixed(3)}ms (±${(relativeMarginOfError*100).toFixed(2)}%)`;
