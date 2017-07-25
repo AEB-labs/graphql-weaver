@@ -44,6 +44,11 @@ interface BenchmarkAction {
 
 export class BenchmarkCycleDetails {
     /**
+     * The name of the benchmark
+     */
+    public readonly name: string;
+
+    /**
      * The zero-based index of this cycyle
      */
     public readonly index: number;
@@ -68,7 +73,8 @@ export class BenchmarkCycleDetails {
      */
     public readonly timingsSoFar: Timings;
 
-    constructor(config: {index: number, iterationCount: number, elapsedTime: number, setUpTime: number, timingsSoFar: Timings}) {
+    constructor(config: {name: string, index: number, iterationCount: number, elapsedTime: number, setUpTime: number, timingsSoFar: Timings}) {
+        this.name = config.name;
         this.index = config.index;
         this.iterationCount = config.iterationCount;
         this.elapsedTime = config.elapsedTime;
@@ -86,6 +92,7 @@ interface BenchmarkResultConfig {
     readonly elapsedTime: number;
     readonly setUpTime: number;
     readonly cycleDetails: BenchmarkCycleDetails[];
+    readonly samples: number[];
 }
 
 export class BenchmarkResult {
@@ -124,6 +131,11 @@ export class BenchmarkResult {
      */
     public readonly iterationCount: number;
 
+    /**
+     * The raw array of cycle times
+     */
+    public readonly samples: number[];
+
     constructor(config: BenchmarkResultConfig) {
         this.cycles = config.cycles;
         this.meanTime = config.meanTime;
@@ -132,10 +144,27 @@ export class BenchmarkResult {
         this.setUpTime = config.setUpTime;
         this.cycleDetails = config.cycleDetails;
         this.iterationCount = config.iterationCount;
+        this.samples = config.samples;
     }
 
     toString() {
         return `${(this.meanTime * 1000).toFixed(3)} ms per iteration (±${(this.relativeMarginOfError * 100).toFixed(2)}%)`;
+    }
+
+    static add(...results: BenchmarkResult[]) {
+        const samples = results.reduce((value, r) => [...value, ...r.samples], []);
+        const timings = getTimings(samples);
+
+        return new BenchmarkResult({
+            cycles: results.reduce((value, r) => value + r.cycles, 0),
+            cycleDetails: results.reduce((value, r) => [...value, ...r.cycleDetails], []),
+            meanTime: timings.meanTime,
+            relativeMarginOfError: timings.relativeMarginOfError,
+            elapsedTime: results.reduce((value, r) => value + r.elapsedTime, 0),
+            setUpTime: results.reduce((value, r) => value + r.setUpTime, 0),
+            iterationCount: results.reduce((value, r) => value + r.iterationCount, 0),
+            samples
+        });
     }
 }
 
@@ -157,7 +186,7 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
         }
         const timeAfter = time();
 
-        return [ timeAfter - timeBefore ];
+        return [ (timeAfter - timeBefore) / count ];
     }
 
     async function cycleDetailed(count: number): Promise<number[]> {
@@ -181,7 +210,7 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
     }
     const elapsedTimeForInitialSetUp = time() - startTime;
 
-    const times: number[] = [];
+    const samples: number[] = [];
     const cycleDetails: BenchmarkCycleDetails[] = [];
     let state: BenchmarkState = {
         elapsedTime: 0,
@@ -190,7 +219,7 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
         cycles: 0,
         iterationCount: 0,
         config: config,
-        timings: getTimings(times)
+        timings: getTimings(samples)
     };
 
     if (config.warmupCycles) {
@@ -210,9 +239,9 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
 
         // Calculate next state
         const netTime = stats.sum(netTimes);
-        times.push(...netTimes);
+        samples.push(...netTimes);
         state = {
-            timings: getTimings(times),
+            timings: getTimings(samples),
             config: state.config,
             cycles: state.cycles + 1,
             iterationCount: state.iterationCount + iterationCount,
@@ -223,6 +252,7 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
 
         // Report status
         cycleDetails.push(new BenchmarkCycleDetails({
+            name: config.name,
             index: state.cycles - 1,
             elapsedTime: state.elapsedTime,
             setUpTime: state.elapsedTime - state.elapsedNetTime,
@@ -241,7 +271,8 @@ export async function benchmark(config: BenchmarkConfig, callbacks?: BenchmarkEx
         iterationCount: state.iterationCount,
         elapsedTime: state.elapsedTime,
         setUpTime: state.elapsedTime - state.elapsedNetTime,
-        cycleDetails
+        cycleDetails,
+        samples
     });
 }
 
@@ -304,14 +335,14 @@ const tTable: {[key: string]: number} = {
     'infinity': 1.96
 };
 
-function getTimings(times: number[]): Timings {
-    const mean: number = stats.mean(times);
+export function getTimings(samples: number[]): Timings {
+    const mean: number = stats.mean(samples);
     // Compute the sample standard deviation (estimate of the population standard deviation).
-    const sd = stats.stdev(times);
+    const sd = stats.stdev(samples);
     // Compute the standard error of the mean (a.k.a. the standard deviation of the sampling distribution of the sample mean).
-    const sem = sd / Math.sqrt(times.length);
+    const sem = sd / Math.sqrt(samples.length);
     // Compute the degrees of freedom.
-    const df = times.length - 1;
+    const df = samples.length - 1;
     // Compute the critical value.
     const critical = tTable[Math.round(df) || 1] || tTable['infinity'];
     // Compute the margin of error.
@@ -322,6 +353,6 @@ function getTimings(times: number[]): Timings {
     return {
         relativeMarginOfError: rme,
         meanTime: mean,
-        sampleCount: times.length
+        sampleCount: samples.length
     }
 }
