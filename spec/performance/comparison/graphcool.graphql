@@ -1,1 +1,1 @@
-{allPosts(first:10){country title comments {id text}}}
+{allCountries{identCode, description}}

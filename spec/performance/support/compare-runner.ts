@@ -14,6 +14,10 @@ function formatElapsedTime({elapsedTime, setUpTime}: { elapsedTime: number, setU
     return `${elapsedTime.toFixed()}s elapsed (${(setUpTime / elapsedTime * 100).toFixed()}% for setup)`;
 }
 
+function formatOverhead({overhead, relativeOverhead}: {overhead: number, relativeOverhead: number }) {
+    return `${(overhead * 1000).toFixed(3)}ms (${(relativeOverhead * 100).toFixed(2)}%)`;
+}
+
 interface BenchmarkSuiteResult {
     hasErrors: boolean;
 }
@@ -42,6 +46,8 @@ async function runAsync(benchmarks: BenchmarkConfig[]): Promise<BenchmarkSuiteRe
         console.log(`  ${formatElapsedTime(candidate.benchmark)} for ${candidate.benchmark.iterationCount} iterations in ${candidate.benchmark.cycles} cycles`);
         if (candidate.isFastest) {
             console.log(`  Fastest result.`.green.bgBlack)
+        } else  {
+            console.log(`  Slower than fastest by ${formatOverhead(candidate)}`.yellow.bgBlack)
         }
         index++;
     }

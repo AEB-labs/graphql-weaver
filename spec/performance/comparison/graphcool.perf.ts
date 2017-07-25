@@ -6,7 +6,7 @@ import { createProxySchema } from '../../../src/proxy-schema';
 import { execute, GraphQLSchema, parse } from 'graphql';
 import { runComparisons } from '../support/compare-runner';
 
-const UPSTREAM_URL = 'https://api.graph.cool/simple/v1/ciz69upbv3jgb0146dodjn9js';
+const UPSTREAM_URL = 'http://localhost:1337/graphql';
 const queryStr = fs.readFileSync('./graphcool.graphql', 'utf-8');
 
 const config: ProxyConfig = {

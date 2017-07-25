@@ -17,6 +17,8 @@ export class CandidateResult {
     readonly config: BenchmarkConfig;
     readonly benchmark: BenchmarkResult;
     readonly isFastest: boolean;
+    readonly overhead: number;
+    readonly relativeOverhead: number;
 
     constructor(config: CandidateResultConfig) {
         this.benchmark = config.benchmark;
@@ -43,23 +45,56 @@ export async function runComparison(benchmarkConfigs: BenchmarkConfig[], callbac
     })).values());
 
     const orderedResults = benchmarkResults.sort((lhs, rhs) => {
-        if (lhs.result.meanTime * (1 + lhs.result.relativeMarginOfError) > rhs.result.meanTime * (1 + rhs.result.relativeMarginOfError)) {
+        if (getPessimisticMean(lhs.result) > getPessimisticMean(rhs.result)) {
             return 1;
         }
         return -1;
     });
 
-    const fastest = orderedResults[0];
+    const fastestSamples = orderedResults[0].result.samples;
 
-    const candidates = orderedResults.map(res => new CandidateResult({
-        config: res.config,
-        benchmark: res.result,
-        isFastest: compare(res.result.samples, fastest.result.samples) >= 0
+    const fastestResults = orderedResults.filter(result => compare(result.result.samples, fastestSamples) >= 0);
+    const candidates: CandidateResult[] = fastestResults.map(res => ({
+        config: res.config, benchmark: res.result, isFastest: true, overhead: 0, relativeOverhead: 0
     }));
+    const nonFastestResults = orderedResults.filter(result => compare(result.result.samples, fastestSamples) < 0);
 
-    return { candidates };
+    for (const result of nonFastestResults) {
+        let effectiveOverheadMax = (getPessimisticMean(result.result) - getPessimisticMean(fastestResults[0].result)) * 2;
+        const steps = 50;
+        let overheadMin = 0;
+        let overheadMax = Infinity;
+        for (let i = 0; i < steps; i++) {
+            const handicap = (overheadMin + effectiveOverheadMax) / 2;
+            const handicappedFastestSamples = fastestSamples.map(sample => sample + handicap);
+            if (compare(result.result.samples, handicappedFastestSamples) >= 0) {
+                // with this much handicap, we have reached the fastest, so overhead can't be even worse
+                overheadMax = handicap;
+                effectiveOverheadMax = handicap;
+            } else {
+                // we didn't catch up, so overhead must be worse than handicap
+                overheadMin = handicap;
+                if (!isFinite(overheadMax)) {
+                    effectiveOverheadMax *= 2;
+                }
+            }
+        }
+        let relativeOverhead = overheadMax / result.result.meanTime;
+        candidates.push({
+            config: result.config,
+            benchmark: result.result,
+            isFastest: false,
+            overhead: overheadMax,
+            relativeOverhead
+        });
+    }
+
+    return {candidates};
 }
 
+function getPessimisticMean(result: BenchmarkResult) {
+    return result.meanTime * (1 + result.relativeMarginOfError);
+}
 
 /**
  * Critical Mann-Whitney U-values for 95% confidence.
