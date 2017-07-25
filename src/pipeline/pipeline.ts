@@ -5,19 +5,19 @@ import {
     PreMergeModuleContext,
     runQueryPipeline,
     runSchemaPipeline
-} from "./pipeline-module";
-import {TypePrefixesModule} from "./type-prefixes";
-import {NamespaceModule} from "./namespaces";
-import {DefaultResolversModule} from "./default-resolvers";
-import {AbstractTypesModule} from "./abstract-types";
-import {LinksModule} from "./links";
-import {DocumentNode} from "graphql";
-import {ProxyResolversModule} from "./proxy-resolvers";
-import {EndpointFactory} from "../endpoints/endpoint-factory";
-import {ExtendedSchema} from "../extended-schema/extended-schema";
-import {mergeExtendedSchemas} from "../extended-schema/merge-extended-schemas";
-import {ExtendedIntrospectionModule} from "./extended-introspection";
-import {AdditionalMetadataModule} from "./additional-metadata";
+} from './pipeline-module';
+import {TypePrefixesModule} from './type-prefixes';
+import {NamespaceModule} from './namespaces';
+import {DefaultResolversModule} from './default-resolvers';
+import {AbstractTypesModule} from './abstract-types';
+import {LinksModule} from './links';
+import {DocumentNode, print} from 'graphql';
+import {ProxyResolversModule} from './proxy-resolvers';
+import {EndpointFactory} from '../endpoints/endpoint-factory';
+import {ExtendedSchema} from '../extended-schema/extended-schema';
+import {mergeExtendedSchemas} from '../extended-schema/merge-extended-schemas';
+import {ExtendedIntrospectionModule} from './extended-introspection';
+import {AdditionalMetadataModule} from './additional-metadata';
 
 function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[] {
     const preMergePipeline: PipelineModule[] = [
@@ -30,10 +30,10 @@ function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[
     ];
 
     if (context.endpointConfig.typePrefix) {
-        preMergePipeline.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
+        preMergePipeline.push(new TypePrefixesModule(context.endpointConfig.typePrefix));
     }
     if (context.endpointConfig.namespace) {
-        preMergePipeline.push(new NamespaceModule(context.endpointConfig.namespace))
+        preMergePipeline.push(new NamespaceModule(context.endpointConfig.namespace));
     }
 
     return preMergePipeline;
@@ -43,7 +43,7 @@ function postMergeModulesFactory(context: PostMergeModuleContext): PipelineModul
     return [
         new LinksModule(),
         new ExtendedIntrospectionModule()
-    ]
+    ];
 }
 
 type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
@@ -53,10 +53,10 @@ export function runPipeline(endpoints: EndpointInfo[], endpointFactory: Endpoint
     return pipeline.schema;
 }
 
-class Pipeline {
+export class Pipeline {
     private readonly preMergeModules: Map<string, PipelineModule[]>;
     private readonly postMergeModules: PipelineModule[];
-    private _schema: ExtendedSchema | undefined;
+    public readonly schema: ExtendedSchema;
 
     constructor(private readonly endpoints: EndpointInfo[], private readonly endpointFactory: EndpointFactory) {
         const extendedEndpoints = endpoints.map(endpoint => ({
@@ -74,13 +74,8 @@ class Pipeline {
             processQuery: this.processQuery.bind(this),
             endpointFactory
         });
-    }
 
-    get schema() {
-        if (!this._schema) {
-            this._schema = this.createSchema();
-        }
-        return this._schema;
+        this.schema = this.createSchema();
     }
 
     private createSchema() {

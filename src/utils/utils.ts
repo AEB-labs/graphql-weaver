@@ -67,6 +67,20 @@ export function mapMapKeys<TKey, TNewKey, TValue>(map: Map<TKey, TValue>, fn: (k
     return newMap;
 }
 
+/**
+ * Creates a new Map by changing the keys but leaving the values as-is
+ * @param map a map
+ * @param fn a function that gets an old key and returns the new key
+ * @returns the new map
+ */
+export function mapMapValues<TKey, TValue, TNewValue>(map: Map<TKey, TValue>, fn: (value: TValue, key: TKey) => TNewValue): Map<TKey, TNewValue> {
+    const newMap = new Map<TKey, TNewValue>();
+    for (const [key, value] of Array.from(map)) {
+        newMap.set(key, fn(value, key));
+    }
+    return newMap;
+}
+
 export function flatten<T>(input: T[][]): T[] {
     const arr: T[] = [];
     return arr.concat(...input);
@@ -134,4 +148,13 @@ export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => bo
         }
     }
     return [trues, falses];
+}
+
+export function getOrSetFromMap<K, V>(map: Map<K, V>, key: K, defaultFn: () => V): V {
+    if (map.has(key)) {
+        return map.get(key)!;
+    }
+    const value = defaultFn();
+    map.set(key, value);
+    return value;
 }
