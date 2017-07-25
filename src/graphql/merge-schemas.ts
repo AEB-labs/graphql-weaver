@@ -1,12 +1,20 @@
-import { GraphQLDirective, GraphQLField, GraphQLFieldConfig, GraphQLObjectType, GraphQLSchema } from 'graphql';
+import {
+    GraphQLBoolean, GraphQLDirective, GraphQLField, GraphQLFieldConfig, GraphQLObjectType, GraphQLSchema
+} from 'graphql';
 import { arrayToObject, flatMap, mapAndCompact, mapValues, objectValues } from '../utils/utils';
 import { isRootType } from './schema-utils';
 
 /**
  * Merges multiple GraphQL schemas by merging the fields of root types (query, mutation, subscription)
+ *
+ * If the given array of schemas is empty, a dummy query field is created to satisfy the GraphQL invariant
  * @param schemas
  */
 export function mergeSchemas(schemas: GraphQLSchema[]) {
+    if (!schemas.length) {
+        return createEmptySchema();
+    }
+
     const nonRootTypes = flatMap(schemas, schema => objectValues(schema.getTypeMap()).filter(type => !isRootType(type, schema)));
 
     return new GraphQLSchema({
@@ -20,6 +28,21 @@ export function mergeSchemas(schemas: GraphQLSchema[]) {
         // no need to include the newly generated types, they are implicitly added
         types: nonRootTypes
     });
+}
+
+function createEmptySchema() {
+    return new GraphQLSchema({
+        query: new GraphQLObjectType({
+            name: 'Query',
+            fields: {
+                '_empty': {
+                    type: GraphQLBoolean,
+                    description: 'This field only exists because the schema is empty.',
+                    resolve: () => true
+                }
+            }
+        })
+    })
 }
 
 function mergeFields(types: GraphQLObjectType[], name: string) {
