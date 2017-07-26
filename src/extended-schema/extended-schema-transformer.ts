@@ -5,7 +5,7 @@ import {
     SchemaTransformer, transformSchema
 } from '../graphql/schema-transformer';
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
-import { mapValues } from '../utils/utils';
+import { mapValues, maybeDo } from '../utils/utils';
 
 type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -18,7 +18,7 @@ export interface GraphQLFieldConfigWithMetadata<TSource = any, TContext = any> e
     metadata?: FieldMetadata;
 }
 
-type GraphQLFieldConfigMapWithMetadata<TSource = any, TContext = any> = { [name: string]: GraphQLFieldConfigWithMetadata<TSource, TContext> };
+export type GraphQLFieldConfigMapWithMetadata<TSource = any, TContext = any> = { [name: string]: GraphQLFieldConfigWithMetadata<TSource, TContext> };
 
 export interface ExtendedSchemaTransformer extends SchemaTransformer {
     transformField?: TransformationFunction<GraphQLNamedFieldConfigWithMetadata<any, any>, FieldTransformationContext>;
@@ -91,7 +91,7 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
 
         transformFields: (config: GraphQLFieldConfigMap<any, any>, context: FieldsTransformationContext) => {
             // If transformFields is not defined, we don't need to do anything
-            const fn = transformer.transformFields;
+            const fn = maybeDo(transformer.transformFields, fn => fn.bind(transformer));
             if (!fn) {
                 return config;
             }

@@ -1,9 +1,9 @@
-export function objectValues(obj: { [name: string]: any }): any[] {
+export function objectValues<T>(obj: { [name: string]: T }): T[] {
     return Object.keys(obj).map(i => obj[i]);
 }
 
-export function objectEntries(obj: { [name: string]: any }): any[] {
-    return Object.keys(obj).map(k => [k, obj[k]]);
+export function objectEntries<T>(obj: { [name: string]: T }): [string, T][] {
+    return Object.keys(obj).map((k): [string,T] => [k, obj[k]]);
 }
 
 export function capitalize(string: string) {
