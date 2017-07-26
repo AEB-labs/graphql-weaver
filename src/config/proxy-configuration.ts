@@ -1,5 +1,5 @@
 import { GraphQLSchema } from 'graphql';
-import { FieldMetadata } from '../extended-schema/extended-schema';
+import { FieldMetadata } from '../../src/extended-schema/extended-schema';
 
 export interface ProxyConfig {
     endpoints: EndpointConfig[]

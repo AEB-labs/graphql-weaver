@@ -1,8 +1,5 @@
-import {GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString} from 'graphql';
-import * as path from 'path';
-import {loadProxyConfig} from '../../../src/config/load-config';
-import {ProxyConfig} from "../../../src/config/proxy-configuration";
-import {testTypes} from "../../helpers/test-types";
+import { GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
+import { ProxyConfig } from '../../../src/config/proxy-configuration';
 
 const travellingPersonType = new GraphQLObjectType({
     name: 'TravellingPerson',
@@ -10,10 +7,10 @@ const travellingPersonType = new GraphQLObjectType({
         name: { type: GraphQLString },
         visitedCountries: { type: new GraphQLList(GraphQLString) }
     }
-})
+});
 
-export async function getConfig() {
-    return <ProxyConfig>{
+export async function getConfig(): Promise<ProxyConfig> {
+    return {
         endpoints: [
             {
                 namespace: 'staticData',
@@ -46,7 +43,6 @@ export async function getConfig() {
                     },
                 }
             }
-        ],
-        port: 3100
+        ]
     };
 }

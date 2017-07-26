@@ -1,6 +1,6 @@
-import {GraphQLFieldResolver, GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString} from "graphql";
-import {GraphQLServer} from "../../../src/server/graphql-server";
-import {defaultTestSchema} from "./graphql-http-test-schema";
+import { GraphQLSchema } from 'graphql';
+import { defaultTestSchema } from './graphql-http-test-schema';
+import { GraphQLServer } from '../server/graphql-server';
 
 export class GraphQLHTTPTestEndpoint {
   private graphqlServer: GraphQLServer;
