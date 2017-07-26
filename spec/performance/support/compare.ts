@@ -7,24 +7,14 @@ interface ComparisonBenchmarkResult {
     readonly candidates: CandidateResult[];
 }
 
-interface CandidateResultConfig {
+interface CandidateResult {
     readonly config: BenchmarkConfig;
     readonly benchmark: BenchmarkResult;
     readonly isFastest: boolean;
-}
-
-export class CandidateResult {
-    readonly config: BenchmarkConfig;
-    readonly benchmark: BenchmarkResult;
-    readonly isFastest: boolean;
-    readonly overhead: number;
-    readonly relativeOverhead: number;
-
-    constructor(config: CandidateResultConfig) {
-        this.benchmark = config.benchmark;
-        this.config = config.config;
-        this.isFastest = config.isFastest;
-    }
+    readonly overheadMin: number;
+    readonly relativeOverheadMin: number;
+    readonly overheadMax: number;
+    readonly relativeOverheadMax: number;
 }
 
 export async function runComparison(benchmarkConfigs: BenchmarkConfig[], callbacks?: BenchmarkExecutionCallbacks): Promise<ComparisonBenchmarkResult> {
@@ -55,37 +45,48 @@ export async function runComparison(benchmarkConfigs: BenchmarkConfig[], callbac
 
     const fastestResults = orderedResults.filter(result => compare(result.result.samples, fastestSamples) >= 0);
     const candidates: CandidateResult[] = fastestResults.map(res => ({
-        config: res.config, benchmark: res.result, isFastest: true, overhead: 0, relativeOverhead: 0
+        config: res.config, benchmark: res.result,
+        isFastest: true, overheadMin: 0, relativeOverheadMin: 0, overheadMax: 0, relativeOverheadMax: 0
     }));
     const nonFastestResults = orderedResults.filter(result => compare(result.result.samples, fastestSamples) < 0);
 
     for (const result of nonFastestResults) {
-        let effectiveOverheadMax = (getPessimisticMean(result.result) - getPessimisticMean(fastestResults[0].result)) * 2;
-        const steps = 50;
-        let overheadMin = 0;
-        let overheadMax = Infinity;
-        for (let i = 0; i < steps; i++) {
-            const handicap = (overheadMin + effectiveOverheadMax) / 2;
-            const handicappedFastestSamples = fastestSamples.map(sample => sample + handicap);
-            if (compare(result.result.samples, handicappedFastestSamples) >= 0) {
-                // with this much handicap, we have reached the fastest, so overhead can't be even worse
-                overheadMax = handicap;
-                effectiveOverheadMax = handicap;
-            } else {
-                // we didn't catch up, so overhead must be worse than handicap
-                overheadMin = handicap;
-                if (!isFinite(overheadMax)) {
-                    effectiveOverheadMax *= 2;
+        const calculateOverhead = (predicate: (comparisonResult: number) => boolean) => {
+            let effectiveMax = (getPessimisticMean(result.result) - getPessimisticMean(fastestResults[0].result)) * 2;
+            const steps = 20;
+            let min = 0;
+            let max = Infinity;
+            for (let i = 0; i < steps; i++) {
+                const handicap = (min + effectiveMax) / 2;
+                const handicappedFastestSamples = fastestSamples.map(sample => sample + handicap);
+                if (predicate(compare(result.result.samples, handicappedFastestSamples))) {
+                    // with this much handicap, we have reached the fastest, so overhead can't be even worse
+                    max = handicap;
+                    effectiveMax = handicap;
+                } else {
+                    // we didn't catch up, so overhead must be worse than handicap
+                    min = handicap;
+                    if (!isFinite(max)) {
+                        effectiveMax *= 2;
+                    }
+                }
+                if (max / min < 1.0001) {
+                    break;
                 }
             }
-        }
-        let relativeOverhead = overheadMax / result.result.meanTime;
+            return max;
+        };
+
+        let overheadMin = calculateOverhead(x => x >= 0);
+        let overheadMax = calculateOverhead(x => x > 0);
         candidates.push({
             config: result.config,
             benchmark: result.result,
             isFastest: false,
-            overhead: overheadMax,
-            relativeOverhead
+            overheadMin: overheadMin,
+            relativeOverheadMin: overheadMin / result.result.meanTime,
+            overheadMax: overheadMax,
+            relativeOverheadMax: overheadMax / result.result.meanTime
         });
     }
 

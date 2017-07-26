@@ -6,16 +6,24 @@ colors.enabled = true;
 
 const SHOW_CYCLE_INFO = true;
 
+function formatMs(seconds: number) {
+    return `${(seconds * 1000).toFixed(3)}ms`;
+}
+
+function formatPercent(fraction: number) {
+    return `${(fraction * 100).toFixed(2)}%`;
+}
+
 function formatTimings({meanTime, relativeMarginOfError}: { meanTime: number, relativeMarginOfError: number }) {
-    return `${(meanTime * 1000).toFixed(3)}ms (±${(relativeMarginOfError * 100).toFixed(2)}%)`;
+    return `${formatMs(meanTime)} (±${formatPercent(relativeMarginOfError)}%)`;
 }
 
 function formatElapsedTime({elapsedTime, setUpTime}: { elapsedTime: number, setUpTime: number }) {
     return `${elapsedTime.toFixed()}s elapsed (${(setUpTime / elapsedTime * 100).toFixed()}% for setup)`;
 }
 
-function formatOverhead({overhead, relativeOverhead}: {overhead: number, relativeOverhead: number }) {
-    return `${(overhead * 1000).toFixed(3)}ms (${(relativeOverhead * 100).toFixed(2)}%)`;
+function formatOverhead(x: {overheadMin: number, relativeOverheadMin: number, overheadMax: number, relativeOverheadMax: number }) {
+    return `${formatMs(x.overheadMin)} \u2013 ${formatMs(x.overheadMax)} (${formatPercent(x.relativeOverheadMin)} \u2013 ${formatPercent(x.relativeOverheadMax)})`;
 }
 
 interface BenchmarkSuiteResult {
