@@ -1,0 +1,9 @@
+{
+    allPeople {
+        name
+        nationality
+        country {
+            description
+        }
+    }
+}
