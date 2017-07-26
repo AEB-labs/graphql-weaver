@@ -84,19 +84,16 @@ export class LinksModule implements PipelineModule {
                         // field metadata only exists on object types
                         return undefined;
                     }
-                    const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
-
-                    if (metadata && metadata.link) {
+                    const linkInfo = this.transformationInfo!.getLinkTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
+                    if (linkInfo && linkInfo.linkConfig) {
                         if (fieldStackOuter && fieldStackOuter.joinConfig && fieldStackOuter.joinConfig.linkField == child.name.value) {
                             fieldStackOuter.isLinkFieldSelectedYet = true;
                         }
 
-                        child = {
-                            ...child,
-                            selectionSet: undefined
-                        };
+                        child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child));
                     }
 
+                    const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
                     if (metadata && metadata.join) {
                         fieldStackTop.joinConfig = metadata.join;
                         fieldStackTop.isLinkFieldSelectedYet = false;
@@ -302,6 +299,8 @@ interface JoinTransformationInfo {
 }
 
 interface LinkTransformationInfo {
+    readonly linkConfig: LinkConfig;
+    readonly sourceFieldName: string;
 }
 
 /**
@@ -383,9 +382,16 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             return dataLoader.load(key);
         }
 
+        const linkFieldName = linkConfig.linkFieldName || config.name;
+
+        this.transformationInfo.setLinkTransformationInfo(context.newOuterType.name, linkFieldName, {
+            linkConfig,
+            sourceFieldName: config.name
+        });
+
         return {
             ...config,
-            name: linkConfig.linkFieldName || config.name,
+            name: linkFieldName,
             resolve: async (source, vars, context, info) => {
                 const fieldNode = info.fieldNodes[0];
                 const originalValue = config.resolve ? await config.resolve(source, vars, context, info) : source[fieldNode.name.value];
