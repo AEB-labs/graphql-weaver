@@ -16,5 +16,5 @@ deploy-npm:
     - npm install
     - npm publish
   only:
-    - master
+    - /^release-.*$/
   when: manual
