@@ -1,33 +1,10 @@
 import { DocumentNode, FieldNode, GraphQLObjectType, GraphQLSchema } from 'graphql';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
-import { SchemaMetadata } from './extended-schema';
+import { LinkConfig, SchemaMetadata } from './extended-schema';
 import {
     buildSchemaMetadata, EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_TYPE_NAMES
 } from './extended-introspection';
 import { createFieldNode } from '../graphql/language-utils';
-
-const EXTENDED_INTROSPECTION_QUERY = `{
-    ${EXTENDED_INTROSPECTION_FIELD} {
-        types { 
-            name 
-            fields { 
-                name
-                metadata {
-                    link { 
-                        endpoint 
-                        field
-                        argument
-                        batchMode
-                        keyField
-                    }
-                    join {
-                        linkField
-                    }
-                }
-            }
-        }
-    }
-}`;
 
 /**
  * Fetches SchemaMetadata over a GraphQL endpoint
@@ -65,7 +42,8 @@ function getTailoredExtendedIntrospectionQuery(schema: GraphQLSchema): DocumentN
 
     const linkType = schema.getType(EXTENDED_INTROSPECTION_TYPE_NAMES.fieldLink);
     if (linkType && linkType instanceof GraphQLObjectType) {
-        const linkSelections = ['field', 'argument', 'batchMode', 'keyField']
+        const propertyNames: (keyof LinkConfig)[] = ['field', 'argument', 'batchMode', 'keyField', 'linkFieldName'];
+        const linkSelections = propertyNames
             .filter(name => name in linkType.getFields())
             .map(name => createFieldNode(name));
 

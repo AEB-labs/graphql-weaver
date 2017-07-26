@@ -10,6 +10,11 @@ export interface LinkConfig {
     argument: string
     batchMode: boolean
     keyField?: string
+
+    /**
+     * If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.
+     */
+    linkFieldName?: string
 }
 
 export interface JoinConfig {

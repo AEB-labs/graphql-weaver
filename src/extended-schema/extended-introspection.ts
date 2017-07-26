@@ -89,6 +89,10 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
             keyField: {
                 description: 'The name of a field in the target type that contains the id. Only needed if batchMode is true and the field may return the objects out of order',
                 type: GraphQLString
+            },
+            linkFieldName: {
+                description: 'If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.',
+                type: GraphQLString
             }
         }
     });
