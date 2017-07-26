@@ -69,10 +69,13 @@ export function filterValues<TValue>(obj: { [key: string]: TValue }, predicate: 
  */
 export function filterValuesDeep(obj: any, predicate: (value: any) => boolean): any {
     if (obj instanceof Array) {
-        return obj.filter(predicate);
+        return obj
+            .filter(predicate)
+            .map(val => filterValuesDeep(val, predicate));
     }
     if (typeof obj === 'object' && obj !== null) {
-        return filterValues(obj, predicate);
+        const filtered = filterValues(obj, predicate);
+        return mapValues(filtered, val => filterValuesDeep(val, predicate));
     }
     return obj;
 }
