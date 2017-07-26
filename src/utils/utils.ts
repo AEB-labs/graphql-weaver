@@ -53,6 +53,30 @@ export function mapValues<TIn, TOut>(obj: { [key: string]: TIn }, fn: (value: TI
     return result;
 }
 
+export function filterValues<TValue>(obj: { [key: string]: TValue }, predicate: (value: TValue, key: string) => boolean): { [key: string]: TValue } {
+    const result: { [key: string]: TValue } = {};
+    for (const key in obj) {
+        const value = obj[key];
+        if (predicate(value, key)) {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+/**
+ * Removes object properties and array values that do not match a predicate
+ */
+export function filterValuesDeep(obj: any, predicate: (value: any) => boolean): any {
+    if (obj instanceof Array) {
+        return obj.filter(predicate);
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        return filterValues(obj, predicate);
+    }
+    return obj;
+}
+
 /**
  * Creates a new Map by changing the keys but leaving the values as-is
  * @param map a map

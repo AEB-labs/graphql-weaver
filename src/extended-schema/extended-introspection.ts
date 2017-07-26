@@ -79,7 +79,9 @@ export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
     const map = new Map<string, FieldMetadata>();
     for (const type of data.types) {
         for (const field of type.fields) {
-            map.set(type.name + '.' + field.name, field.metadata);
+            // remove the null fields of GraphQL because fields in FieldMetadata are marked as optional and not with |null.
+            const fieldMetadata: FieldMetadata = filterValuesDeep(field.metadata, val => val != undefined);
+            map.set(type.name + '.' + field.name, fieldMetadata);
         }
     }
     return new SchemaMetadata({fieldMetadata: map});
