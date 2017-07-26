@@ -17,4 +17,4 @@ deploy-npm:
     - npm publish
   only:
     - master
-  allow_failure: true # fails when version is not increased
+  when: manual
