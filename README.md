@@ -2,7 +2,28 @@
 
 A configurable GraphQL server that combines multiple GraphQL APIs in one schema
 
-## Getting started
+## How to use
+
+`npm install --save @aeb/graphql-proxy`
+
+Basic usage:
+
+```typescript
+const schema: GraphQLSchema = createProxySchema({
+    endpoints: [{
+        namespace: 'model',
+        typePrefix: 'Model',
+        url: 'http://localhost:8080/graphql' // url to a GraphQL endpoint
+    }, {
+        namespace: 'local',
+        schema: new GraphQLSchema(/* ... */) // use schema instance directly
+    }]
+})
+```
+
+For documentation and advanced use cases, refer to TypeDoc comments.
+
+## Contributing
 
 After cloning the repository, run
 
@@ -18,6 +39,12 @@ npm test
 ```
 
 To debug/run the application (or tests) in WebStorm, right-click on `graphql-proxy.js` (or `graphql-proxy-tests.js`, respectively) and choose *Debug*/*Run*.
+
+### Release workflow
+
+* For **normal development**, create a branch from master, commit and create a merge request to master. 
+* To **fix a bug in a previous release**, find the *release-* branch for the corresponding version, increase the *patch* level in `package.json` and push the changes. Once the tests pass, manually trigger the *deploy* stage in Gitlab. You can also release a *-rc.1* version before the actual release for prior testing in dependent modules.
+* To prepare a **new feature release** (currently, this means a new minor version), create a `release-0.x` branch from master. Set the version to `0.x-rc.1`, push and manually trigger the *deploy* stage in Gitlab. Test the changes in dependent modules. Once everything is ok, change the version to `0.x` and deploy again. Finally, merge the release branch into *master*. Do not delete the release branch as it is used for hotfixes.
 
 ## Architecture
 
