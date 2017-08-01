@@ -1,2 +1,2 @@
 require('ts-node/register');
-require('./start-test-server');
+require('./spec/dev/start-test-server');

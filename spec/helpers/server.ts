@@ -1,9 +1,8 @@
-import { GraphQLServer } from './server/graphql-server';
-import { createProxySchema } from './proxy-schema';
-import { loadProxyConfig } from './config/load-config';
 import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import TraceError = require('trace-error');
-import { ProxyConfig } from './config/proxy-configuration';
+import { createProxySchema } from '../../src/proxy-schema';
+import { GraphQLServer } from './server/graphql-server';
+import { ProxyConfig } from '../../src/config/proxy-configuration';
+import { loadProxyConfig } from './load-config';
 
 const defaultPort = 3200;
 

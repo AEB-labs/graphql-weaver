@@ -1,6 +1,6 @@
-import { ProxyConfig } from './proxy-configuration';
 import * as fs from 'fs-extra';
 import TraceError = require('trace-error');
+import { ProxyConfig } from '../../src/config/proxy-configuration';
 
 export async function loadProxyConfig(fileName: string): Promise<ProxyConfig> {
     await fs.ensureFile(fileName);

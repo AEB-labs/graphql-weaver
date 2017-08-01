@@ -1,7 +1,7 @@
 import { execute, parse, validate } from 'graphql';
-import {ProxyConfig} from "../../src/config/proxy-configuration";
 import {createProxySchema} from "../../src/proxy-schema";
 import { assertSuccessfulResponse } from '../../src/endpoints/client';
+import { ProxyConfig } from '../../src/config/proxy-configuration';
 
 /**
  * Create a graphql proxy for a configuration and execute a query on it.

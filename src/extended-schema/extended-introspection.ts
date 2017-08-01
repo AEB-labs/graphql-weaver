@@ -75,7 +75,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         description: 'Configuration of a link on a field. If this metadata is present, the consumer should replace the type of the field with the type of the linked field and, for the value of this field, fetch objects from the linked field according to this config',
         fields: {
             field: {
-                description: 'The field or a dot-separated list of fields starting from the endpoint\'s query type that is used to resolve the link',
+                description: 'The field or a dot-separated list of fields starting from the query type that is used to resolve the link',
                 type: new GraphQLNonNull(GraphQLString)
             },
             batchMode: {
@@ -113,7 +113,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
         description: 'Metadata on a GraphQL field',
         fields: {
             link: {
-                description: 'Specifies if this field should be resolved as a link to a different endpoint',
+                description: 'Specifies if this field should be resolved as a link to a different field',
                 type: linkType
             },
             join: {
