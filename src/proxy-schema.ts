@@ -13,7 +13,6 @@ import { assertSuccessfulResult } from './graphql/execution-result';
 const endpointFactory = new DefaultClientFactory();
 
 export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSchema> {
-
     validateProxyConfig(config);
 
     const endpoints = await Promise.all(config.endpoints.map(async config => {
@@ -29,7 +28,7 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
         return endpointInfo;
     }));
 
-    return runPipeline(endpoints).schema;
+    return runPipeline(endpoints, config.pipelineConfig).schema;
 }
 
 function validateProxyConfig(config: ProxyConfig) {

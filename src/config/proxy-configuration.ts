@@ -1,6 +1,7 @@
 import { GraphQLSchema } from 'graphql';
 import { FieldMetadata } from '../extended-schema/extended-schema';
 import { GraphQLClient } from '../graphql-client/graphql-client';
+import { PipelineConfig } from '../pipeline/pipeline-module';
 
 /**
  * The configuration for creating a proxy schema
@@ -10,6 +11,11 @@ export interface ProxyConfig {
      * A list of endpoints to include in the schema
      */
     endpoints: EndpointConfig[]
+
+    /**
+     * Custom configuration of the pipeline
+     */
+    pipelineConfig?: PipelineConfig
 }
 
 interface EndpointConfigBase {
