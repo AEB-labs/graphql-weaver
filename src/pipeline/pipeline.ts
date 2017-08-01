@@ -87,7 +87,6 @@ class Pipeline {
     }
 
     processQuery(query: Query, endpointIdentifier: string): Query {
-        query = runQueryPipeline([...this.postMergeModules], query);
         if (!this.preMergeModules.has(endpointIdentifier)) {
             throw new Error(`Endpoint ${endpointIdentifier} does not exist`);
         }
