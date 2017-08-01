@@ -9,13 +9,10 @@ import { createFieldNode } from '../graphql/language-utils';
 /**
  * Fetches SchemaMetadata over a GraphQL endpoint
  * @param {GraphQLEndpoint} endpoint the endpoint to submit queries
- * @param {GraphQLSchema} schema the schema. If not specified, fetches the schema from the endpoint
+ * @param {GraphQLSchema} schema the client schema
  * @returns {Promise<any>} the metadata
  */
-export async function fetchSchemaMetadata(endpoint: GraphQLEndpoint, schema?: GraphQLSchema) {
-    if (!schema) {
-        schema = await endpoint.getSchema();
-    }
+export async function fetchSchemaMetadata(endpoint: GraphQLEndpoint, schema: GraphQLSchema) {
     if (!supportsExtendedIntrospection(schema)) {
         return new SchemaMetadata();
     }
