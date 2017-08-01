@@ -71,15 +71,11 @@ export interface EndpointInfo {
 export interface PreMergeModuleContext {
     endpointConfig: EndpointConfig
     endpoint: GraphQLEndpoint
-    processQuery(query: Query, endpointIdentifier: string): Query;
+    processQuery(query: Query): Query;
 }
 
 export interface PostMergeModuleContext {
-    //???
     endpoints: PreMergeModuleContext[]
-    endpointFactory: EndpointFactory // TODO redundant with endpoint in EndpointInfo
-
-    processQuery(query: Query, endpointIdentifier: string): Query
 }
 
 export type PreMergeModuleFactory = (context: PreMergeModuleContext) => PipelineModule

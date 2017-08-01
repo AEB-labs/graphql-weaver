@@ -11,7 +11,7 @@ import {collectAliasesInResponsePath} from "../graphql/resolver-utils";
 
 interface Config {
     readonly endpoint: GraphQLEndpoint
-    processQuery(query: Query, endpointIdentifier: string): Query
+    processQuery(query: Query): Query
     readonly endpointConfig: EndpointConfig
 }
 
@@ -50,7 +50,7 @@ class ResolverTransformer implements SchemaTransformer {
                 const newSelectionSet = cloneSelectionChain(fieldNodes, selectionSet.selections.length ? selectionSet : undefined);
                 let query = getQueryFromParts({...parts, selectionSet: newSelectionSet});
 
-                query = this.config.processQuery(query, this.config.endpointConfig.identifier!);
+                query = this.config.processQuery(query);
 
                 const result = await this.config.endpoint.query(query.document, query.variableValues, context);
                 const propertyOnResult = aliases[aliases.length - 1];

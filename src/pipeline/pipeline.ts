@@ -1,23 +1,18 @@
 import {
-    EndpointInfo,
-    PipelineModule,
-    PostMergeModuleContext,
-    PreMergeModuleContext,
-    runQueryPipeline,
-    runSchemaPipeline
-} from "./pipeline-module";
-import {TypePrefixesModule} from "./type-prefixes";
-import {NamespaceModule} from "./namespaces";
-import {DefaultResolversModule} from "./default-resolvers";
-import {AbstractTypesModule} from "./abstract-types";
-import {LinksModule} from "./links";
-import {DocumentNode} from "graphql";
-import {ProxyResolversModule} from "./proxy-resolvers";
-import {EndpointFactory} from "../endpoints/endpoint-factory";
-import {ExtendedSchema} from "../extended-schema/extended-schema";
-import {mergeExtendedSchemas} from "../extended-schema/merge-extended-schemas";
-import {ExtendedIntrospectionModule} from "./extended-introspection";
-import {AdditionalMetadataModule} from "./additional-metadata";
+    EndpointInfo, PipelineModule, PostMergeModuleContext, PreMergeModuleContext, runQueryPipeline, runSchemaPipeline
+} from './pipeline-module';
+import { TypePrefixesModule } from './type-prefixes';
+import { NamespaceModule } from './namespaces';
+import { DefaultResolversModule } from './default-resolvers';
+import { AbstractTypesModule } from './abstract-types';
+import { LinksModule } from './links';
+import { DocumentNode } from 'graphql';
+import { ProxyResolversModule } from './proxy-resolvers';
+import { EndpointFactory } from '../endpoints/endpoint-factory';
+import { ExtendedSchema } from '../extended-schema/extended-schema';
+import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
+import { ExtendedIntrospectionModule } from './extended-introspection';
+import { AdditionalMetadataModule } from './additional-metadata';
 
 function preMergeModulesFactory(context: PreMergeModuleContext): PipelineModule[] {
     const preMergePipeline: PipelineModule[] = [
@@ -61,7 +56,7 @@ class Pipeline {
     constructor(private readonly endpoints: EndpointInfo[], private readonly endpointFactory: EndpointFactory) {
         const extendedEndpoints = endpoints.map(endpoint => ({
             ...endpoint,
-            processQuery: this.processQuery.bind(this)
+            processQuery: (query: Query) => this.processQuery(query, endpoint.endpointConfig.identifier!)
         }));
 
         this.preMergeModules = new Map(extendedEndpoints.map(context =>
@@ -70,9 +65,7 @@ class Pipeline {
                 preMergeModulesFactory(context) // map value
             ]));
         this.postMergeModules = postMergeModulesFactory({
-            endpoints: extendedEndpoints,
-            processQuery: this.processQuery.bind(this),
-            endpointFactory
+            endpoints: extendedEndpoints
         });
     }
 
