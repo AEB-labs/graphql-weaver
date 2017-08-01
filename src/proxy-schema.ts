@@ -17,7 +17,7 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
 
     const endpoints = await Promise.all(config.endpoints.map(async config => {
         const endpoint = endpointFactory.getEndpoint(config);
-        const schema = await getClientSchema(endpoint)
+        const schema = await getClientSchema(endpoint);
         const metadata = await fetchSchemaMetadata(endpoint, schema);
         const extendedSchema = new ExtendedSchema(schema, metadata);
         const endpointInfo: EndpointInfo = {
@@ -34,9 +34,12 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
 function validateProxyConfig(config: ProxyConfig) {
     // TODO push code to new file/class ProxyConfigValidator
     config.endpoints.forEach(endpointConfig => {
-        if (!endpointConfig.identifier && endpointConfig.namespace) endpointConfig.identifier = endpointConfig.namespace;
-        if (!endpointConfig.identifier && endpointConfig.url) endpointConfig.identifier = endpointConfig.url;
-        if (!endpointConfig.identifier) endpointConfig.identifier = Math.random().toString(36).slice(2)
+        if (!endpointConfig.identifier && endpointConfig.namespace) {
+            endpointConfig.identifier = endpointConfig.namespace;
+        }
+        if (!endpointConfig.identifier) {
+            endpointConfig.identifier = Math.random().toString(36).slice(2)
+        }
     })
 }
 
