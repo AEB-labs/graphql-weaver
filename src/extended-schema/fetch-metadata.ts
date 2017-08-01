@@ -5,6 +5,7 @@ import {
     buildSchemaMetadata, EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_TYPE_NAMES
 } from './extended-introspection';
 import { createFieldNode } from '../graphql/language-utils';
+import { assertSuccessfulResult } from '../graphql/execution-result';
 
 /**
  * Fetches SchemaMetadata over a GraphQL endpoint
@@ -17,7 +18,8 @@ export async function fetchSchemaMetadata(endpoint: GraphQLEndpoint, schema: Gra
         return new SchemaMetadata();
     }
     const result = await endpoint.query(getTailoredExtendedIntrospectionQuery(schema));
-    return buildSchemaMetadata(result[EXTENDED_INTROSPECTION_FIELD]);
+    const resultData = assertSuccessfulResult(result);
+    return buildSchemaMetadata(resultData[EXTENDED_INTROSPECTION_FIELD]);
 }
 
 export function supportsExtendedIntrospection(schema: GraphQLSchema) {

@@ -1,5 +1,4 @@
 import { GraphQLEndpoint } from './graphql-endpoint';
-import { assertSuccessfulResponse } from './client';
 import { DocumentNode, print } from 'graphql';
 import fetch, { HeaderInit, Request } from 'node-fetch';
 import TraceError = require('trace-error');
@@ -24,13 +23,13 @@ export class HttpEndpoint implements GraphQLEndpoint {
                 let json;
                 try {
                     json = await res.json();
+                    if (json && typeof json == 'object' && json.errors && typeof json.errors == 'object' && json.errors.length) {
+                        // only if we got what seems like a proper unsuccessful GraphQL result, use this. Otherwise, fall back to error message
+                        return json;
+                    }
                 } catch (error) {
                     // fall through
                 }
-                if (json) {
-                    assertSuccessfulResponse(json);
-                }
-                // if it was indeed a successful response, something is odd (res.ok should have been true), so report HTTP error
             }
 
             throw new Error(`GraphQL endpoint at ${this.url} reported ${res.status} ${res.statusText}`);
@@ -42,8 +41,10 @@ export class HttpEndpoint implements GraphQLEndpoint {
         } catch (error) {
             throw new TraceError(`Response from GraphQL endpoint at ${this.url} is invalid json: ${error.message}`, error);
         }
-        assertSuccessfulResponse(json);
-        return json.data;
+        if (typeof json != 'object') {
+            throw new Error(`Response from GraphQL endpoint at ${this.url} is not an object`);
+        }
+        return json;
     }
 
     protected fetch = fetch;

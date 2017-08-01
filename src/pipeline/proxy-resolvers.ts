@@ -1,13 +1,14 @@
-import {PipelineModule} from './pipeline-module';
-import {FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer} from '../graphql/schema-transformer';
-import {GraphQLResolveInfo, GraphQLSchema, GraphQLType, ResponsePath} from 'graphql';
-import {getFieldAsQuery, getFieldAsQueryParts, getQueryFromParts} from '../graphql/field-as-query';
-import {GraphQLEndpoint} from '../endpoints/graphql-endpoint';
-import {Query} from '../graphql/common';
-import {EndpointConfig} from '../config/proxy-configuration';
-import {cloneSelectionChain, collectFieldNodesInPath, createSelectionChain} from '../graphql/language-utils';
-import { isRootType, walkFields } from '../graphql/schema-utils';
-import {collectAliasesInResponsePath} from "../graphql/resolver-utils";
+import { PipelineModule } from './pipeline-module';
+import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from '../graphql/schema-transformer';
+import { GraphQLResolveInfo } from 'graphql';
+import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
+import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { Query } from '../graphql/common';
+import { EndpointConfig } from '../config/proxy-configuration';
+import { cloneSelectionChain, collectFieldNodesInPath } from '../graphql/language-utils';
+import { isRootType } from '../graphql/schema-utils';
+import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
+import { assertSuccessfulResult } from '../graphql/execution-result';
 
 interface Config {
     readonly endpoint: GraphQLEndpoint
@@ -53,11 +54,12 @@ class ResolverTransformer implements SchemaTransformer {
                 query = this.config.processQuery(query);
 
                 const result = await this.config.endpoint.query(query.document, query.variableValues, context);
+                const data = assertSuccessfulResult(result);
                 const propertyOnResult = aliases[aliases.length - 1];
-                if (typeof result != 'object' || !(propertyOnResult in result)) {
-                    throw new Error(`Expected GraphQL endpoint to return object with ${propertyOnResult} property`)
+                if (typeof data != 'object' || !(propertyOnResult in data)) {
+                    throw new Error(`Expected GraphQL endpoint to return object with property ${JSON.stringify(propertyOnResult)}`)
                 }
-                return result[propertyOnResult];
+                return data[propertyOnResult];
             }
         };
     }

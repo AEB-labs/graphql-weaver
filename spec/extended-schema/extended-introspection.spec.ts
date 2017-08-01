@@ -4,11 +4,11 @@ import {
     EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_TYPE_NAMES,
     ExtendedIntrospectionData, getExtendedIntrospectionData, getExtendedIntrospectionType
 } from '../../src/extended-schema/extended-introspection';
-import { assertSuccessfulResponse } from '../../src/endpoints/client';
 import { fetchSchemaMetadata } from '../../src/extended-schema/fetch-metadata';
 import { LocalEndpoint } from '../../src/endpoints/local-endpoint';
 import { transformSchema } from '../../src/graphql/schema-transformer';
 import { filterValues, objectFromKeys } from '../../src/utils/utils';
+import { assertSuccessfulResult } from '../../src/graphql/execution-result';
 
 describe('extended-introspection', () => {
     const fieldMetadata: FieldMetadata =  {
@@ -58,7 +58,7 @@ describe('extended-introspection', () => {
             const schema = createSimpleSchema();
             const query = `{ _extIntrospection { types { name fields { name metadata { link { argument } } } } } }`;
             const result = await graphql(schema, query);
-            assertSuccessfulResponse(result);
+            assertSuccessfulResult(result);
         });
     });
 

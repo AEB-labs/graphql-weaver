@@ -1,7 +1,7 @@
 import { createProxySchema } from '../src/proxy-schema';
 import { GraphQLEndpoint } from '../src/endpoints/graphql-endpoint';
 import { DocumentNode, execute, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { assertSuccessfulResponse } from '../src/endpoints/client';
+import { assertSuccessfulResult } from '../src/graphql/execution-result';
 
 describe('proxy-schema', () => {
     it('supports custom endpoints and passes through context', async () => {
@@ -21,9 +21,7 @@ describe('proxy-schema', () => {
             async query(document: DocumentNode, variables: { [name: string]: any }, context: any) {
                 wasExecuted = true;
                 capturedContext = context;
-                const result = await execute(schema, document, undefined, context, variables);
-                assertSuccessfulResponse(result);
-                return result.data;
+                return execute(schema, document, undefined, context, variables);
             }
         };
 

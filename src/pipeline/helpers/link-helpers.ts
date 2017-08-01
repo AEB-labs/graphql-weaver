@@ -11,7 +11,7 @@ import {
     createSelectionChain
 } from '../../graphql/language-utils';
 import { isArray } from 'util';
-import { assertSuccessfulResponse } from '../../endpoints/client';
+import { assertSuccessfulResult } from '../../graphql/execution-result';
 
 export const FILTER_ARG = 'filter';
 export const ORDER_BY_ARG = 'orderBy';
@@ -74,10 +74,10 @@ async function basicResolve(params: {
     // (because the linked fields obviously have not been truncated there)
     // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
     const result = await execute(schema, document, {} /* root */, context, variableValues);
-    assertSuccessfulResponse(result);
+    const resultData = assertSuccessfulResult(result);
 
     // unwrap
-    return targetFieldPath.reduce((data, fieldName) => data![fieldName], result.data);
+    return targetFieldPath.reduce((data, fieldName) => data![fieldName], resultData);
 }
 
 /**
