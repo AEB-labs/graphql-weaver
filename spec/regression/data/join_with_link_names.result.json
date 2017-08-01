@@ -1,0 +1,30 @@
+{
+  "staticData": {
+    "coolEuropeans": [
+      {
+        "name": "Horst",
+        "isCool": true,
+        "country": {
+          "description": "Deutschland"
+        },
+        "ctry": {
+          "continent": "Europe"
+        },
+        "nat": "DE",
+        "nationality": "DE"
+      },
+      {
+        "name": "Jacqueline",
+        "isCool": true,
+        "country": {
+          "description": "Frankreich"
+        },
+        "ctry": {
+          "continent": "Europe"
+        },
+        "nat": "FR",
+        "nationality": "FR"
+      }
+    ]
+  }
+}

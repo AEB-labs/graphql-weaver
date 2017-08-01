@@ -110,9 +110,16 @@ export class LinksModule implements PipelineModule {
 
                         let hasRightFilter = false;
 
+                        const rightObjectType = getNamedType(typeInfo.getType()) as GraphQLObjectType;
+                        const linkMetadata = this.unlinkedSchema!.getFieldMetadata(rightObjectType, metadata.join.linkField);
+                        if (!linkMetadata || !linkMetadata.link) {
+                            throw new Error(`Failed to retrieve linkMetadata for join field ${child.name.value} (looked up ${typeInfo.getType()}.${metadata.join.linkField})`);
+                        }
+                        const outputLinkFieldName = linkMetadata.link.linkFieldName || metadata.join.linkField;
+
                         // remove right filter
                         const filterArg = (child.arguments || []).filter(arg => arg.name.value == FILTER_ARG)[0];
-                        const rightFilterFieldName = metadata.join.linkField;
+                        const rightFilterFieldName = outputLinkFieldName;
                         if (filterArg) {
                             const leftFilterType = transformationInfo.leftFilterArgType;
 
@@ -197,7 +204,7 @@ export class LinksModule implements PipelineModule {
                                     throw new Error(`Invalid value for orderBy arg: ${orderBy.value.kind}`);
                             }
 
-                            hasRightOrderBy = orderByValue.startsWith(metadata.join.linkField + '_');
+                            hasRightOrderBy = orderByValue.startsWith(outputLinkFieldName + '_');
                             if (hasRightOrderBy) {
                                 child = {
                                     ...child,
@@ -317,6 +324,10 @@ class ResolvedLinkObject {
 
     constructor(obj: any) {
         Object.assign(this, obj);
+    }
+
+    toString() {
+        return '[ResolvedLinkObject]';
     }
 }
 
@@ -454,6 +465,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             linkConfig
         });
 
+        // This may differ from the name of the linkField in case the link field is renamed
+        const outLinkFieldName = linkConfig.linkFieldName || linkFieldName;
+
         // terminology: left and right in the sense of a SQL join (left is link, right is target)
 
 
@@ -467,7 +481,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             let newFilterFields: GraphQLInputFieldConfigMap;
             if (!leftFilterArg) {
                 newFilterFields = {
-                    [linkFieldName]: {
+                    [outLinkFieldName]: {
                         type: context.mapType(rightFilterArg.type)
                     }
                 };
@@ -479,7 +493,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 newFilterFields = {
                     ...leftFilterType.getFields(),
-                    [linkFieldName]: {
+                    [outLinkFieldName]: {
                         type: context.mapType(rightFilterArg.type)
                     }
                 };
@@ -527,8 +541,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 ...newEnumValues,
                 ...(rightOrderByType.getValues().map(val => ({
                     ...val,
-                    name: `${linkFieldName}_${val.name}`,
-                    value: `${linkFieldName}_${val.value}`
+                    name: `${outLinkFieldName}_${val.name}`,
+                    value: `${outLinkFieldName}_${val.value}`
                 })))
             ];
 
@@ -578,15 +592,15 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 let rightFilter: any = undefined;
                 if (FILTER_ARG in args) {
-                    rightFilter = args[FILTER_ARG][linkFieldName];
+                    rightFilter = args[FILTER_ARG][outLinkFieldName];
                 }
                 const doInnerJoin = !!rightFilter;
 
                 let rightOrderBy: string | undefined = undefined;
                 if (ORDER_BY_ARG in args) {
                     const orderByValue = args[ORDER_BY_ARG];
-                    if (orderByValue.startsWith(linkFieldName + '_')) {
-                        rightOrderBy = orderByValue.substr((linkFieldName + '_').length);
+                    if (orderByValue.startsWith(outLinkFieldName + '_')) {
+                        rightOrderBy = orderByValue.substr((outLinkFieldName + '_').length);
                     }
                 }
 
@@ -594,7 +608,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 // all the names/aliases under which the link field has been requested
                 const linkFieldNodes = expandSelections(selections)
-                    .filter(node => node.name.value == linkFieldName);
+                    .filter(node => node.name.value == outLinkFieldName);
                 const linkFieldNodesByAlias: [string | undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
                 const linkFieldAliases = linkFieldNodesByAlias.map(([alias]) => alias);
 
@@ -607,7 +621,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                                 kind: 'Field',
                                 name: {
                                     kind: 'Name',
-                                    value: linkFieldName
+                                    value: outLinkFieldName
                                 }
                             }
                         ]
