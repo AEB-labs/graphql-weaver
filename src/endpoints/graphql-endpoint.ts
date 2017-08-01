@@ -12,5 +12,5 @@ export interface GraphQLEndpoint {
      * @param variables an optional map of key-value pairs for variables
      * @param context the context value that has been originally passed to the schema executor
      */
-    query(query: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<ExecutionResult>;
+    execute(query: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<ExecutionResult>;
 }

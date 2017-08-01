@@ -53,7 +53,7 @@ class ResolverTransformer implements SchemaTransformer {
 
                 query = this.config.processQuery(query);
 
-                const result = await this.config.endpoint.query(query.document, query.variableValues, context);
+                const result = await this.config.endpoint.execute(query.document, query.variableValues, context);
                 const data = assertSuccessfulResult(result);
                 const propertyOnResult = aliases[aliases.length - 1];
                 if (typeof data != 'object' || !(propertyOnResult in data)) {

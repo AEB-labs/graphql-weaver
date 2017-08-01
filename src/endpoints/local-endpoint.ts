@@ -6,7 +6,7 @@ export class LocalEndpoint implements GraphQLEndpoint {
 
     }
 
-    async query(query: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+    async execute(query: DocumentNode, variables?: { [name: string]: any }, context?: any) {
         const validationErrors = validate(this.schema, query);
         if (validationErrors.length > 0) {
             return {errors: validationErrors};

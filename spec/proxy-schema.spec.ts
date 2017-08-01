@@ -18,7 +18,7 @@ describe('proxy-schema', () => {
         let capturedContext: any = undefined;
 
         const endpoint: GraphQLEndpoint = {
-            async query(document: DocumentNode, variables: { [name: string]: any }, context: any) {
+            async execute(document: DocumentNode, variables: { [name: string]: any }, context: any) {
                 wasExecuted = true;
                 capturedContext = context;
                 return execute(schema, document, undefined, context, variables);

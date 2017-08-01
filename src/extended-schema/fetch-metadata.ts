@@ -17,7 +17,7 @@ export async function fetchSchemaMetadata(endpoint: GraphQLEndpoint, schema: Gra
     if (!supportsExtendedIntrospection(schema)) {
         return new SchemaMetadata();
     }
-    const result = await endpoint.query(getTailoredExtendedIntrospectionQuery(schema));
+    const result = await endpoint.execute(getTailoredExtendedIntrospectionQuery(schema));
     const resultData = assertSuccessfulResult(result);
     return buildSchemaMetadata(resultData[EXTENDED_INTROSPECTION_FIELD]);
 }

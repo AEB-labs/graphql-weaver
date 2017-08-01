@@ -10,7 +10,7 @@ export class HttpEndpoint implements GraphQLEndpoint {
         this.url = config.url;
     }
 
-    async query(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+    async execute(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
         let res;
         try {
             res = await this.fetch(this.getRequest(document, variables, context));
