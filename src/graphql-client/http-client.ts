@@ -57,7 +57,7 @@ export class HttpGraphQLClient implements GraphQLClient {
         })
     }
 
-    protected getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): HeaderInit | { [index: string]: string } {
+    protected getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): { [index: string]: string } {
         return {
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json'
