@@ -2,7 +2,6 @@ import { GraphQLSchema } from 'graphql';
 import { EndpointConfig } from '../config/proxy-configuration';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
-import { EndpointFactory } from '../endpoints/endpoint-factory';
 import { Query } from '../graphql/common';
 import { ExtendedSchemaTransformer, transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
 
@@ -77,6 +76,3 @@ export interface PreMergeModuleContext {
 export interface PostMergeModuleContext {
     endpoints: PreMergeModuleContext[]
 }
-
-export type PreMergeModuleFactory = (context: PreMergeModuleContext) => PipelineModule
-export type PostMergeModuleFactory = (context: PostMergeModuleContext) => PipelineModule

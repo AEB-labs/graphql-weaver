@@ -28,7 +28,7 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
         return endpointInfo;
     }));
 
-    return runPipeline(endpoints, endpointFactory).schema;
+    return runPipeline(endpoints).schema;
 }
 
 function validateProxyConfig(config: ProxyConfig) {

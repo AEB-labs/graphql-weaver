@@ -8,7 +8,6 @@ import { AbstractTypesModule } from './abstract-types';
 import { LinksModule } from './links';
 import { DocumentNode } from 'graphql';
 import { ProxyResolversModule } from './proxy-resolvers';
-import { EndpointFactory } from '../endpoints/endpoint-factory';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
@@ -43,8 +42,8 @@ function postMergeModulesFactory(context: PostMergeModuleContext): PipelineModul
 
 type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
 
-export function runPipeline(endpoints: EndpointInfo[], endpointFactory: EndpointFactory): ExtendedSchema {
-    const pipeline = new Pipeline(endpoints, endpointFactory);
+export function runPipeline(endpoints: EndpointInfo[]): ExtendedSchema {
+    const pipeline = new Pipeline(endpoints);
     return pipeline.schema;
 }
 
@@ -53,7 +52,7 @@ class Pipeline {
     private readonly postMergeModules: PipelineModule[];
     private _schema: ExtendedSchema | undefined;
 
-    constructor(private readonly endpoints: EndpointInfo[], private readonly endpointFactory: EndpointFactory) {
+    constructor(private readonly endpoints: EndpointInfo[]) {
         const extendedEndpoints = endpoints.map(endpoint => ({
             ...endpoint,
             processQuery: (query: Query) => this.processQuery(query, endpoint.endpointConfig.identifier!)
