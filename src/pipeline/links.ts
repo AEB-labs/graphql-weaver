@@ -84,6 +84,9 @@ export class LinksModule implements PipelineModule {
                         // field metadata only exists on object types
                         return undefined;
                     }
+                    if (!typeInfo.getFieldDef()) {
+                        throw new Error(`Failed to retrieve field definition for field ${child.name.value}`);
+                    }
                     const linkInfo = this.transformationInfo!.getLinkTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
                     if (linkInfo && linkInfo.linkConfig) {
                         if (fieldStackOuter && fieldStackOuter.joinConfig && fieldStackOuter.joinConfig.linkField == child.name.value) {

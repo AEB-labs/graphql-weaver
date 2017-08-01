@@ -55,9 +55,8 @@ You'll find the list of modules in `src/pipeline/pipeline.ts`. For a description
 
 * `graphql` - general utilities for working with GraphQL schemas and queries
 * `extended-schema` - an implementation of storing and exposing metadata on fields, the concept being [discussed on GitHub](https://github.com/facebook/graphql/issues/300)
-* `endpoints` - GraphQL client library, with local and http implementations
+* `graphql-client` - GraphQL client library, with local and http implementations
 * `pipeline` - the core, being framework and modules for graphql-proxy's features
 * `config` - configuration of the server
-* `server` - GraphQL server
 * `utils` - utilities unrelated to GraphQL
 * `typings` - typings for thirdparty modules

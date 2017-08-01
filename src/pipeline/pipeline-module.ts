@@ -1,9 +1,7 @@
-import { ASTNode, DocumentNode, GraphQLSchema, TypeInfo } from 'graphql';
-import { SchemaTransformer } from '../graphql/schema-transformer';
+import { GraphQLSchema } from 'graphql';
 import { EndpointConfig } from '../config/proxy-configuration';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { GraphQLClient } from '../graphql-client/graphql-client';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
-import { EndpointFactory } from '../endpoints/endpoint-factory';
 import { Query } from '../graphql/common';
 import { ExtendedSchemaTransformer, transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
 
@@ -25,14 +23,6 @@ export interface SchemaPipelineModule {
 
 export interface QueryPipelineModule {
     /**
-     * If defined, is called on each root node of a proxied field - on all fieldNodes, the fragments and variables
-     * @deprecated use transformQuery
-     * @param node the node to process
-     * @return the new node to replace the old one
-     */
-    transformNode?(node: ASTNode): ASTNode;
-
-    /**
      * If defined, is called on a query executed by the proxy resolver
      */
     transformQuery?(node: Query): Query;
@@ -41,13 +31,6 @@ export interface QueryPipelineModule {
 export function runQueryPipelineModule(module: QueryPipelineModule, query: Query) {
     if (module.transformQuery) {
         query = module.transformQuery(query);
-    }
-
-    if (module.transformNode) {
-        query = {
-            ...query,
-            document: <DocumentNode>module.transformNode(query.document)
-        };
     }
 
     return query;
@@ -80,23 +63,39 @@ export function runSchemaPipeline(modules: SchemaPipelineModule[], schema: Exten
 
 export interface EndpointInfo {
     endpointConfig: EndpointConfig
-    endpoint: GraphQLEndpoint
+    client: GraphQLClient
     schema: ExtendedSchema
 }
 
 export interface PreMergeModuleContext {
+    /**
+     * The user-provided configuration of the endpoint being processed
+     */
     endpointConfig: EndpointConfig
-    endpoint: GraphQLEndpoint
-    processQuery(query: Query, endpointIdentifier: string): Query;
+
+    /**
+     * The client to be used to execute queries against the original endpoint
+     */
+    client: GraphQLClient
+
+    /**
+     * Prepares a query written against the final schema to be run on the original schema
+     */
+    processQuery(query: Query): Query;
 }
 
 export interface PostMergeModuleContext {
-    //???
     endpoints: PreMergeModuleContext[]
-    endpointFactory: EndpointFactory // TODO redundant with endpoint in EndpointInfo
-
-    processQuery(query: Query, endpointIdentifier: string): Query
 }
 
-export type PreMergeModuleFactory = (context: PreMergeModuleContext) => PipelineModule
-export type PostMergeModuleFactory = (context: PostMergeModuleContext) => PipelineModule
+export interface PipelineConfig {
+    /**
+     * Creates additional pipeline modules for an endpoint to be executed before the merge
+     */
+    createPreMergeModules?(context: PreMergeModuleContext): PipelineModule[];
+
+    /**
+     * Creates additional pipeline modules to be executed after the merge
+     */
+    createPostMergeModules?(context: PostMergeModuleContext): PipelineModule[];
+}

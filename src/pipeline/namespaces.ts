@@ -1,8 +1,9 @@
 import { PipelineModule } from './pipeline-module';
 import {
-    ASTNode, FieldNode, FragmentDefinitionNode, GraphQLObjectType, GraphQLSchema, SelectionSetNode, visit
+    DocumentNode, FragmentDefinitionNode, GraphQLObjectType, GraphQLSchema, SelectionSetNode, visit
 } from 'graphql';
 import { maybeDo } from '../utils/utils';
+import { Query } from '../graphql/common';
 
 /**
  * Wraps the root types into a field of a new type
@@ -27,13 +28,13 @@ export class NamespaceModule implements PipelineModule {
         return newSchema;
     }
 
-    transformNode(node: ASTNode): ASTNode {
+    transformQuery(query: Query): Query {
         if (!this.schema) {
             throw new Error(`Schema not yet built`);
         }
 
         // unwrap namespaced queries
-        return visit(node, {
+        const document: DocumentNode = visit(query.document, {
             FragmentDefinition: (fragment: FragmentDefinitionNode) => {
                 // only unwrap fragments on root type
                 if (!isRootTypeName(fragment.typeCondition.name.value, this.schema!)) {
@@ -56,6 +57,10 @@ export class NamespaceModule implements PipelineModule {
                 return node.selectionSet;
             }
         });
+        return {
+            ...query,
+            document
+        };
     }
 
     private wrap(type: GraphQLObjectType, operation: string): GraphQLObjectType {

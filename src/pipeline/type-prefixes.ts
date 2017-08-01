@@ -1,7 +1,7 @@
 import { PipelineModule } from './pipeline-module';
-import { ASTNode } from 'graphql';
 import { renameTypes } from '../graphql/language-utils';
 import { TypeRenamingTransformer } from '../graphql/type-renamer';
+import { Query } from '../graphql/common';
 
 /**
  * Adds endpoint-specific prefixes to all type names to avoid name collisions
@@ -15,8 +15,11 @@ export class TypePrefixesModule implements PipelineModule {
         return new TypeRenamingTransformer(name => this.prefix + name);
     }
 
-    transformNode(node: ASTNode): ASTNode {
-        return renameTypes(node, name => this.removeTypePrefix(name));
+    transformQuery(query: Query): Query {
+        return{
+            ...query,
+            document: renameTypes(query.document, name => this.removeTypePrefix(name))
+        };
     }
 
     private removeTypePrefix(name: string) {

@@ -4,11 +4,11 @@ import {
     EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_TYPE_NAMES,
     ExtendedIntrospectionData, getExtendedIntrospectionData, getExtendedIntrospectionType
 } from '../../src/extended-schema/extended-introspection';
-import { assertSuccessfulResponse } from '../../src/endpoints/client';
 import { fetchSchemaMetadata } from '../../src/extended-schema/fetch-metadata';
-import { LocalEndpoint } from '../../src/endpoints/local-endpoint';
+import { LocalGraphQLClient } from '../../src/graphql-client/local-client';
 import { transformSchema } from '../../src/graphql/schema-transformer';
 import { filterValues, objectFromKeys } from '../../src/utils/utils';
+import { assertSuccessfulResult } from '../../src/graphql/execution-result';
 
 describe('extended-introspection', () => {
     const fieldMetadata: FieldMetadata =  {
@@ -58,14 +58,14 @@ describe('extended-introspection', () => {
             const schema = createSimpleSchema();
             const query = `{ _extIntrospection { types { name fields { name metadata { link { argument } } } } } }`;
             const result = await graphql(schema, query);
-            assertSuccessfulResponse(result);
+            assertSuccessfulResult(result);
         });
     });
 
     describe('fetchSchemaMetadata', () => {
         it('is compatible with ExtendedIntrospectionType', async () => {
             const schema = createSimpleSchema();
-            const metadata = await fetchSchemaMetadata(new LocalEndpoint(schema), schema);
+            const metadata = await fetchSchemaMetadata(new LocalGraphQLClient(schema), schema);
             expect(metadata.fieldMetadata.has('Query.field')).toBeTruthy('Query.field missing');
             expect(metadata.fieldMetadata.get('Query.field')).toEqual(fieldMetadata);
         });
@@ -82,7 +82,7 @@ describe('extended-introspection', () => {
             const linkConfigType = reducedSchema.getTypeMap()[EXTENDED_INTROSPECTION_TYPE_NAMES.fieldLink] as GraphQLObjectType;
             expect(Object.keys(linkConfigType.getFields())).toEqual(['field', 'batchMode', 'argument', 'linkFieldName']);
 
-            const metadata = await fetchSchemaMetadata(new LocalEndpoint(reducedSchema), reducedSchema);
+            const metadata = await fetchSchemaMetadata(new LocalGraphQLClient(reducedSchema), reducedSchema);
             expect(metadata.fieldMetadata.has('Query.field')).toBeTruthy('Query.field missing');
             expect(metadata.fieldMetadata.get('Query.field')!.link!.field).toEqual(fieldMetadata.link!.field);
             expect(metadata.fieldMetadata.get('Query.field')!.link!.keyField).toBeUndefined('keyField should be undefined');
