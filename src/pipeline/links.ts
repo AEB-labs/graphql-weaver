@@ -1,6 +1,7 @@
 import {
     DocumentNode,
-    FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldConfigArgumentMap,
+    FieldNode, getNamedType, getNullableType, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
+    GraphQLFieldConfigArgumentMap,
     GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
     GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
     ValueNode, visit, visitWithTypeInfo
@@ -15,7 +16,8 @@ import { FieldsTransformationContext, FieldTransformationContext } from '../grap
 import { arrayToObject, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
-    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, ORDER_BY_ARG, parseLinkTargetPath
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, getLinkArgumentType, ORDER_BY_ARG,
+    parseLinkTargetPath
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
@@ -93,6 +95,7 @@ export class LinksModule implements PipelineModule {
                             fieldStackOuter.isLinkFieldSelectedYet = true;
                         }
 
+                        // remove selection from the field node and map it to the source field
                         child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child));
                     }
 
@@ -354,14 +357,14 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
 
         const isListMode = isListType(config.type);
-
-        // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
         const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
-        const sourceRawType = getNamedType(context.mapType(config.type));
-        if (!(sourceRawType instanceof GraphQLScalarType)) {
-            throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
-        }
-        const keyType: GraphQLScalarType = sourceRawType;
+        const keyType = getKeyType({
+            linkFieldName: config.name,
+            linkFieldType: context.mapType(config.type),
+            targetField,
+            parentObjectType: context.mapType(context.oldOuterType),
+            linkConfig
+        });
 
         const dataLoaders = new ArrayKeyWeakMap<FieldNode | any, DataLoader<any, any>>();
 
@@ -443,11 +446,13 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const leftObjectType = getNamedType(context.oldField.type);
         const rightObjectType = getNamedType(targetField.type);
 
-
-        const keyType = getNamedType(context.mapType(linkField.type));
-        if (!(keyType instanceof GraphQLScalarType)) {
-            throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
-        }
+        const keyType = getKeyType({
+            linkFieldName,
+            linkFieldType: linkField.type,
+            targetField,
+            parentObjectType: leftObjectType,
+            linkConfig
+        });
 
         // terminology: left and right in the sense of a SQL join (left is link, right is target)
 
