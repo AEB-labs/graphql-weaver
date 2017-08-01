@@ -1,0 +1,25 @@
+{
+  "allPeople": [
+    {
+      "name": "Horst",
+      "nationality": "DE",
+      "country": {
+        "description": "Deutschland"
+      }
+    },
+    {
+      "name": "Helga",
+      "nationality": "DE",
+      "country": {
+        "description": "Deutschland"
+      }
+    },
+    {
+      "name": "Jacqueline",
+      "nationality": "FR",
+      "country": {
+        "description": "Frankreich"
+      }
+    }
+  ]
+}

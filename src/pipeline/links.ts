@@ -8,10 +8,11 @@ import {
 import { PipelineModule } from './pipeline-module';
 import { ExtendedSchema, JoinConfig, LinkConfig } from '../extended-schema/extended-schema';
 import {
-    ExtendedSchemaTransformer, GraphQLNamedFieldConfigWithMetadata, transformExtendedSchema
+    ExtendedSchemaTransformer, GraphQLFieldConfigMapWithMetadata, GraphQLNamedFieldConfigWithMetadata,
+    transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
-import { FieldTransformationContext } from '../graphql/schema-transformer';
-import { arrayToObject, flatMap, groupBy, throwError } from '../utils/utils';
+import { FieldsTransformationContext, FieldTransformationContext } from '../graphql/schema-transformer';
+import { arrayToObject, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
     fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, ORDER_BY_ARG, parseLinkTargetPath
@@ -83,19 +84,16 @@ export class LinksModule implements PipelineModule {
                         // field metadata only exists on object types
                         return undefined;
                     }
-                    const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
-
-                    if (metadata && metadata.link) {
+                    const linkInfo = this.transformationInfo!.getLinkTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
+                    if (linkInfo && linkInfo.linkConfig) {
                         if (fieldStackOuter && fieldStackOuter.joinConfig && fieldStackOuter.joinConfig.linkField == child.name.value) {
                             fieldStackOuter.isLinkFieldSelectedYet = true;
                         }
 
-                        child = {
-                            ...child,
-                            selectionSet: undefined
-                        };
+                        child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child));
                     }
 
+                    const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
                     if (metadata && metadata.join) {
                         fieldStackTop.joinConfig = metadata.join;
                         fieldStackTop.isLinkFieldSelectedYet = false;
@@ -301,6 +299,8 @@ interface JoinTransformationInfo {
 }
 
 interface LinkTransformationInfo {
+    readonly linkConfig: LinkConfig;
+    readonly sourceFieldName: string;
 }
 
 /**
@@ -322,9 +322,6 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     }
 
     transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
-        if (config.metadata && config.metadata.link) {
-            config = this.transformLinkField(config, context, config.metadata.link);
-        }
         if (config.metadata && config.metadata.join) {
             config = this.transformJoinField(config, context, config.metadata.join);
         }
@@ -332,7 +329,23 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         return config;
     }
 
-    transformLinkField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, linkConfig: LinkConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
+    transformFields(fields: GraphQLFieldConfigMapWithMetadata, context: FieldsTransformationContext): GraphQLFieldConfigMapWithMetadata {
+        const newFields: GraphQLFieldConfigMapWithMetadata = {};
+        for (const [name, fieldConfig] of objectEntries(fields)) {
+            if (fieldConfig.metadata && fieldConfig.metadata.link) {
+                const {name: newName, ...newConfig} = this.transformLinkField({...fieldConfig, name}, context, fieldConfig.metadata.link);
+                if (newName != name) {
+                    newFields[name] = fieldConfig; // preserve old field
+                }
+                newFields[newName] = newConfig;
+            } else {
+                newFields[name] = fieldConfig;
+            }
+        }
+        return newFields;
+    }
+
+    private transformLinkField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldsTransformationContext, linkConfig: LinkConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const unlinkedSchema = this.schema.schema;
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
@@ -369,8 +382,16 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             return dataLoader.load(key);
         }
 
+        const linkFieldName = linkConfig.linkFieldName || config.name;
+
+        this.transformationInfo.setLinkTransformationInfo(context.newOuterType.name, linkFieldName, {
+            linkConfig,
+            sourceFieldName: config.name
+        });
+
         return {
             ...config,
+            name: linkFieldName,
             resolve: async (source, vars, context, info) => {
                 const fieldNode = info.fieldNodes[0];
                 const originalValue = config.resolve ? await config.resolve(source, vars, context, info) : source[fieldNode.name.value];
@@ -391,7 +412,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         };
     }
 
-    transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
+    private transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const linkFieldName = joinConfig.linkField;
         const leftType = getNamedType(context.oldField.type);
         if (!(leftType instanceof GraphQLObjectType) && !(leftType instanceof GraphQLInterfaceType)) {

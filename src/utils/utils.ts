@@ -1,9 +1,9 @@
-export function objectValues(obj: { [name: string]: any }): any[] {
+export function objectValues<T>(obj: { [name: string]: T }): T[] {
     return Object.keys(obj).map(i => obj[i]);
 }
 
-export function objectEntries(obj: { [name: string]: any }): any[] {
-    return Object.keys(obj).map(k => [k, obj[k]]);
+export function objectEntries<T>(obj: { [name: string]: T }): [string, T][] {
+    return Object.keys(obj).map((k): [string,T] => [k, obj[k]]);
 }
 
 export function capitalize(string: string) {
@@ -51,6 +51,33 @@ export function mapValues<TIn, TOut>(obj: { [key: string]: TIn }, fn: (value: TI
         result[key] = fn(obj[key], key);
     }
     return result;
+}
+
+export function filterValues<TValue>(obj: { [key: string]: TValue }, predicate: (value: TValue, key: string) => boolean): { [key: string]: TValue } {
+    const result: { [key: string]: TValue } = {};
+    for (const key in obj) {
+        const value = obj[key];
+        if (predicate(value, key)) {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+/**
+ * Removes object properties and array values that do not match a predicate
+ */
+export function filterValuesDeep(obj: any, predicate: (value: any) => boolean): any {
+    if (obj instanceof Array) {
+        return obj
+            .filter(predicate)
+            .map(val => filterValuesDeep(val, predicate));
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        const filtered = filterValues(obj, predicate);
+        return mapValues(filtered, val => filterValuesDeep(val, predicate));
+    }
+    return obj;
 }
 
 /**

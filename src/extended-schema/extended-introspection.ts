@@ -1,7 +1,16 @@
-import { GraphQLBoolean, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
+import { GraphQLBoolean, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLString } from 'graphql';
+import { FieldMetadata, SchemaMetadata } from './extended-schema';
+import { filterValuesDeep } from '../utils/utils';
 
 export const EXTENDED_INTROSPECTION_FIELD = '_extIntrospection';
+export const EXTENDED_INTROSPECTION_TYPE_NAMES = {
+    introspection: '_ExtendedIntrospection',
+    type: '_ExtendedType',
+    field: '_ExtendedField',
+    fieldMetadata: '_FieldMetadata',
+    fieldLink: '_FieldLink',
+    fieldJoin: '_FieldJoin'
+};
 
 export interface ExtendedIntrospectionData {
     types: {
@@ -11,33 +20,6 @@ export interface ExtendedIntrospectionData {
             metadata: FieldMetadata
         }[]
     }[]
-}
-
-export const EXTENDED_INTROSPECTION_QUERY = `{
-    ${EXTENDED_INTROSPECTION_FIELD} {
-        types { 
-            name 
-            fields { 
-                name
-                metadata {
-                    link { 
-                        endpoint 
-                        field
-                        argument
-                        batchMode
-                        keyField
-                    }
-                    join {
-                        linkField
-                    }
-                }
-            }
-        }
-    }
-}`;
-
-export function supportsExtendedIntrospection(schema: GraphQLSchema) {
-    return EXTENDED_INTROSPECTION_FIELD in schema.getQueryType().getFields();
 }
 
 let extendedIntrospectionType: GraphQLObjectType | undefined;
@@ -79,7 +61,9 @@ export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
     const map = new Map<string, FieldMetadata>();
     for (const type of data.types) {
         for (const field of type.fields) {
-            map.set(type.name + '.' + field.name, field.metadata);
+            // remove the null fields of GraphQL because fields in FieldMetadata are marked as optional and not with |null.
+            const fieldMetadata: FieldMetadata = filterValuesDeep(field.metadata, val => val != undefined);
+            map.set(type.name + '.' + field.name, fieldMetadata);
         }
     }
     return new SchemaMetadata({fieldMetadata: map});
@@ -87,13 +71,9 @@ export function buildSchemaMetadata(data: ExtendedIntrospectionData) {
 
 function createExtendedIntrospectionType(): GraphQLObjectType {
     const linkType = new GraphQLObjectType({
-        name: '_FieldLink',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.fieldLink,
         description: 'Configuration of a link on a field. If this metadata is present, the consumer should replace the type of the field with the type of the linked field and, for the value of this field, fetch objects from the linked field according to this config',
         fields: {
-            endpoint: {
-                description: 'The name of the endpoint this link points to',
-                type: new GraphQLNonNull(GraphQLString)
-            },
             field: {
                 description: 'The field or a dot-separated list of fields starting from the endpoint\'s query type that is used to resolve the link',
                 type: new GraphQLNonNull(GraphQLString)
@@ -109,12 +89,16 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
             keyField: {
                 description: 'The name of a field in the target type that contains the id. Only needed if batchMode is true and the field may return the objects out of order',
                 type: GraphQLString
+            },
+            linkFieldName: {
+                description: 'If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.',
+                type: GraphQLString
             }
         }
     });
 
     const joinType = new GraphQLObjectType({
-        name: '_FieldJoin',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.fieldJoin,
         description: 'Configuration on how to join filters, ordering and limiting of a linked child field into this field',
         fields: {
             linkField: {
@@ -125,7 +109,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
     });
 
     const fieldMetadataType = new GraphQLObjectType({
-        name: '_FieldMetadata',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.fieldMetadata,
         description: 'Metadata on a GraphQL field',
         fields: {
             link: {
@@ -140,7 +124,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
     });
 
     const fieldType = new GraphQLObjectType({
-        name: '_ExtendedField',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.field,
         description: 'Extension of the field introspection type',
         fields: {
             name: {
@@ -156,7 +140,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
     });
 
     const typeType = new GraphQLObjectType({
-        name: '_ExtendedType',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.type,
         description: 'Extension of the type introspection type',
         fields: {
             name: {
@@ -172,7 +156,7 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
     });
 
     return new GraphQLObjectType({
-        name: '_ExtendedIntrospection',
+        name: EXTENDED_INTROSPECTION_TYPE_NAMES.introspection,
         description: 'Offers non-standard type information',
         fields: {
             types: {
