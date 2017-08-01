@@ -1,6 +1,6 @@
 import { GraphQLSchema } from 'graphql';
 import { FieldMetadata } from '../extended-schema/extended-schema';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { GraphQLClient } from '../graphql-client/graphql-client';
 
 /**
  * The configuration for creating a proxy schema
@@ -37,9 +37,9 @@ interface EndpointConfigBase {
 
 export interface CustomEndpointConfig extends EndpointConfigBase {
     /**
-     * A GraphQLEndpoint implementation that is used to execute GraphQL queries
+     * A GraphQLClient implementation that is used to execute GraphQL queries
      */
-    endpoint: GraphQLEndpoint
+    client: GraphQLClient
 }
 
 export interface HttpEndpointConfig extends EndpointConfigBase {

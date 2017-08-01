@@ -1,9 +1,9 @@
-import { GraphQLEndpoint } from './graphql-endpoint';
+import { GraphQLClient } from './graphql-client';
 import { DocumentNode, print } from 'graphql';
 import fetch, { HeaderInit, Request } from 'node-fetch';
 import TraceError = require('trace-error');
 
-export class HttpEndpoint implements GraphQLEndpoint {
+export class HttpGraphQLClient implements GraphQLClient {
     public readonly url: string;
 
     constructor(config: { url: string }) {

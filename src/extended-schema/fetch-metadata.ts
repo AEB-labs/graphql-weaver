@@ -1,5 +1,5 @@
 import { DocumentNode, FieldNode, GraphQLObjectType, GraphQLSchema } from 'graphql';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { GraphQLClient } from '../graphql-client/graphql-client';
 import { LinkConfig, SchemaMetadata } from './extended-schema';
 import {
     buildSchemaMetadata, EXTENDED_INTROSPECTION_FIELD, EXTENDED_INTROSPECTION_TYPE_NAMES
@@ -9,11 +9,11 @@ import { assertSuccessfulResult } from '../graphql/execution-result';
 
 /**
  * Fetches SchemaMetadata over a GraphQL endpoint
- * @param {GraphQLEndpoint} endpoint the endpoint to submit queries
+ * @param {GraphQLClient} endpoint the endpoint to submit queries
  * @param {GraphQLSchema} schema the client schema
  * @returns {Promise<any>} the metadata
  */
-export async function fetchSchemaMetadata(endpoint: GraphQLEndpoint, schema: GraphQLSchema) {
+export async function fetchSchemaMetadata(endpoint: GraphQLClient, schema: GraphQLSchema) {
     if (!supportsExtendedIntrospection(schema)) {
         return new SchemaMetadata();
     }

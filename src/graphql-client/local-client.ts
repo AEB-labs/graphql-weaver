@@ -1,7 +1,7 @@
-import { GraphQLEndpoint } from './graphql-endpoint';
+import { GraphQLClient } from './graphql-client';
 import { DocumentNode, execute, GraphQLSchema, validate } from 'graphql';
 
-export class LocalEndpoint implements GraphQLEndpoint {
+export class LocalGraphQLClient implements GraphQLClient {
     constructor(public readonly schema: GraphQLSchema) {
 
     }

@@ -2,7 +2,7 @@ import { PipelineModule } from './pipeline-module';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from '../graphql/schema-transformer';
 import { GraphQLResolveInfo } from 'graphql';
 import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { GraphQLClient } from '../graphql-client/graphql-client';
 import { Query } from '../graphql/common';
 import { EndpointConfig } from '../config/proxy-configuration';
 import { cloneSelectionChain, collectFieldNodesInPath } from '../graphql/language-utils';
@@ -11,7 +11,7 @@ import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
 
 interface Config {
-    readonly endpoint: GraphQLEndpoint
+    readonly client: GraphQLClient
     processQuery(query: Query): Query
     readonly endpointConfig: EndpointConfig
 }
@@ -53,7 +53,7 @@ class ResolverTransformer implements SchemaTransformer {
 
                 query = this.config.processQuery(query);
 
-                const result = await this.config.endpoint.execute(query.document, query.variableValues, context);
+                const result = await this.config.client.execute(query.document, query.variableValues, context);
                 const data = assertSuccessfulResult(result);
                 const propertyOnResult = aliases[aliases.length - 1];
                 if (typeof data != 'object' || !(propertyOnResult in data)) {

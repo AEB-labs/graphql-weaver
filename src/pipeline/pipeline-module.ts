@@ -1,6 +1,6 @@
 import { GraphQLSchema } from 'graphql';
 import { EndpointConfig } from '../config/proxy-configuration';
-import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
+import { GraphQLClient } from '../graphql-client/graphql-client';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { Query } from '../graphql/common';
 import { ExtendedSchemaTransformer, transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
@@ -63,13 +63,24 @@ export function runSchemaPipeline(modules: SchemaPipelineModule[], schema: Exten
 
 export interface EndpointInfo {
     endpointConfig: EndpointConfig
-    endpoint: GraphQLEndpoint
+    client: GraphQLClient
     schema: ExtendedSchema
 }
 
 export interface PreMergeModuleContext {
+    /**
+     * The user-provided configuration of the endpoint being processed
+     */
     endpointConfig: EndpointConfig
-    endpoint: GraphQLEndpoint
+
+    /**
+     * The client to be used to execute queries against the original endpoint
+     */
+    client: GraphQLClient
+
+    /**
+     * Prepares a query written against the final schema to be run on the original schema
+     */
     processQuery(query: Query): Query;
 }
 

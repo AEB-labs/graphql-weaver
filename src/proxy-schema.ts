@@ -1,16 +1,16 @@
 import { ProxyConfig } from './config/proxy-configuration';
 import { buildClientSchema, GraphQLSchema, introspectionQuery, IntrospectionQuery, parse } from 'graphql';
-import { DefaultEndpointFactory } from './endpoints/endpoint-factory';
+import { DefaultClientFactory } from './graphql-client/client-factory';
 import { runPipeline } from './pipeline/pipeline';
 import { EndpointInfo } from './pipeline/pipeline-module';
 import { ExtendedSchema } from './extended-schema/extended-schema';
 import { fetchSchemaMetadata } from './extended-schema/fetch-metadata';
-import { GraphQLEndpoint } from './endpoints/graphql-endpoint';
+import { GraphQLClient } from './graphql-client/graphql-client';
 import TraceError = require('trace-error');
 import { assertSuccessfulResult } from './graphql/execution-result';
 
 // Not decided on an API to choose this, so leave non-configurable for now
-const endpointFactory = new DefaultEndpointFactory();
+const endpointFactory = new DefaultClientFactory();
 
 export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSchema> {
 
@@ -23,7 +23,7 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
         const extendedSchema = new ExtendedSchema(schema, metadata);
         const endpointInfo: EndpointInfo = {
             endpointConfig: config,
-            endpoint,
+            client: endpoint,
             schema: extendedSchema
         };
         return endpointInfo;
@@ -44,7 +44,7 @@ function validateProxyConfig(config: ProxyConfig) {
     })
 }
 
-async function getClientSchema(endpoint: GraphQLEndpoint): Promise<GraphQLSchema> {
+async function getClientSchema(endpoint: GraphQLClient): Promise<GraphQLSchema> {
     const introspectionRes = await endpoint.execute(parse(introspectionQuery));
     const introspection = assertSuccessfulResult(introspectionRes) as IntrospectionQuery;
     try {

@@ -1,7 +1,8 @@
-import {GraphQLBoolean, GraphQLInt, GraphQLNamedType, GraphQLObjectType, GraphQLSchema, GraphQLString} from "graphql";
-import { testTypes } from "../../helpers/test-types";
+import { GraphQLObjectType, GraphQLSchema } from 'graphql';
+import { testTypes } from '../../helpers/test-types';
+import { ProxyConfig } from '../../../src/config/proxy-configuration';
 
-export async function getConfig() {
+export async function getConfig(): Promise<ProxyConfig> {
     return {
         endpoints: [
             {

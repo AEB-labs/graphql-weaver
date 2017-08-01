@@ -1,5 +1,5 @@
 import { createProxySchema } from '../src/proxy-schema';
-import { GraphQLEndpoint } from '../src/endpoints/graphql-endpoint';
+import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import { DocumentNode, execute, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import { assertSuccessfulResult } from '../src/graphql/execution-result';
 
@@ -17,7 +17,7 @@ describe('proxy-schema', () => {
         let wasExecuted = false;
         let capturedContext: any = undefined;
 
-        const endpoint: GraphQLEndpoint = {
+        const client: GraphQLClient = {
             async execute(document: DocumentNode, variables: { [name: string]: any }, context: any) {
                 wasExecuted = true;
                 capturedContext = context;
@@ -28,7 +28,7 @@ describe('proxy-schema', () => {
         const proxySchema = await createProxySchema({
             endpoints: [
                 {
-                    endpoint
+                    client
                 }
             ]
         });

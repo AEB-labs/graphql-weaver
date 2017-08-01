@@ -2,10 +2,8 @@ import { DocumentNode, ExecutionResult } from 'graphql';
 
 /**
  * An object that provides access to a GraphQL endpoint
- *
- * TODO fni find better name
  */
-export interface GraphQLEndpoint {
+export interface GraphQLClient {
     /**
      * Performs a GraphQL query against the endpoint
      * @param query the query string in the GraphQL language

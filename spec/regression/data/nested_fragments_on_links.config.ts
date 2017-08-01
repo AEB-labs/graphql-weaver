@@ -1,9 +1,9 @@
 import {GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString} from 'graphql';
-import {ProxyConfig} from "../../../src/config/proxy-configuration";
 import {testTypes} from "../../helpers/test-types";
+import { ProxyConfig } from '../../../src/config/proxy-configuration';
 
-export async function getConfig() {
-    return <ProxyConfig>{
+export async function getConfig(): Promise<ProxyConfig> {
+    return {
         endpoints: [
             {
                 namespace: 'staticData',
@@ -39,7 +39,6 @@ export async function getConfig() {
                     },
                 }
             }
-        ],
-        port: 3100
+        ]
     };
 }

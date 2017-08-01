@@ -1,27 +1,27 @@
 import {
     CustomEndpointConfig, EndpointConfig, HttpEndpointConfig, LocalEndpointConfig
 } from '../config/proxy-configuration';
-import { GraphQLEndpoint } from './graphql-endpoint';
-import { HttpEndpoint } from './http-endpoint';
-import { LocalEndpoint } from './local-endpoint';
+import { GraphQLClient } from './graphql-client';
+import { HttpGraphQLClient } from './http-client';
+import { LocalGraphQLClient } from './local-client';
 
 /**
  * A factory that creates active GraphQLEndpoints from passive config objects
  */
-export interface EndpointFactory {
-    getEndpoint(config: EndpointConfig): GraphQLEndpoint;
+export interface ClientFactory {
+    getEndpoint(config: EndpointConfig): GraphQLClient;
 }
 
-export class DefaultEndpointFactory implements EndpointFactory {
+export class DefaultClientFactory implements ClientFactory {
     getEndpoint(config: EndpointConfig) {
         if (isHttpEndpointConfig(config)) {
-            return new HttpEndpoint({url: config.url});
+            return new HttpGraphQLClient({url: config.url});
         }
         if (isLocalEndpointConfig(config)) {
-            return new LocalEndpoint(config.schema);
+            return new LocalGraphQLClient(config.schema);
         }
         if (isCustomEndpointConfig(config)) {
-            return config.endpoint;
+            return config.client;
         }
         throw new Error(`Unsupported endpoint config`);
     }
@@ -36,5 +36,5 @@ function isHttpEndpointConfig(config: EndpointConfig): config is HttpEndpointCon
 }
 
 function isCustomEndpointConfig(config: EndpointConfig): config is CustomEndpointConfig{
-    return 'endpoint' in config;
+    return 'client' in config;
 }
