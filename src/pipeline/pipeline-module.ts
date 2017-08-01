@@ -1,5 +1,4 @@
-import { ASTNode, DocumentNode, GraphQLSchema, TypeInfo } from 'graphql';
-import { SchemaTransformer } from '../graphql/schema-transformer';
+import { GraphQLSchema } from 'graphql';
 import { EndpointConfig } from '../config/proxy-configuration';
 import { GraphQLEndpoint } from '../endpoints/graphql-endpoint';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
@@ -25,14 +24,6 @@ export interface SchemaPipelineModule {
 
 export interface QueryPipelineModule {
     /**
-     * If defined, is called on each root node of a proxied field - on all fieldNodes, the fragments and variables
-     * @deprecated use transformQuery
-     * @param node the node to process
-     * @return the new node to replace the old one
-     */
-    transformNode?(node: ASTNode): ASTNode;
-
-    /**
      * If defined, is called on a query executed by the proxy resolver
      */
     transformQuery?(node: Query): Query;
@@ -41,13 +32,6 @@ export interface QueryPipelineModule {
 export function runQueryPipelineModule(module: QueryPipelineModule, query: Query) {
     if (module.transformQuery) {
         query = module.transformQuery(query);
-    }
-
-    if (module.transformNode) {
-        query = {
-            ...query,
-            document: <DocumentNode>module.transformNode(query.document)
-        };
     }
 
     return query;

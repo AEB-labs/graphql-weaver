@@ -1,6 +1,6 @@
 import { PipelineModule } from './pipeline-module';
 import {
-    ASTNode,
+    ASTNode, DocumentNode,
     FieldNode, getNamedType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLSchema,
     GraphQLTypeResolver, GraphQLUnionTypeConfig, isAbstractType, SelectionSetNode, TypeInfo, visit, visitWithTypeInfo
 } from 'graphql';
@@ -20,14 +20,14 @@ export class AbstractTypesModule implements PipelineModule {
         return newSchema;
     }
 
-    transformNode(document: ASTNode) {
+    transformQuery(query: Query) {
         const typeInfo = new TypeInfo(this.schema!);
 
         // To determine the concrete type of an abstract type, we need to fetch the __typename field.
         // This is necessary even if it was not originally requested, e.g. for fragment support.
         // In addition, it seems graphqljs calls resolveType() even if none of these conditions are met, just to complete values properly
         // If __typename was not requested, graphql will drop it (more precisely, it will just not select it for the result)
-        return visit(document, visitWithTypeInfo(typeInfo, {
+        const document: DocumentNode = visit(query.document, visitWithTypeInfo(typeInfo, {
             SelectionSet(node: SelectionSetNode) {
                 const type = typeInfo.getType();
                 if (!type) {
@@ -66,6 +66,11 @@ export class AbstractTypesModule implements PipelineModule {
                 };
             }
         }));
+
+        return {
+            ...query,
+            document
+        };
     }
 }
 
