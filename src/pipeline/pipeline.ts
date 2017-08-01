@@ -24,15 +24,15 @@ function createPreMergeModules(context: PreMergeModuleContext, customConfig?: Pi
         new AdditionalMetadataModule(context.endpointConfig)
     ];
 
+    if (customConfig && customConfig.createPreMergeModules) {
+        preMergePipeline.push(...customConfig.createPreMergeModules(context));
+    }
+
     if (context.endpointConfig.typePrefix) {
         preMergePipeline.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
     }
     if (context.endpointConfig.namespace) {
         preMergePipeline.push(new NamespaceModule(context.endpointConfig.namespace))
-    }
-
-    if (customConfig && customConfig.createPreMergeModules) {
-        preMergePipeline.push(...customConfig.createPreMergeModules(context));
     }
 
     return preMergePipeline;

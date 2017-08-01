@@ -47,7 +47,7 @@ export interface SchemaTransformationContext {
      * Creates a new GraphQLType for a given type and passes it through custom transformer functions. The regular
      * transformer functions passed to transformSchema() are ignored.
      */
-    copyType<T extends GraphQLType>(type: GraphQLType, transformer: SchemaTransformer): T;
+    copyType<T extends GraphQLType>(type: T, transformer: SchemaTransformer): T;
 
     readonly oldSchema: GraphQLSchema;
 }

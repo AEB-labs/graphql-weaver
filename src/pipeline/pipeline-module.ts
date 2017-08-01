@@ -90,7 +90,7 @@ export interface PostMergeModuleContext {
 
 export interface PipelineConfig {
     /**
-     * Creates additional pipeline modules for an endpoint to be executed before the merge
+     * Creates additional pipeline modules for an endpoint to be executed before the merge and before namespace/prefix
      */
     createPreMergeModules?(context: PreMergeModuleContext): PipelineModule[];
 

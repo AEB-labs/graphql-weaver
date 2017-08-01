@@ -31,7 +31,7 @@ describe('schema-transformer', () => {
                 if (context.oldOuterType.name == 'Query') {
                     const field1 = config['field1'];
 
-                    const type2: GraphQLObjectType = context.copyType(field1.type, {
+                    const type2 = context.copyType(field1.type, {
                         transformObjectType(typeConfig: GraphQLObjectTypeConfig<any, any>) {
                             return {
                                 ...typeConfig,
