@@ -90,12 +90,18 @@ export interface PostMergeModuleContext {
 
 export interface PipelineConfig {
     /**
-     * Creates additional pipeline modules for an endpoint to be executed before the merge
+     * Allows to alter the list of pipeline modules executed before the merge.
+     * @param modules the original list of modules
+     * @param context the pipeline context for the endpoint this pipeline is created for
+     * @return the transformed list of pipeline modules
      */
-    createPreMergeModules?(context: PreMergeModuleContext): PipelineModule[];
+    transformPreMergePipeline?(modules: PipelineModule[], context: PreMergeModuleContext): PipelineModule[];
 
     /**
-     * Creates additional pipeline modules to be executed after the merge
+     * Allows to alter the list of pipeline modules executed after the merge
+     * @param modules the original lits of modules
+     * @param context the pipeline context
+     * @return the transformed list of pipeline modules
      */
-    createPostMergeModules?(context: PostMergeModuleContext): PipelineModule[];
+    transformPostMergePipeline?(modules: PipelineModule[], context: PostMergeModuleContext): PipelineModule[];
 }

@@ -1,6 +1,12 @@
 import {
-    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, GraphQLField, GraphQLInputType, GraphQLList,
-    GraphQLNonNull, GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode
+    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, getNullableType,
+    GraphQLCompositeType,
+    GraphQLField,
+    GraphQLInputObjectType,
+    GraphQLInputType, GraphQLList, GraphQLNamedType,
+    GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLSchema, OperationDefinitionNode,
+    SelectionSetNode,
+    VariableDefinitionNode
 } from 'graphql';
 import { getNonNullType, walkFields } from '../../graphql/schema-utils';
 import { LinkConfig } from '../../extended-schema/extended-schema';
@@ -342,4 +348,37 @@ export async function fetchJoinedObjects(params: {
         objectsByID,
         keyFieldAlias
     };
+}
+
+export function getLinkArgumentType(linkConfig: LinkConfig, targetField: GraphQLField<any, any>): GraphQLInputType {
+    const [filterArgumentName, ...keyFieldPath] = linkConfig.argument.split('.');
+    const arg = targetField.args.filter(arg => arg.name == filterArgumentName)[0];
+    if (!arg) {
+        throw new Error(`Field ${linkConfig.field} does not have an argument ${filterArgumentName}, which is defined on a @link config`);
+    }
+    const type = arg.type;
+    return keyFieldPath.reduce((type, fieldName) => {
+        if (!(type instanceof GraphQLInputObjectType) || !(fieldName in type.getFields())) {
+            throw new Error(`${type} does not have a field ${fieldName} (encountered in argument path ${JSON.stringify(filterArgumentName)} of a @link config`);
+        }
+        return type.getFields()[fieldName].type
+    }, type);
+}
+
+export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: GraphQLOutputType, linkFieldName: string, parentObjectType: GraphQLNamedType, targetField: GraphQLField<any, any>}) {
+    const linkKeyType = getNamedType(config.linkFieldType);
+    const argumentType = getNamedType(getLinkArgumentType(config.linkConfig, config.targetField));
+    if (!(linkKeyType instanceof GraphQLScalarType)) {
+        throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
+    }
+    if (!(argumentType instanceof GraphQLScalarType)) {
+        throw new Error(`Type of argument field ${config.linkConfig.field}:${config.linkConfig.argument} must be scalar type or list/non-null-type of a scalar type, but is ${argumentType}`);
+    }
+    if (argumentType != linkKeyType) {
+        console.warn(`WARN [graphql-proxy]: Key field type mismatch in @link on ${config.parentObjectType.name}.${config.linkFieldName} (has type ${linkKeyType}, but type of argument ${config.linkConfig.field}:${config.linkConfig.argument} is ${argumentType}`);
+    }
+
+    // Even if the types do not match, we can still continue and just pass the link value as argument. For ID/String/Int mismatches, this should not be a problem.
+    // However, we need to use the argument type as variable name, so this will be returned
+    return argumentType;
 }

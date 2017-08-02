@@ -1,0 +1,16 @@
+query {
+  staticData {
+    coolEuropeans: allPeople(filter: {isCool: true, country: {continent: Europe}}) {
+      name
+      isCool
+      country {
+        description
+      }
+      ctry: country {
+        continent
+      }
+      nat: nationality
+      nationality
+    }
+  }
+}

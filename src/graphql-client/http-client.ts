@@ -13,7 +13,7 @@ export class HttpGraphQLClient implements GraphQLClient {
     async execute(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
         let res;
         try {
-            res = await this.fetch(this.getRequest(document, variables, context));
+            res = await this.fetchResponse(document, variables, context);
         } catch (error) {
             throw new TraceError(`Error connecting to GraphQL endpoint at ${this.url}: ${error.message}`, error);
         }
@@ -47,6 +47,10 @@ export class HttpGraphQLClient implements GraphQLClient {
         return json;
     }
 
+    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+        return this.fetch(this.getRequest(document, variables, context));
+    }
+
     protected fetch = fetch;
 
     protected getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Request {
@@ -57,7 +61,7 @@ export class HttpGraphQLClient implements GraphQLClient {
         })
     }
 
-    protected getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): HeaderInit | { [index: string]: string } {
+    protected getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): { [index: string]: string } {
         return {
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json'

@@ -1,8 +1,7 @@
 import {
-    DocumentNode,
-    FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldConfigArgumentMap,
-    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
-    GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
+    DocumentNode, FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
+    GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType,
+    GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLResolveInfo, OperationDefinitionNode, TypeInfo,
     ValueNode, visit, visitWithTypeInfo
 } from 'graphql';
 import { PipelineModule } from './pipeline-module';
@@ -12,10 +11,10 @@ import {
     transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
 import { FieldsTransformationContext, FieldTransformationContext } from '../graphql/schema-transformer';
-import { arrayToObject, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
+import { arrayToObject, compact, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
-    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, ORDER_BY_ARG, parseLinkTargetPath
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, ORDER_BY_ARG, parseLinkTargetPath
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
@@ -93,6 +92,7 @@ export class LinksModule implements PipelineModule {
                             fieldStackOuter.isLinkFieldSelectedYet = true;
                         }
 
+                        // remove selection from the field node and map it to the source field
                         child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child));
                     }
 
@@ -107,9 +107,16 @@ export class LinksModule implements PipelineModule {
 
                         let hasRightFilter = false;
 
+                        const rightObjectType = getNamedType(typeInfo.getType()) as GraphQLObjectType;
+                        const linkMetadata = this.unlinkedSchema!.getFieldMetadata(rightObjectType, metadata.join.linkField);
+                        if (!linkMetadata || !linkMetadata.link) {
+                            throw new Error(`Failed to retrieve linkMetadata for join field ${child.name.value} (looked up ${typeInfo.getType()}.${metadata.join.linkField})`);
+                        }
+                        const outputLinkFieldName = linkMetadata.link.linkFieldName || metadata.join.linkField;
+
                         // remove right filter
                         const filterArg = (child.arguments || []).filter(arg => arg.name.value == FILTER_ARG)[0];
-                        const rightFilterFieldName = metadata.join.linkField;
+                        const rightFilterFieldName = outputLinkFieldName;
                         if (filterArg) {
                             const leftFilterType = transformationInfo.leftFilterArgType;
 
@@ -194,7 +201,7 @@ export class LinksModule implements PipelineModule {
                                     throw new Error(`Invalid value for orderBy arg: ${orderBy.value.kind}`);
                             }
 
-                            hasRightOrderBy = orderByValue.startsWith(metadata.join.linkField + '_');
+                            hasRightOrderBy = orderByValue.startsWith(outputLinkFieldName + '_');
                             if (hasRightOrderBy) {
                                 child = {
                                     ...child,
@@ -315,6 +322,10 @@ class ResolvedLinkObject {
     constructor(obj: any) {
         Object.assign(this, obj);
     }
+
+    toString() {
+        return '[ResolvedLinkObject]';
+    }
 }
 
 class SchemaLinkTransformer implements ExtendedSchemaTransformer {
@@ -353,15 +364,22 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
 
-        const isListMode = isListType(config.type);
-
-        // unwrap list for batch mode, unwrap NonNull because object may be missing -> strip all type wrappers
-        const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
-        const sourceRawType = getNamedType(context.mapType(config.type));
-        if (!(sourceRawType instanceof GraphQLScalarType)) {
-            throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
+        const targetRawType = <GraphQLObjectType | GraphQLInterfaceType>getNamedType(context.mapType(targetField.type));
+        if (!(targetRawType instanceof GraphQLObjectType) && !(targetRawType instanceof GraphQLInterfaceType)) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field}, which is of type ${targetRawType}, but only object and interface types are supported.`)
         }
-        const keyType: GraphQLScalarType = sourceRawType;
+        if (linkConfig.keyField && !(linkConfig.keyField in targetRawType.getFields())) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines keyField as ${linkConfig.keyField}, but there is no such field in target type ${targetRawType}.`);
+        }
+
+        const isListMode = isListType(config.type);
+        const keyType = getKeyType({
+            linkFieldName: config.name,
+            linkFieldType: context.mapType(config.type),
+            targetField,
+            parentObjectType: context.mapType(context.oldOuterType),
+            linkConfig
+        });
 
         const dataLoaders = new ArrayKeyWeakMap<FieldNode | any, DataLoader<any, any>>();
 
@@ -443,11 +461,16 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const leftObjectType = getNamedType(context.oldField.type);
         const rightObjectType = getNamedType(targetField.type);
 
+        const keyType = getKeyType({
+            linkFieldName,
+            linkFieldType: linkField.type,
+            targetField,
+            parentObjectType: leftObjectType,
+            linkConfig
+        });
 
-        const keyType = getNamedType(context.mapType(linkField.type));
-        if (!(keyType instanceof GraphQLScalarType)) {
-            throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
-        }
+        // This may differ from the name of the linkField in case the link field is renamed
+        const outLinkFieldName = linkConfig.linkFieldName || linkFieldName;
 
         // terminology: left and right in the sense of a SQL join (left is link, right is target)
 
@@ -462,7 +485,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             let newFilterFields: GraphQLInputFieldConfigMap;
             if (!leftFilterArg) {
                 newFilterFields = {
-                    [linkFieldName]: {
+                    [outLinkFieldName]: {
                         type: context.mapType(rightFilterArg.type)
                     }
                 };
@@ -474,7 +497,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 newFilterFields = {
                     ...leftFilterType.getFields(),
-                    [linkFieldName]: {
+                    [outLinkFieldName]: {
                         type: context.mapType(rightFilterArg.type)
                     }
                 };
@@ -522,8 +545,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 ...newEnumValues,
                 ...(rightOrderByType.getValues().map(val => ({
                     ...val,
-                    name: `${linkFieldName}_${val.name}`,
-                    value: `${linkFieldName}_${val.value}`
+                    name: `${outLinkFieldName}_${val.name}`,
+                    value: `${outLinkFieldName}_${val.value}`
                 })))
             ];
 
@@ -573,15 +596,15 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 let rightFilter: any = undefined;
                 if (FILTER_ARG in args) {
-                    rightFilter = args[FILTER_ARG][linkFieldName];
+                    rightFilter = args[FILTER_ARG][outLinkFieldName];
                 }
                 const doInnerJoin = !!rightFilter;
 
                 let rightOrderBy: string | undefined = undefined;
                 if (ORDER_BY_ARG in args) {
                     const orderByValue = args[ORDER_BY_ARG];
-                    if (orderByValue.startsWith(linkFieldName + '_')) {
-                        rightOrderBy = orderByValue.substr((linkFieldName + '_').length);
+                    if (orderByValue.startsWith(outLinkFieldName + '_')) {
+                        rightOrderBy = orderByValue.substr((outLinkFieldName + '_').length);
                     }
                 }
 
@@ -589,7 +612,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 // all the names/aliases under which the link field has been requested
                 const linkFieldNodes = expandSelections(selections)
-                    .filter(node => node.name.value == linkFieldName);
+                    .filter(node => node.name.value == outLinkFieldName);
                 const linkFieldNodesByAlias: [string | undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
                 const linkFieldAliases = linkFieldNodesByAlias.map(([alias]) => alias);
 
@@ -602,7 +625,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                                 kind: 'Field',
                                 name: {
                                     kind: 'Name',
-                                    value: linkFieldName
+                                    value: outLinkFieldName
                                 }
                             }
                         ]
@@ -633,7 +656,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
 
                     const res = await fetchJoinedObjects({
-                        keys: rightKeys,
+                        keys: compact(rightKeys), // remove null keys
                         additionalFilter: rightFilter,
                         filterType: rightFilterArg.type,
                         orderBy: rightOrderBy,

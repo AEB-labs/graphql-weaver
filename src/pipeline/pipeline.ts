@@ -15,40 +15,47 @@ import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
 
 function createPreMergeModules(context: PreMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
-    const preMergePipeline: PipelineModule[] = [
+    let customizableModules: PipelineModule[] = [];
+
+    if (context.endpointConfig.typePrefix) {
+        customizableModules.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
+    }
+    if (context.endpointConfig.namespace) {
+        customizableModules.push(new NamespaceModule(context.endpointConfig.namespace))
+    }
+
+    if (customConfig && customConfig.transformPreMergePipeline) {
+        customizableModules = customConfig.transformPreMergePipeline(customizableModules, context);
+    }
+
+    return [
         // those three make the schema fully-functional
         new ProxyResolversModule(context),
         new DefaultResolversModule(),
         new AbstractTypesModule(),
 
-        new AdditionalMetadataModule(context.endpointConfig)
+        // there should be no reason to change this one either
+        new AdditionalMetadataModule(context.endpointConfig),
+
+        ...customizableModules
     ];
-
-    if (context.endpointConfig.typePrefix) {
-        preMergePipeline.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
-    }
-    if (context.endpointConfig.namespace) {
-        preMergePipeline.push(new NamespaceModule(context.endpointConfig.namespace))
-    }
-
-    if (customConfig && customConfig.createPreMergeModules) {
-        preMergePipeline.push(...customConfig.createPreMergeModules(context));
-    }
-
-    return preMergePipeline;
 }
 
 function createPostMergeModules(context: PostMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
-    const modules: PipelineModule[] = [
+    let customizableModules: PipelineModule[] = [
         new LinksModule()
     ];
 
-    if (customConfig && customConfig.createPostMergeModules) {
-        modules.push(...customConfig.createPostMergeModules(context));
+    if (customConfig && customConfig.transformPostMergePipeline) {
+        customizableModules = customConfig.transformPostMergePipeline(customizableModules, context);
     }
 
-    modules.push(new ExtendedIntrospectionModule());
-    return modules;
+    return [
+        ...customizableModules,
+
+        // this needs to be at the end
+        new ExtendedIntrospectionModule()
+    ];
 }
 
 type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
