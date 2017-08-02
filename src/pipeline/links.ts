@@ -13,7 +13,7 @@ import {
     transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
 import { FieldsTransformationContext, FieldTransformationContext } from '../graphql/schema-transformer';
-import { arrayToObject, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
+import { arrayToObject, compact, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
     fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, getLinkArgumentType, ORDER_BY_ARG,
@@ -652,7 +652,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
 
                     const res = await fetchJoinedObjects({
-                        keys: rightKeys,
+                        keys: compact(rightKeys), // remove null keys
                         additionalFilter: rightFilter,
                         filterType: rightFilterArg.type,
                         orderBy: rightOrderBy,

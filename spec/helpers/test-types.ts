@@ -1,5 +1,6 @@
 import {
     GraphQLBoolean, GraphQLEnumType, GraphQLID, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLList,
+    GraphQLNonNull,
     GraphQLObjectType,
     GraphQLString
 } from 'graphql';
@@ -44,7 +45,7 @@ export namespace testTypes {
     export const countryFilterType = new GraphQLInputObjectType({
         name: 'CountryFilter',
         fields: {
-            identCode_in: { type: new GraphQLList(GraphQLString) },
+            identCode_in: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) },
             continent: { type: continentType }
         },
 
