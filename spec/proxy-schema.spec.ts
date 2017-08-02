@@ -13,7 +13,11 @@ describe('proxy-schema', () => {
         query: new GraphQLObjectType({
             name: 'Query',
             fields: {
-                test: {type: GraphQLString, resolve() { return 'the value'}}
+                test: {
+                    type: GraphQLString, resolve() {
+                        return 'the value';
+                    }
+                }
             }
         })
     });
@@ -53,8 +57,8 @@ describe('proxy-schema', () => {
                 }
             ],
             pipelineConfig: {
-                createPreMergeModules(context: PreMergeModuleContext) {
-                    return [module];
+                transformPreMergePipeline(modules: PipelineModule[], context: PreMergeModuleContext) {
+                    return [...modules, module];
                 }
             }
         });
@@ -77,8 +81,8 @@ describe('proxy-schema', () => {
                 }
             ],
             pipelineConfig: {
-                createPostMergeModules(context: PostMergeModuleContext) {
-                    return [module];
+                transformPostMergePipeline(modules: PipelineModule[], context: PostMergeModuleContext) {
+                    return [...modules, module];
                 }
             }
         });
@@ -105,9 +109,9 @@ class ScreamModule implements PipelineModule {
                 return {
                     ...field,
                     name: field.name.toUpperCase()
-                }
+                };
             }
-        })
+        });
     }
 
     transformQuery(query: Query) {
