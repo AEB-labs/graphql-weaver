@@ -29,3 +29,8 @@ export {
     FieldTransformationContext, GraphQLNamedFieldConfig, GraphQLNamedInputFieldConfig, InputFieldTransformationContext,
     TypeTransformationContext, SchemaTransformationContext
 } from './src/graphql/schema-transformer';
+
+// some useful modules
+export { NamespaceModule }from './src/pipeline/namespaces';
+export { TypePrefixesModule }from './src/pipeline/type-prefixes';
+export { LinksModule }from './src/pipeline/links';
