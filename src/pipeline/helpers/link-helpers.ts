@@ -1,12 +1,7 @@
 import {
-    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, getNullableType,
-    GraphQLCompositeType,
-    GraphQLField,
-    GraphQLInputObjectType,
-    GraphQLInputType, GraphQLList, GraphQLNamedType,
-    GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLSchema, OperationDefinitionNode,
-    SelectionSetNode,
-    VariableDefinitionNode
+    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField,
+    GraphQLInputObjectType, GraphQLInputType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType,
+    GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode
 } from 'graphql';
 import { getNonNullType, walkFields } from '../../graphql/schema-utils';
 import { LinkConfig } from '../../extended-schema/extended-schema';
@@ -253,7 +248,7 @@ export async function fetchJoinedObjects(params: {
     unlinkedSchema: GraphQLSchema,
     context: any,
     info: SlimGraphQLResolveInfo
-}): Promise<{ orderedObjects: any[], objectsByID: Map<string, any>, keyFieldAlias: string }> {
+}): Promise<{ orderedObjects: {[key:string]:any}[], objectsByID: Map<string, {[key:string]:any}>, keyFieldAlias: string }> {
     const {unlinkedSchema, additionalFilter, orderBy, filterType, linkConfig, info, context, keys} = params;
     const {fragments, ...originalParts} = getFieldAsQueryParts(info);
 
