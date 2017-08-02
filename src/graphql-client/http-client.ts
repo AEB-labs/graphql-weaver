@@ -13,7 +13,7 @@ export class HttpGraphQLClient implements GraphQLClient {
     async execute(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
         let res;
         try {
-            res = await this.fetch(this.getRequest(document, variables, context));
+            res = await this.fetchResponse(document, variables, context);
         } catch (error) {
             throw new TraceError(`Error connecting to GraphQL endpoint at ${this.url}: ${error.message}`, error);
         }
@@ -45,6 +45,10 @@ export class HttpGraphQLClient implements GraphQLClient {
             throw new Error(`Response from GraphQL endpoint at ${this.url} is not an object`);
         }
         return json;
+    }
+
+    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+        return this.fetch(this.getRequest(document, variables, context));
     }
 
     protected fetch = fetch;
