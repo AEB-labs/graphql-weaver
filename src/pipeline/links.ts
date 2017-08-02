@@ -1,9 +1,7 @@
 import {
-    DocumentNode,
-    FieldNode, getNamedType, getNullableType, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
-    GraphQLFieldConfigArgumentMap,
-    GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList,
-    GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, GraphQLScalarType, OperationDefinitionNode, TypeInfo,
+    DocumentNode, FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
+    GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType,
+    GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLResolveInfo, OperationDefinitionNode, TypeInfo,
     ValueNode, visit, visitWithTypeInfo
 } from 'graphql';
 import { PipelineModule } from './pipeline-module';
@@ -16,8 +14,7 @@ import { FieldsTransformationContext, FieldTransformationContext } from '../grap
 import { arrayToObject, compact, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
-    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, getLinkArgumentType, ORDER_BY_ARG,
-    parseLinkTargetPath
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, ORDER_BY_ARG, parseLinkTargetPath
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
@@ -367,8 +364,15 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
 
+        const targetRawType = <GraphQLObjectType | GraphQLInterfaceType>getNamedType(context.mapType(targetField.type));
+        if (!(targetRawType instanceof GraphQLObjectType) && !(targetRawType instanceof GraphQLInterfaceType)) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field}, which is of type ${targetRawType}, but only object and interface types are supported.`)
+        }
+        if (linkConfig.keyField && !(linkConfig.keyField in targetRawType.getFields())) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines keyField as ${linkConfig.keyField}, but there is no such field in target type ${targetRawType}.`);
+        }
+
         const isListMode = isListType(config.type);
-        const targetRawType = <GraphQLOutputType>getNamedType(context.mapType(targetField.type));
         const keyType = getKeyType({
             linkFieldName: config.name,
             linkFieldType: context.mapType(config.type),
