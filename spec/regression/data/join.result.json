@@ -39,9 +39,7 @@
       },
       {
         "name": "Fred",
-        "nationality": {
-          "description": null
-        }
+        "nationality": null
       }
     ],
     "coolEuropeans": [

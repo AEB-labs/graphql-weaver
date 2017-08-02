@@ -15,10 +15,6 @@ export async function getConfig(): Promise<ProxyConfig> {
                     query: new GraphQLObjectType({
                         name: 'Query',
                         fields: {
-                            horst: {
-                                type: testTypes.personType,
-                                resolve: () => ({nationality: 'DE', name: "Horst"})
-                            },
                             allPeople: {
                                 type: new GraphQLList(testTypes.personType),
                                 resolve: () => ([
@@ -33,11 +29,17 @@ export async function getConfig(): Promise<ProxyConfig> {
                 fieldMetadata: {
                     'Person.nationality': {
                         link: {
-                            field: "staticData.Country",
-                            argument: "identCode",
-                            batchMode: false
+                            field: "staticData.allCountries",
+                            argument: "filter.identCode_in",
+                            keyField: "identCode",
+                            batchMode: true
                         }
                     },
+                    'Query.allPeople': {
+                        join: {
+                            linkField: 'nationality'
+                        }
+                    }
                 }
             }
         ]

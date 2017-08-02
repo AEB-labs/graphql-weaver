@@ -319,7 +319,7 @@ interface LinkTransformationInfo {
 class ResolvedLinkObject {
     private _ResolvedLinkObject: never;
 
-    constructor(obj: any) {
+    constructor(obj: {[key:string]:any}) {
         Object.assign(this, obj);
     }
 
@@ -690,7 +690,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                                 leftObjectsSoFar.add(leftObject);
                                 const key = leftObject[alias || JOIN_ALIAS];
                                 const rightObject = objectsByID.get(key);
-                                if (alias) {
+                                if (alias && rightObject) {
                                     leftObject[alias] = new ResolvedLinkObject(rightObject);
                                 }
                             }
@@ -721,7 +721,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                         for (const {alias, objectsByID} of aliasesToRightObjectLists) {
                             const key = leftObject[alias || JOIN_ALIAS];
                             const rightObject = objectsByID.get(key);
-                            if (alias) {
+                            if (alias && rightObject) {
                                 leftObject[alias] = new ResolvedLinkObject(rightObject);
                             }
                         }
