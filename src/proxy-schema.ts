@@ -44,7 +44,7 @@ function validateProxyConfig(config: ProxyConfig) {
 }
 
 async function getClientSchema(endpoint: GraphQLClient): Promise<GraphQLSchema> {
-    const introspectionRes = await endpoint.execute(parse(introspectionQuery));
+    const introspectionRes = await endpoint.execute(parse(introspectionQuery), {}, { introspection: true });
     const introspection = assertSuccessfulResult(introspectionRes) as IntrospectionQuery;
     try {
         return buildClientSchema(introspection);
