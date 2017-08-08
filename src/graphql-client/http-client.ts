@@ -1,6 +1,6 @@
-import { GraphQLClient } from './graphql-client';
 import { DocumentNode, print } from 'graphql';
-import fetch, { HeaderInit, Request } from 'node-fetch';
+import fetch, { Request } from 'node-fetch';
+import { GraphQLClient } from './graphql-client';
 import TraceError = require('trace-error');
 
 export class HttpGraphQLClient implements GraphQLClient {
@@ -48,27 +48,27 @@ export class HttpGraphQLClient implements GraphQLClient {
     }
 
     protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
-        return this.fetch(this.getRequest(document, variables, context));
+        return this.fetch(await this.getRequest(document, variables, context));
     }
 
     protected fetch = fetch;
 
-    protected getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Request {
+    protected async getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<Request> {
         return new Request(this.url, {
             method: 'POST',
-            headers: this.getHeaders(document, variables, context),
-            body: this.getBody(document, variables, context)
-        })
+            headers: await this.getHeaders(document, variables, context),
+            body: await this.getBody(document, variables, context)
+        });
     }
 
-    protected getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): { [index: string]: string } {
+    protected async getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<{ [index: string]: string }> {
         return {
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json'
         };
     }
 
-    protected getBody(document: DocumentNode, variables?: { [name: string]: any }, context?: any): any {
+    protected async getBody(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<any> {
         return JSON.stringify({
             query: print(document),
             variables
