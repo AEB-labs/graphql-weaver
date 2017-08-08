@@ -1,14 +1,14 @@
 {
   "name": "@aeb/graphql-proxy",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
   "main": "dist/index.js",
   "scripts": {
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
   },
-  "publishConfig" : {
-   "registry" : "https://registry.next.labs.aeb.com/repository/next.npm.releases/"
+  "publishConfig": {
+    "registry": "https://registry.next.labs.aeb.com/repository/next.npm.releases/"
   },
   "author": "",
   "license": "ISC",
