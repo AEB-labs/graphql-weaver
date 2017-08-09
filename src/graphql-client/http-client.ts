@@ -10,10 +10,10 @@ export class HttpGraphQLClient implements GraphQLClient {
         this.url = config.url;
     }
 
-    async execute(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+    async execute(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean) {
         let res;
         try {
-            res = await this.fetchResponse(document, variables, context);
+            res = await this.fetchResponse(document, variables, context, introspect);
         } catch (error) {
             throw new TraceError(`Error connecting to GraphQL endpoint at ${this.url}: ${error.message}`, error);
         }
@@ -47,28 +47,28 @@ export class HttpGraphQLClient implements GraphQLClient {
         return json;
     }
 
-    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
-        return this.fetch(await this.getRequest(document, variables, context));
+    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean) {
+        return this.fetch(await this.getRequest(document, variables, context, introspect));
     }
 
     protected fetch = fetch;
 
-    protected async getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<Request> {
+    protected async getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<Request> {
         return new Request(this.url, {
             method: 'POST',
-            headers: await this.getHeaders(document, variables, context),
+            headers: await this.getHeaders(document, variables, context, introspect),
             body: await this.getBody(document, variables, context)
         });
     }
 
-    protected async getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<{ [index: string]: string }> {
+    protected async getHeaders(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<{ [index: string]: string }> {
         return {
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json'
         };
     }
 
-    protected async getBody(document: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<any> {
+    protected async getBody(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<any> {
         return JSON.stringify({
             query: print(document),
             variables

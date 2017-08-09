@@ -9,6 +9,7 @@ export interface GraphQLClient {
      * @param query the query string in the GraphQL language
      * @param variables an optional map of key-value pairs for variables
      * @param context the context value that has been originally passed to the schema executor
+     * @param introspect set to true when executing an introspection query
      */
-    execute(query: DocumentNode, variables?: { [name: string]: any }, context?: any): Promise<ExecutionResult>;
+    execute(query: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<ExecutionResult>;
 }
