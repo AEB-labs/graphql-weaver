@@ -54,7 +54,7 @@ node_modules
 # Optional REPL history
 .node_repl_history
 # Dist
-dist/
+# dist/
 reports/
 
 
