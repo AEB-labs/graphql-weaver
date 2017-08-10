@@ -12,15 +12,21 @@
   "publishConfig": {
     "registry": "https://registry.next.labs.aeb.com/repository/next.npm.releases/"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.aeb.com/next-playground/graphql-proxy.git"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@aeb/next-tslint": "^0.0.1",
     "@types/body-parser": "^1.16.3",
     "@types/cors": "^2.8.1",
     "@types/fs-extra": "^3.0.2",
     "@types/graphql": "^0.9.1",
     "@types/jasmine": "^2.5.52",
     "@types/node": "^7.0.22",
+    "@types/node-fetch": "^1.6.7",
     "body-parser": "^1.17.2",
     "cors": "^2.8.3",
     "express": "^4.15.3",
@@ -31,19 +37,18 @@
     "jasmine-promises": "^0.4.1",
     "jasmine-spec-reporter": "^4.1.0",
     "ts-node": "^3.0.4",
-    "typescript": "^2.4.1",
+    "typescript": "^2.4.2",
     "jsondiffpatch": "^0.2.4",
     "rimraf": "^2.6.1",
     "dependency-check": "^2.9.1"
   },
   "dependencies": {
-    "@types/node-fetch": "^1.6.7",
-    "dataloader": "^1.3.0",
-    "node-fetch": "^1.7.0",
-    "trace-error": "0.0.7"
+    "dataloader": "~1.3.0",
+    "node-fetch": "~1.7.0",
+    "trace-error": "~0.0.7"
   },
   "peerDependencies": {
-    "@types/graphql": "^0.9.1",
-    "graphql": "^0.9.1"
+    "@types/graphql": "~0.9.1",
+    "graphql": "~0.9.1"
   }
 }
