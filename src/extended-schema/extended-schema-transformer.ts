@@ -7,7 +7,7 @@ import {
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
 import { mapValues, maybeDo } from '../utils/utils';
 
-type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
+export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
 
 export interface GraphQLNamedFieldConfigWithMetadata<TSource = any, TContext = any> extends GraphQLNamedFieldConfig<TSource, TContext> {

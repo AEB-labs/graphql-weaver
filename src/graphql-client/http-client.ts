@@ -2,6 +2,7 @@ import { DocumentNode, print } from 'graphql';
 import fetch, { Request } from 'node-fetch';
 import { GraphQLClient } from './graphql-client';
 import TraceError = require('trace-error');
+import { Response } from 'node-fetch';
 
 export class HttpGraphQLClient implements GraphQLClient {
     public readonly url: string;
@@ -47,7 +48,7 @@ export class HttpGraphQLClient implements GraphQLClient {
         return json;
     }
 
-    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean) {
+    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<Response> {
         return this.fetch(await this.getRequest(document, variables, context, introspect));
     }
 

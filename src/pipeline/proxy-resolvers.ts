@@ -10,7 +10,7 @@ import { isRootType } from '../graphql/schema-utils';
 import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
 
-interface Config {
+export interface Config {
     readonly client: GraphQLClient
     processQuery(query: Query): Query
     readonly endpointConfig: EndpointConfig
@@ -29,7 +29,7 @@ export class ProxyResolversModule implements PipelineModule {
     }
 }
 
-class ResolverTransformer implements SchemaTransformer {
+export class ResolverTransformer implements SchemaTransformer {
     constructor(private readonly config: Config) {
 
     }

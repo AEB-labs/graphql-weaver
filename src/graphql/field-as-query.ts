@@ -6,7 +6,7 @@ import {
 import { Query } from './common';
 import { arrayToObject, divideArrayByPredicate, flatMap } from '../utils/utils';
 
-type QueryParts = {
+export type QueryParts = {
     fragments: FragmentDefinitionNode[],
     selectionSet: SelectionSetNode,
     variableDefinitions: VariableDefinitionNode[],

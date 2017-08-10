@@ -1,4 +1,4 @@
-interface MultiKeyStrategy<TKey> {
+export interface MultiKeyStrategy<TKey> {
     getBucketKey(key: TKey): object;
     equals(lhs: TKey, rhs: TKey): boolean;
 }

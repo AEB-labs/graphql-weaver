@@ -10,7 +10,7 @@ import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
 import { bindNullable, compact, objectValues } from '../utils/utils';
 
-type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
+export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
 
 /**

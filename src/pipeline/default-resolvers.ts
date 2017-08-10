@@ -17,7 +17,7 @@ export class DefaultResolversModule implements PipelineModule {
  *
  * This is needed because the aliasing is already done on the target endpoint.
  */
-class DefaultResolversTransformer implements SchemaTransformer {
+export class DefaultResolversTransformer implements SchemaTransformer {
     transformField(config: GraphQLNamedFieldConfig<any, any>): GraphQLNamedFieldConfig<any, any> {
         if (config.resolve) {
             return config;

@@ -18,7 +18,7 @@ export interface ProxyConfig {
     pipelineConfig?: PipelineConfig
 }
 
-interface EndpointConfigBase {
+export interface EndpointConfigBase {
     /**
      * If defined, all root fields of this endpoint will be wrapped in a field called ${namespace} on the root types.
      * If undefined, the root fields of this endpoint will be merged into the root operation types.
