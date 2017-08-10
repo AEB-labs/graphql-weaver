@@ -2,8 +2,10 @@
   "name": "@aeb/graphql-proxy",
   "version": "0.6.1",
   "description": "A configurable GraphQL server that combines multiple GraphQL APIs in one schema",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
+  "types": "./dist/main.d.ts",
   "scripts": {
+    "build": "rimraf dist && tsc && dependency-check ./package.json",
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
   },
@@ -30,7 +32,9 @@
     "jasmine-spec-reporter": "^4.1.0",
     "ts-node": "^3.0.4",
     "typescript": "^2.4.1",
-    "jsondiffpatch": "^0.2.4"
+    "jsondiffpatch": "^0.2.4",
+    "rimraf": "^2.6.1",
+    "dependency-check": "^2.9.1"
   },
   "dependencies": {
     "@types/node-fetch": "^1.6.7",

@@ -15,18 +15,15 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "lib": ["es2016"],
+    "outDir": "dist",
     "typeRoots": [
       "node_modules/@types"
-    ],
-    "noEmit": true
+    ]
   },
   "exclude": [
+    "spec",
     "node_modules",
     "dist"
-  ],
-  "include": [
-    "src/**/*",
-    "spec/**/*"
   ],
   "compileOnSave": false,
   "buildOnSave": false,
