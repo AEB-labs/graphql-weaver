@@ -9,6 +9,7 @@ import {
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
 import { bindNullable, compact, objectValues } from '../utils/utils';
+import {introspectionTypes} from "./language-utils";
 
 export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -228,7 +229,13 @@ class Transformer {
 
             // carry on object types, to avoid losing implementations of interfaces that are not referenced elsewhere
             // we don't need to carry on other types. This allows us to implicitly drop input types by no longer using them
-            types: objectValues(this.typeMap).filter(type => type instanceof GraphQLObjectType)
+            // TODO: currently, we filter out introspection types. Later, they could be renamed by a pipeline module similar to prefix.
+            types: objectValues(this.typeMap).filter(type => {
+                if (introspectionTypes.includes(type.name)) {
+                    return false;
+                }
+                return (type instanceof GraphQLObjectType);
+            })
         });
     }
 
