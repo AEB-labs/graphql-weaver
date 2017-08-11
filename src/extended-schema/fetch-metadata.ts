@@ -33,7 +33,8 @@ function getTailoredExtendedIntrospectionQuery(schema: GraphQLSchema): DocumentN
     if (joinType) {
         // mandatory fields
         const joinSelections: FieldNode[] = [
-            createFieldNode('linkField')
+            createFieldNode('linkField'),
+            createFieldNode('ignore')
         ];
 
         fieldMetadataSelections.push(createFieldNode('join', undefined, joinSelections));
@@ -41,7 +42,7 @@ function getTailoredExtendedIntrospectionQuery(schema: GraphQLSchema): DocumentN
 
     const linkType = schema.getType(EXTENDED_INTROSPECTION_TYPE_NAMES.fieldLink);
     if (linkType && linkType instanceof GraphQLObjectType) {
-        const propertyNames: (keyof LinkConfig)[] = ['field', 'argument', 'batchMode', 'keyField', 'linkFieldName'];
+        const propertyNames: (keyof LinkConfig)[] = ['field', 'argument', 'batchMode', 'keyField', 'linkFieldName', 'ignore'];
         const linkSelections = propertyNames
             .filter(name => name in linkType.getFields())
             .map(name => createFieldNode(name));

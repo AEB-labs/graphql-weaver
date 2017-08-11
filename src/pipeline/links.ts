@@ -336,8 +336,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     }
 
     transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
-        if (config.metadata && config.metadata.join) {
+        if (config.metadata && config.metadata.join && !config.metadata.join.ignore) {
             config = this.transformJoinField(config, context, config.metadata.join);
+            config.metadata!.join!.ignore = true;
         }
 
         return config;
@@ -346,12 +347,30 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     transformFields(fields: GraphQLFieldConfigMapWithMetadata, context: FieldsTransformationContext): GraphQLFieldConfigMapWithMetadata {
         const newFields: GraphQLFieldConfigMapWithMetadata = {};
         for (const [name, fieldConfig] of objectEntries(fields)) {
-            if (fieldConfig.metadata && fieldConfig.metadata.link) {
+            if (fieldConfig.metadata && fieldConfig.metadata.link && !fieldConfig.metadata.link.ignore) {
                 const {name: newName, ...newConfig} = this.transformLinkField({...fieldConfig, name}, context, fieldConfig.metadata.link);
                 if (newName != name) {
-                    newFields[name] = fieldConfig; // preserve old field
+                    newFields[name] = {
+                        ...fieldConfig,
+                        metadata: {
+                            ...fieldConfig.metadata,
+                            link: {
+                                ...fieldConfig.metadata.link,
+                                ignore: true
+                            }
+                        }
+                    }; // preserve old field with to linked flag
                 }
-                newFields[newName] = newConfig;
+                newFields[newName] = {
+                    ...newConfig,
+                    metadata: {
+                        ...newConfig.metadata,
+                        link: {
+                            ...fieldConfig.metadata.link,
+                            ignore: true
+                        }
+                    }
+                };
             } else {
                 newFields[name] = fieldConfig;
             }
@@ -365,6 +384,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
 
         const targetRawType = <GraphQLObjectType | GraphQLInterfaceType>getNamedType(context.mapType(targetField.type));
+
         if (!(targetRawType instanceof GraphQLObjectType) && !(targetRawType instanceof GraphQLInterfaceType)) {
             throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field}, which is of type ${targetRawType}, but only object and interface types are supported.`)
         }

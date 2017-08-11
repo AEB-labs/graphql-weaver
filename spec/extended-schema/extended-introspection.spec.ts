@@ -80,7 +80,7 @@ describe('extended-introspection', () => {
                 }
             });
             const linkConfigType = reducedSchema.getTypeMap()[EXTENDED_INTROSPECTION_TYPE_NAMES.fieldLink] as GraphQLObjectType;
-            expect(Object.keys(linkConfigType.getFields())).toEqual(['field', 'batchMode', 'argument', 'linkFieldName']);
+            expect(Object.keys(linkConfigType.getFields())).toEqual(['field', 'batchMode', 'argument', 'linkFieldName', 'ignore']);
 
             const metadata = await fetchSchemaMetadata(new LocalGraphQLClient(reducedSchema), reducedSchema);
             expect(metadata.fieldMetadata.has('Query.field')).toBeTruthy('Query.field missing');

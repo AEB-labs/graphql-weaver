@@ -93,6 +93,10 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
             linkFieldName: {
                 description: 'If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.',
                 type: GraphQLString
+            },
+            ignore: {
+                description: 'Indicates that the link has already been processed.',
+                type: GraphQLBoolean
             }
         }
     });
@@ -104,6 +108,10 @@ function createExtendedIntrospectionType(): GraphQLObjectType {
             linkField: {
                 description: 'The name of the child field that has a link configured',
                 type: new GraphQLNonNull(GraphQLString)
+            },
+            ignore: {
+                description: 'Indicates that the join has already been processed.',
+                type: GraphQLBoolean
             }
         }
     });
