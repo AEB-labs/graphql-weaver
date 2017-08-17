@@ -97,12 +97,13 @@ export class LinksModule implements PipelineModule {
                     }
 
                     const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
-                    if (metadata && metadata.join && !metadata.join.ignore) {
+                    if (metadata && metadata.join) {
                         fieldStackTop.joinConfig = metadata.join;
                         fieldStackTop.isLinkFieldSelectedYet = false;
                         const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
                         if (!transformationInfo) {
-                            throw new Error(`Missing joinTransformationInfo`);
+                            // no transformation info means, that the join is handled by another proxy of a nested schema
+                            return child;
                         }
 
                         let hasRightFilter = false;
