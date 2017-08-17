@@ -97,7 +97,7 @@ export class LinksModule implements PipelineModule {
                     }
 
                     const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());
-                    if (metadata && metadata.join) {
+                    if (metadata && metadata.join && !metadata.join.ignore) {
                         fieldStackTop.joinConfig = metadata.join;
                         fieldStackTop.isLinkFieldSelectedYet = false;
                         const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
