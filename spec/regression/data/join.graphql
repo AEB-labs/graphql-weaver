@@ -1,4 +1,4 @@
-query ($orderBy: CountryNSPersonWithCountryNSCountryOrderBy){
+query ($orderBy: CountryNSPersonWithCountryNSCountryOrderBy, $leftOrderBy: CountryNSPersonWithCountryNSCountryOrderBy, $nullFilter: CountryNSPersonWithCountryNSCountryFilter, $nullOrderBy: CountryNSPersonWithCountryNSCountryOrderBy, $nullFirst: Int){
   staticData {
     allPeople {
       name
@@ -62,6 +62,15 @@ query ($orderBy: CountryNSPersonWithCountryNSCountryOrderBy){
       name
     }
     fristAmerican: allPeople(filter: {nationality: {continent: NorthAmerica}}, orderBy: name_ASC, first: 1) {
+      name
+    }
+    null: allPeople(filter: null, orderBy: null, first: null) {
+      name
+    }
+    nullWithVariables: allPeople(filter: $nullFilter, orderBy: $nullOrderBy, first: $nullFirst) {
+      name
+    }
+    leftOrderByWithVariable: allPeople(orderBy: $leftOrderBy) {
       name
     }
   }

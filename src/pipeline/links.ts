@@ -132,9 +132,10 @@ export class LinksModule implements PipelineModule {
                                 let newValue: ValueNode;
                                 switch (filterArg.value.kind) {
                                     case 'Variable':
-                                        const value = variableValues[filterArg.value.name.value];
+                                        const value = variableValues[filterArg.value.name.value] || {};
                                         hasRightFilter = rightFilterFieldName in value;
                                         const valueWithoutRightFilter = {...value, [rightFilterFieldName]: undefined};
+                                        // this also takes care of changing the variable type to the original left type
                                         const {name: varName, variableDefinitions: newVariableDefinitions} =
                                             addVariableDefinitionSafely(variableDefinitions, filterArg.value.name.value, leftFilterType);
                                         variableDefinitions = newVariableDefinitions;
@@ -163,6 +164,9 @@ export class LinksModule implements PipelineModule {
                                         }
 
                                         break;
+                                    case 'NullValue':
+                                        newValue = filterArg.value;
+                                        break;
                                     default:
                                         throw new Error(`Invalid value for filter arg: ${filterArg.value.kind}`);
                                 }
@@ -190,7 +194,7 @@ export class LinksModule implements PipelineModule {
                         // remove order clause if it actually applies to the right side
                         const orderBy = (child.arguments || []).filter(arg => arg.name.value == ORDER_BY_ARG)[0];
                         if (orderBy) {
-                            let orderByValue: string;
+                            let orderByValue: string|undefined;
                             switch (orderBy.value.kind) {
                                 case 'Variable':
                                     orderByValue = variableValues[orderBy.value.name.value];
@@ -198,17 +202,42 @@ export class LinksModule implements PipelineModule {
                                 case 'EnumValue':
                                     orderByValue = orderBy.value.value;
                                     break;
+                                case 'NullValue':
+                                    orderByValue = undefined;
+                                    break;
                                 default:
                                     throw new Error(`Invalid value for orderBy arg: ${orderBy.value.kind}`);
                             }
 
-                            hasRightOrderBy = orderByValue.startsWith(outputLinkFieldName + '_');
-                            if (hasRightOrderBy) {
-                                child = {
-                                    ...child,
-                                    arguments: child.arguments!.filter(arg => arg != orderBy)
-                                };
+                            hasRightOrderBy = orderByValue != undefined && orderByValue.startsWith(outputLinkFieldName + '_');
+                            // re-do the argument in any case, because if it was a variable its type is the merge-type
+                            // instead of the original left type
+                            // let dropUnusedVariables() below take care of the variable definition in that case
+
+                            // first, remove
+                            let newArgs = (child.arguments ||[]).filter(arg => arg != orderBy);
+                            // then, add if appropiate
+                            if (orderByValue && !hasRightOrderBy) {
+                                newArgs = [
+                                    ...newArgs,
+                                    {
+                                        kind: 'Argument',
+                                        name: {
+                                            kind: 'Name',
+                                            value: ORDER_BY_ARG
+                                        },
+                                        value: {
+                                            kind: 'EnumValue',
+                                            value: orderByValue
+                                        }
+                                    }
+                                ];
                             }
+
+                            child = {
+                                ...child,
+                                arguments: newArgs
+                            };
                         }
 
                         if (child.arguments && (hasRightOrderBy || hasRightFilter)) {
@@ -616,13 +645,13 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 leftObjects = [...leftObjects];
 
                 let rightFilter: any = undefined;
-                if (FILTER_ARG in args) {
+                if (args[FILTER_ARG] != undefined) {
                     rightFilter = args[FILTER_ARG][outLinkFieldName];
                 }
                 const doInnerJoin = !!rightFilter;
 
                 let rightOrderBy: string | undefined = undefined;
-                if (ORDER_BY_ARG in args) {
+                if (args[ORDER_BY_ARG] != undefined) {
                     const orderByValue = args[ORDER_BY_ARG];
                     if (orderByValue.startsWith(outLinkFieldName + '_')) {
                         rightOrderBy = orderByValue.substr((outLinkFieldName + '_').length);
