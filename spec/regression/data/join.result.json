@@ -269,6 +269,75 @@
       {
         "name": "Donald"
       }
+    ],
+    "null": [
+      {
+        "name": "Horst"
+      },
+      {
+        "name": "Helga"
+      },
+      {
+        "name": "Jacqueline"
+      },
+      {
+        "name": "Yin"
+      },
+      {
+        "name": "John"
+      },
+      {
+        "name": "Donald"
+      },
+      {
+        "name": "Fred"
+      }
+    ],
+    "nullWithVariables": [
+      {
+        "name": "Horst"
+      },
+      {
+        "name": "Helga"
+      },
+      {
+        "name": "Jacqueline"
+      },
+      {
+        "name": "Yin"
+      },
+      {
+        "name": "John"
+      },
+      {
+        "name": "Donald"
+      },
+      {
+        "name": "Fred"
+      }
+    ],
+    "leftOrderByWithVariable": [
+      {
+        "name": "Donald"
+      },
+      {
+        "name": "Fred"
+      },
+      {
+        "name": "Helga"
+      },
+      {
+        "name": "Horst"
+      },
+      {
+        "name": "Jacqueline"
+      },
+      {
+        "name": "John"
+      },
+      {
+        "name": "Yin"
+      }
     ]
   }
 }
