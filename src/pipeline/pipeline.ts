@@ -13,6 +13,7 @@ import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
+import {CustomScalarTypesSerializationModule} from "./custom-scalar-types-serialization";
 
 function createPreMergeModules(context: PreMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
     let customizableModules: PipelineModule[] = [];
@@ -32,6 +33,7 @@ function createPreMergeModules(context: PreMergeModuleContext, customConfig?: Pi
         // those three make the schema fully-functional
         new ProxyResolversModule(context),
         new DefaultResolversModule(),
+        new CustomScalarTypesSerializationModule(),
         new AbstractTypesModule(),
 
         // there should be no reason to change this one either
