@@ -129,7 +129,7 @@ This assumes that the library service offers a way to filter and sort songs via 
 ```graphql
 query {
     recommendations {
-        myRecommendations(filter: { artist: "Ed Sheeran" }, orderBy: song_year_DESC) {
+        myRecommendations(filter: { song: { artist: "Ed Sheeran" } }, orderBy: song_year_DESC) {
             recommendedAt
             song {
                 id
