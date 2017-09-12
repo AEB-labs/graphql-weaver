@@ -1,6 +1,8 @@
 # graphql-proxy
 
-A configurable GraphQL server that combines multiple GraphQL APIs in one schema
+A tool to combine, link and transform GraphQL schemas
+
+Use graphql-proxy if you have multiple GraphQL servers and want to combine them into one API. Features like namespacing, links and custom transformation modules allow you to augment the API as you like.
 
 ## How to use
 
@@ -21,7 +23,169 @@ const schema: GraphQLSchema = createProxySchema({
 })
 ```
 
-For documentation and advanced use cases, refer to TypeDoc comments.
+A *proxy schema* is an executable GraphQL schema built from several *endpoints*. For each endpoint, you can either specify a URL to a GraphQL server, pass an executable GraphQL schema instance, or implement the [`GraphQLClient`](src/graphql-client/graphql-client.ts) interface yourself.
+
+In its basic configuration, `createProxySchema` merges the query, mutation and subscription fields of all endpoints. To avoid name collisions, you can specify the `namespace` and `typePrefix` properties like seen above. The `typePrefix` will be prepended to all types; `namespace` causes the fields of this endpoint to be wrapped in a field, to be queried via `{ model { aFieldOfModel } }`.
+
+### Links
+
+In the spirit of GraphQL, this tool allows you to create links between objects of different endpoints. Suppose you have a music recommendation service and a music library service. You can make the whole properties of a song available in the recommendation API without the recommendation service knowing all song properties.
+
+```typescript
+const schema: GraphQLSchema = createProxySchema({
+    endpoints: [{
+        namespace: 'library',
+        url: 'http://example.com/library/graphql'
+    }, {
+        namespace: 'recommendations',
+        url: 'http://example.com/recommendations/graphql',
+        fieldMetadata: {
+            'Recommendation.song': { // Field song in type Recommendation
+                link: {
+                    field: 'library.Song', // field Song in namespace library
+                    argument: 'id', // argument of library.Song
+                    batchMode: false,
+                }
+            }
+        }
+     }]
+});
+```
+This assumes the library schema has a field `Song` which accepts a `id` argument, and the recommendations schema has a type `Recommendation` with a field `song` which contains the song id. Then, you can query the recommendations with all song information like this:
+
+```graphql
+query {
+    recommendations {
+        myRecommendations {
+            recommendedAt
+            song {
+                id
+                artist
+                title
+                year
+            }
+        }
+    }
+}
+```
+
+If there are many recommendations, this is ineficcient because all songs are queried independently.  If the library schema supports querying multiple songs at once, you can set `batchMode` to `true`. If the library schema may return the songs in a different order than the ids its get, you need to set `keyField` too.
+
+```typescript
+const schema: GraphQLSchema = createProxySchema({
+    endpoints: [{
+        namespace: 'library',
+        url: 'http://example.com/library/graphql'
+    }, {
+        namespace: 'recommendations',
+        url: 'http://example.com/recommendations/graphql',
+        fieldMetadata: {
+            'Recommendation.song': {
+                link: {
+                    field: 'library.allSongs',
+                    argument: 'filter.ids', // allSongs has an argument filter with an array field ids
+                    batchMode: true,
+                    keyField: 'id' // the name of a field in Song type that contains the id
+                }
+            }
+        }
+     }]
+});
+```
+
+### Joins
+
+What if you want to sort the recommendations by the song age, or filter by artist? The recommendation service currently does not know about these fields, so it does not offer an API to sort or order by any of them. Using graphql-proxy, this problem is easily solved:
+
+```typescript
+const schema: GraphQLSchema = createProxySchema({
+    endpoints: [{
+        namespace: 'library',
+        url: 'http://example.com/library/graphql'
+    }, {
+        namespace: 'recommendations',
+        url: 'http://example.com/recommendations/graphql',
+        fieldMetadata: {
+            'Recommendation.song': {
+                link: {
+                    field: 'library.allSongs',
+                    argument: 'filter.ids',
+                    batchMode: true, // is now required
+                    keyField: 'id' // this one too
+                }
+            },
+            'Query.myRecommendations': { // Field myRecommendations on type Query
+                join: {
+                    linkField: 'song', // The field name song in the type Recommendation
+                }
+            }
+        }
+     }]
+});
+```
+
+This assumes that the library service offers a way to filter and sort songs via the `orderBy` and `filter` arguments. Using it is simple:
+
+```graphql
+query {
+    recommendations {
+        myRecommendations(filter: { artist: "Ed Sheeran" }, orderBy: song_year_DESC) {
+            recommendedAt
+            song {
+                id
+                artist
+                title
+                year
+            }
+        }
+    }
+}
+```
+
+A note on efficiency: The list of recommendations should be relatively small (not more than a few hundred), as all recommendations need to be fetched so that their ids can be sent to the library for filtering and sorting.
+
+### Custom Transformations
+
+All four presented features (namespaces, type prefixes, links and joins) are implemented as independent modules. If you need something else, you can just write your own module:
+
+```typescript
+class MyModule implements PipelineModule {
+    transformExtendedSchema(schema: ExtendedSchema): ExtendedSchema {
+        // do something with the schema
+        return schema;
+    }
+    transformQuery(query: Query): Query {
+        // do something with the query
+        return query;
+    }
+}
+
+const schema: GraphQLSchema = createProxySchema({
+    endpoints: [{
+        namespace: 'library',
+        url: 'http://example.com/library/graphql',
+        
+    }],
+    pipelineConfig: {
+        transformPreMergePipeline(modules: PipelineModule[], context: PreMergeModuleContext): PipelineModule[] {
+            // These modules are executed for each endpoint
+            return [
+                ...modules,
+                new MyModule()
+            ]
+        },
+        transformPostMergePipeline(modules: PipelineModule[], context: PostMergeModuleContext): PipelineModule[] {
+            // These modules are executed once for the merged schema
+            return [
+                ...modules,
+                new MyModule()
+            ]
+        }
+    }
+});
+```
+
+For a simple module, see [`TypePrefixModule`](src/pipeline/type-prefixes.ts). The section *Architecture* below gives an overview over the pipeline architecture.
 
 ## Contributing
 
@@ -84,6 +248,6 @@ You'll find the list of modules in `src/pipeline/pipeline.ts`. For a description
 * `extended-schema` - an implementation of storing and exposing metadata on fields, the concept being [discussed on GitHub](https://github.com/facebook/graphql/issues/300)
 * `graphql-client` - GraphQL client library, with local and http implementations
 * `pipeline` - the core, being framework and modules for graphql-proxy's features
-* `config` - configuration of the server
+* `config` - configuration parameter types for `createProxySchema`
 * `utils` - utilities unrelated to GraphQL
 * `typings` - typings for thirdparty modules
