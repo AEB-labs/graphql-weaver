@@ -1,8 +1,8 @@
 import {GraphQLObjectType, GraphQLSchema} from 'graphql';
 import {testTypes} from "../../helpers/test-types";
-import { ProxyConfig } from '../../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../../src/config/weaving-config';
 
-export async function getConfig(): Promise<ProxyConfig> {
+export async function getConfig(): Promise<WeavingConfig> {
     return {
         endpoints: [
             {

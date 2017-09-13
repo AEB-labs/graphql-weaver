@@ -1,17 +1,17 @@
 import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { createProxySchema } from '../../src/proxy-schema';
+import { weaveSchemas } from '../../src/weave-schemas';
 import { GraphQLServer } from './server/graphql-server';
-import { ProxyConfig } from '../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../src/config/weaving-config';
 import { loadProxyConfig } from './load-config';
 
 const defaultPort = 3200;
 
-interface ServerConfig extends ProxyConfig {
+interface ServerConfig extends WeavingConfig {
     port?: number;
 }
 
 export async function start() {
-    const configFileName = 'config.json';
+    const configFileName = __dirname + '/../dev/config.json';
     const config: ServerConfig = await loadProxyConfig(configFileName);
     config.endpoints.push({
         typePrefix: 'Local',
@@ -30,7 +30,7 @@ export async function start() {
     });
 
     console.log('Loading schemas...');
-    const schema = await createProxySchema(config);
+    const schema = await weaveSchemas(config);
 
     const port = config.port || defaultPort;
     const schemaManager = {

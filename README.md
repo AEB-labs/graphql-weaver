@@ -1,17 +1,17 @@
-# graphql-proxy
+# graphql-weaver
 
 A tool to combine, link and transform GraphQL schemas
 
-Use graphql-proxy if you have multiple GraphQL servers and want to combine them into one API. Features like namespacing, links and custom transformation modules allow you to augment the API as you like.
+Use graphql-weaver if you have multiple GraphQL servers and want to combine them into one API. Features like namespacing, links and custom transformation modules allow you to augment the API as you like.
 
 ## How to use
 
-`npm install --save @aeb/graphql-proxy`
+`npm install --save graphql-weaver`
 
 Basic usage:
 
 ```typescript
-const schema: GraphQLSchema = createProxySchema({
+const schema: GraphQLSchema = weaveSchemas({
     endpoints: [{
         namespace: 'model',
         typePrefix: 'Model',
@@ -23,16 +23,16 @@ const schema: GraphQLSchema = createProxySchema({
 })
 ```
 
-A *proxy schema* is an executable GraphQL schema built from several *endpoints*. For each endpoint, you can either specify a URL to a GraphQL server, pass an executable GraphQL schema instance, or implement the [`GraphQLClient`](src/graphql-client/graphql-client.ts) interface yourself.
+A *woven schema* is an executable GraphQL schema built from several *endpoints*. For each endpoint, you can either specify a URL to a GraphQL server, pass an executable GraphQL schema instance, or implement the [`GraphQLClient`](src/graphql-client/graphql-client.ts) interface yourself.
 
-In its basic configuration, `createProxySchema` merges the query, mutation and subscription fields of all endpoints. To avoid name collisions, you can specify the `namespace` and `typePrefix` properties like seen above. The `typePrefix` will be prepended to all types; `namespace` causes the fields of this endpoint to be wrapped in a field, to be queried via `{ model { aFieldOfModel } }`.
+In its basic configuration, `weaveSchemas` merges the query, mutation and subscription fields of all endpoints. To avoid name collisions, you can specify the `namespace` and `typePrefix` properties like seen above. The `typePrefix` will be prepended to all types; `namespace` causes the fields of this endpoint to be wrapped in a field, to be queried via `{ model { aFieldOfModel } }`.
 
 ### Links
 
 In the spirit of GraphQL, this tool allows you to create links between objects of different endpoints. Suppose you have a music recommendation service and a music library service. You can make the whole properties of a song available in the recommendation API without the recommendation service knowing all song properties.
 
 ```typescript
-const schema: GraphQLSchema = createProxySchema({
+const schema: GraphQLSchema = weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
@@ -72,7 +72,7 @@ query {
 If there are many recommendations, this is ineficcient because all songs are queried independently.  If the library schema supports querying multiple songs at once, you can set `batchMode` to `true`. If the library schema may return the songs in a different order than the ids its get, you need to set `keyField` too.
 
 ```typescript
-const schema: GraphQLSchema = createProxySchema({
+const schema: GraphQLSchema = weaveSchema({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
@@ -95,10 +95,10 @@ const schema: GraphQLSchema = createProxySchema({
 
 ### Joins
 
-What if you want to sort the recommendations by the song age, or filter by artist? The recommendation service currently does not know about these fields, so it does not offer an API to sort or order by any of them. Using graphql-proxy, this problem is easily solved:
+What if you want to sort the recommendations by the song age, or filter by artist? The recommendation service currently does not know about these fields, so it does not offer an API to sort or order by any of them. Using graphql-weaver, this problem is easily solved:
 
 ```typescript
-const schema: GraphQLSchema = createProxySchema({
+const schema: GraphQLSchema = weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
@@ -160,7 +160,7 @@ class MyModule implements PipelineModule {
     }
 }
 
-const schema: GraphQLSchema = createProxySchema({
+const schema: GraphQLSchema = weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql',
@@ -202,7 +202,7 @@ To run the test suite, run
 npm test
 ```
 
-To debug/run the application (or tests) in WebStorm, right-click on `graphql-proxy.js` (or `graphql-proxy-tests.js`, respectively) and choose *Debug*/*Run*.
+To debug/run the application (or tests) in WebStorm, right-click on `graphql-weaver.js` (or `graphql-weaver-tests.js`, respectively) and choose *Debug*/*Run*.
 
 ### Release workflow
 
@@ -212,7 +212,7 @@ To debug/run the application (or tests) in WebStorm, right-click on `graphql-pro
 
 ## Architecture
 
-graphql-proxy takes a set of GraphQL endpoints, transforms them through pipelines, merges them, transforms the merged schema again and exposes that as its *proxy schema*.
+graphql-weaver takes a set of GraphQL endpoints, transforms them through pipelines, merges them, transforms the merged schema again and exposes that as its *woven schema*.
 
 ```
            +------+  +------+  +------+
@@ -247,7 +247,7 @@ You'll find the list of modules in `src/pipeline/pipeline.ts`. For a description
 * `graphql` - general utilities for working with GraphQL schemas and queries
 * `extended-schema` - an implementation of storing and exposing metadata on fields, the concept being [discussed on GitHub](https://github.com/facebook/graphql/issues/300)
 * `graphql-client` - GraphQL client library, with local and http implementations
-* `pipeline` - the core, being framework and modules for graphql-proxy's features
-* `config` - configuration parameter types for `createProxySchema`
+* `pipeline` - the core, being framework and modules for graphql-weaver's features
+* `config` - configuration parameter types for `weaveSchemas`
 * `utils` - utilities unrelated to GraphQL
 * `typings` - typings for thirdparty modules

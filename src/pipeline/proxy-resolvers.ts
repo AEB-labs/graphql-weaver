@@ -4,7 +4,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { Query } from '../graphql/common';
-import { EndpointConfig } from '../config/proxy-configuration';
+import { EndpointConfig } from '../config/weaving-config';
 import { cloneSelectionChain, collectFieldNodesInPath } from '../graphql/language-utils';
 import { isRootType } from '../graphql/schema-utils';
 import { collectAliasesInResponsePath } from '../graphql/resolver-utils';

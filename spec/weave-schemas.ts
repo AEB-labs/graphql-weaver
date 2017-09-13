@@ -1,4 +1,4 @@
-import { createProxySchema } from '../src/proxy-schema';
+import { weaveSchemas } from '../src/weave-schemas';
 import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import {
     DocumentNode, execute, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
@@ -8,7 +8,7 @@ import { transformSchema } from '../src/graphql/schema-transformer';
 import { Query } from '../src/graphql/common';
 import { assertSuccessfulResult } from '../src/graphql/execution-result';
 
-describe('proxy-schema', () => {
+describe('weaveSchemas', () => {
     const testSchema = new GraphQLSchema({
         query: new GraphQLObjectType({
             name: 'Query',
@@ -34,7 +34,7 @@ describe('proxy-schema', () => {
             }
         };
 
-        const proxySchema = await createProxySchema({
+        const wovenSchema = await weaveSchemas({
             endpoints: [
                 {
                     client
@@ -43,14 +43,14 @@ describe('proxy-schema', () => {
         });
 
         const context = {the: 'context'};
-        const result = await graphql(proxySchema, '{test}', undefined, context);
+        const result = await graphql(wovenSchema, '{test}', undefined, context);
         expect(wasExecuted).toBeTruthy('Endpoint was not called');
         expect(capturedContext).toBe(context, 'Context was not passed to endpoint');
     });
 
     it('allows to customize pre-merge pipeline', async () => {
         const module = new ScreamModule();
-        const proxySchema = await createProxySchema({
+        const wovenSchema = await weaveSchemas({
             endpoints: [
                 {
                     schema: testSchema
@@ -65,7 +65,7 @@ describe('proxy-schema', () => {
 
         expect(module.schemaPipelineExecuted).toBeTruthy('Schema pipeline was not executed');
 
-        const result = await graphql(proxySchema, '{TEST}');
+        const result = await graphql(wovenSchema, '{TEST}');
         const data = assertSuccessfulResult(result);
 
         expect(module.queryPipelineExecuted).toBeTruthy('Query pipeline was not executed');
@@ -74,7 +74,7 @@ describe('proxy-schema', () => {
 
     it('allows to customize post-merge pipeline', async () => {
         const module = new ScreamModule();
-        const proxySchema = await createProxySchema({
+        const wovenSchema = await weaveSchemas({
             endpoints: [
                 {
                     schema: testSchema
@@ -89,7 +89,7 @@ describe('proxy-schema', () => {
 
         expect(module.schemaPipelineExecuted).toBeTruthy('Schema pipeline was not executed');
 
-        const result = await graphql(proxySchema, '{TEST}');
+        const result = await graphql(wovenSchema, '{TEST}');
         const data = assertSuccessfulResult(result);
 
         expect(module.queryPipelineExecuted).toBeTruthy('Query pipeline was not executed');

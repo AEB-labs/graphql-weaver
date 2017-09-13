@@ -1,6 +1,6 @@
 import {
     CustomEndpointConfig, EndpointConfig, HttpEndpointConfig, LocalEndpointConfig
-} from '../config/proxy-configuration';
+} from '../config/weaving-config';
 import { GraphQLClient } from './graphql-client';
 import { HttpGraphQLClient } from './http-client';
 import { LocalGraphQLClient } from './local-client';

@@ -370,7 +370,7 @@ export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: Grap
         throw new Error(`Type of argument field ${config.linkConfig.field}:${config.linkConfig.argument} must be scalar type or list/non-null-type of a scalar type, but is ${argumentType}`);
     }
     if (argumentType != linkKeyType) {
-        console.warn(`WARN [graphql-proxy]: Key field type mismatch in @link on ${config.parentObjectType.name}.${config.linkFieldName} (has type ${linkKeyType}, but type of argument ${config.linkConfig.field}:${config.linkConfig.argument} is ${argumentType}`);
+        console.warn(`WARN [graphql-weaver]: Key field type mismatch in @link on ${config.parentObjectType.name}.${config.linkFieldName} (has type ${linkKeyType}, but type of argument ${config.linkConfig.field}:${config.linkConfig.argument} is ${argumentType}`);
     }
 
     // Even if the types do not match, we can still continue and just pass the link value as argument. For ID/String/Int mismatches, this should not be a problem.

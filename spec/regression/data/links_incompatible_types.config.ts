@@ -1,7 +1,7 @@
 import { GraphQLBoolean, GraphQLID, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { ProxyConfig } from '../../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../../src/config/weaving-config';
 
-export async function getConfig(): Promise<ProxyConfig> {
+export async function getConfig(): Promise<WeavingConfig> {
     return {
         endpoints: [
             {

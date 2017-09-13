@@ -1,5 +1,5 @@
 {
-  "name": "@aeb/graphql-proxy",
+  "name": "graphql-weaver",
   "version": "0.8.5",
   "description": "A tool to combine, link and transform GraphQL schemas",
   "main": "dist/main.js",
@@ -9,15 +9,12 @@
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
   },
-  "publishConfig": {
-    "registry": "https://registry.next.labs.aeb.com/repository/next.npm.releases/"
-  },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.aeb.com/next-playground/graphql-proxy.git"
+    "url": "https://github.com/aeb-labs/graphql-weaver.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/body-parser": "^1.16.3",
     "@types/cors": "^2.8.1",

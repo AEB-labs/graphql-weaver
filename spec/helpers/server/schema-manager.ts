@@ -1,6 +1,6 @@
 import {SchemaProvider} from "./schema-provider";
 import {GraphQLSchema} from "graphql";
-import { ProxyConfig } from '../../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../../src/config/weaving-config';
 
 export class SchemaManager implements SchemaProvider {
     private currentSchema?: GraphQLSchema = undefined;
@@ -9,7 +9,7 @@ export class SchemaManager implements SchemaProvider {
         return this.currentSchema;
     }
 
-    private buildSchema(config: ProxyConfig) {
+    private buildSchema(config: WeavingConfig) {
 
     }
 

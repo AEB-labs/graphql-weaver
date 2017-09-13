@@ -4,9 +4,9 @@ import { GraphQLClient } from '../graphql-client/graphql-client';
 import { PipelineConfig } from '../pipeline/pipeline-module';
 
 /**
- * The configuration for creating a proxy schema
+ * The configuration for weaving schemas
  */
-export interface ProxyConfig {
+export interface WeavingConfig {
     /**
      * A list of endpoints to include in the schema
      */

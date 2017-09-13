@@ -1,4 +1,4 @@
-import { ProxyConfig } from './config/proxy-configuration';
+import { WeavingConfig } from './config/weaving-config';
 import { buildClientSchema, GraphQLSchema, introspectionQuery, IntrospectionQuery, parse } from 'graphql';
 import { DefaultClientFactory } from './graphql-client/client-factory';
 import { runPipeline } from './pipeline/pipeline';
@@ -12,8 +12,8 @@ import { assertSuccessfulResult } from './graphql/execution-result';
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
 
-export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSchema> {
-    validateProxyConfig(config);
+export async function weaveSchemas(config: WeavingConfig): Promise<GraphQLSchema> {
+    validateConfig(config);
 
     const endpoints = await Promise.all(config.endpoints.map(async config => {
         const endpoint = endpointFactory.getEndpoint(config);
@@ -31,7 +31,7 @@ export async function createProxySchema(config: ProxyConfig): Promise<GraphQLSch
     return runPipeline(endpoints, config.pipelineConfig).schema;
 }
 
-function validateProxyConfig(config: ProxyConfig) {
+function validateConfig(config: WeavingConfig) {
     // TODO push code to new file/class ProxyConfigValidator
     config.endpoints.forEach(endpointConfig => {
         if (!endpointConfig.identifier && endpointConfig.namespace) {

@@ -1,8 +1,8 @@
 // Main function
-export { createProxySchema } from './src/proxy-schema';
+export { weaveSchemas, weaveSchemas as createProxySchema } from './src/weave-schemas';
 
 // Configuration
-export { ProxyConfig, EndpointConfig } from './src/config/proxy-configuration';
+export { WeavingConfig, WeavingConfig as ProxyConfig, EndpointConfig } from './src/config/weaving-config';
 export {
     PipelineConfig, PreMergeModuleContext, PostMergeModuleContext, PipelineModule
 } from './src/pipeline/pipeline-module';

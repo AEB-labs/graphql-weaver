@@ -1,6 +1,6 @@
 import { PipelineModule } from './pipeline-module';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
-import { EndpointConfig } from '../config/proxy-configuration';
+import { EndpointConfig } from '../config/weaving-config';
 import { mergeFieldMetadata } from '../extended-schema/merge-extended-schemas';
 import { objectToMap } from '../utils/utils';
 

@@ -1,5 +1,5 @@
 import { GraphQLSchema } from 'graphql';
-import { EndpointConfig } from '../config/proxy-configuration';
+import { EndpointConfig } from '../config/weaving-config';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { Query } from '../graphql/common';

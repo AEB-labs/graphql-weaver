@@ -102,7 +102,7 @@ export class LinksModule implements PipelineModule {
                         fieldStackTop.isLinkFieldSelectedYet = false;
                         const transformationInfo = this.transformationInfo!.getJoinTransformationInfo(parentType.name, typeInfo.getFieldDef().name);
                         if (!transformationInfo) {
-                            // no transformation info means, that the join is handled by another proxy of a nested schema
+                            // no transformation info means, that the join is handled by a nested graphql-weaver
                             return child;
                         }
 

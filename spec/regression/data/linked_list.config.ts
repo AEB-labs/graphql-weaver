@@ -1,5 +1,5 @@
 import { GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { ProxyConfig } from '../../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../../src/config/weaving-config';
 
 const travellingPersonType = new GraphQLObjectType({
     name: 'TravellingPerson',
@@ -9,7 +9,7 @@ const travellingPersonType = new GraphQLObjectType({
     }
 });
 
-export async function getConfig(): Promise<ProxyConfig> {
+export async function getConfig(): Promise<WeavingConfig> {
     return {
         endpoints: [
             {

@@ -1,8 +1,8 @@
 import * as fs from 'fs-extra';
 import TraceError = require('trace-error');
-import { ProxyConfig } from '../../src/config/proxy-configuration';
+import { WeavingConfig } from '../../src/config/weaving-config';
 
-export async function loadProxyConfig(fileName: string): Promise<ProxyConfig> {
+export async function loadProxyConfig(fileName: string): Promise<WeavingConfig> {
     await fs.ensureFile(fileName);
     const contents = await fs.readFile(fileName, 'utf-8');
     let json;
