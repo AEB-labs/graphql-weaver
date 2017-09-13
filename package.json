@@ -7,7 +7,7 @@
   "scripts": {
     "build": "rimraf dist && tsc && dependency-check ./package.json",
     "start": "node graphql-proxy",
-    "test": "tsc --noEmit --skipLibCheck && node graphql-proxy-test"
+    "test": "tsc --noEmit --skipLibCheck && node graphql-weaver-test"
   },
   "repository": {
     "type": "git",
