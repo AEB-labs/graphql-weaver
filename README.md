@@ -1,12 +1,16 @@
 # graphql-weaver
 
+[![npm version](https://badge.fury.io/js/graphql-weaver.svg)](https://npmjs.org/graphql-weaver)
+
 A tool to combine, link and transform GraphQL schemas
 
 Use graphql-weaver if you have multiple GraphQL servers and want to combine them into one API. Features like namespacing, links and custom transformation modules allow you to augment the API as you like.
 
 ## How to use
 
-`npm install --save graphql-weaver`
+```bash
+npm install --save graphql-weaver
+```
 
 Basic usage:
 
