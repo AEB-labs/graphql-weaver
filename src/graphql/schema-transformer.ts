@@ -343,7 +343,8 @@ class Transformer {
                 oldOuterType: type,
                 newOuterType: this.mapType(type)
             }, transformer),
-            interfaces: type.getInterfaces().map(iface => this.mapType(iface))
+            interfaces: type.getInterfaces().map(iface => this.mapType(iface)),
+            isTypeOf: type.isTypeOf
         };
         if (transformer.transformObjectType) {
             config = transformer.transformObjectType(config, {...this.transformationContext, oldType: type});
