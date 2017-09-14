@@ -15,7 +15,7 @@ npm install --save graphql-weaver
 Basic usage:
 
 ```typescript
-const schema: GraphQLSchema = weaveSchemas({
+const schema: GraphQLSchema = await weaveSchemas({
     endpoints: [{
         namespace: 'model',
         typePrefix: 'Model',
@@ -36,7 +36,7 @@ In its basic configuration, `weaveSchemas` merges the query, mutation and subscr
 In the spirit of GraphQL, this tool allows you to create links between objects of different endpoints. Suppose you have a music recommendation service and a music library service. You can make the whole properties of a song available in the recommendation API without the recommendation service knowing all song properties.
 
 ```typescript
-const schema: GraphQLSchema = weaveSchemas({
+const schema: GraphQLSchema = await weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
@@ -76,7 +76,7 @@ query {
 If there are many recommendations, this is ineficcient because all songs are queried independently.  If the library schema supports querying multiple songs at once, you can set `batchMode` to `true`. If the library schema may return the songs in a different order than the ids its get, you need to set `keyField` too.
 
 ```typescript
-const schema: GraphQLSchema = weaveSchema({
+const schema: GraphQLSchema = await weaveSchema({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
@@ -102,7 +102,7 @@ const schema: GraphQLSchema = weaveSchema({
 What if you want to sort the recommendations by the song age, or filter by artist? The recommendation service currently does not know about these fields, so it does not offer an API to sort or order by any of them. Using graphql-weaver, this problem is easily solved:
 
 ```typescript
-const schema: GraphQLSchema = weaveSchemas({
+const schema: GraphQLSchema = await weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
