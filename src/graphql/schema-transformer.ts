@@ -2,14 +2,16 @@ import {
     GraphQLArgument, GraphQLDirective, GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfigMap, GraphQLField,
     GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFieldMap, GraphQLInputField,
     GraphQLInputFieldConfig, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputObjectTypeConfig,
-    GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType,
+    GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLIsTypeOfFn, GraphQLList, GraphQLNamedType, GraphQLNonNull,
+    GraphQLObjectType,
     GraphQLObjectTypeConfig, GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLSchema, GraphQLType,
-    GraphQLTypeResolver, GraphQLUnionType, GraphQLUnionTypeConfig, isInputType
+    GraphQLTypeResolver, GraphQLUnionType, GraphQLUnionTypeConfig
 } from 'graphql';
 import { isNativeDirective, isNativeGraphQLType } from './native-symbols';
 import { GraphQLDirectiveConfig } from 'graphql/type/directives';
 import { bindNullable, compact, objectValues } from '../utils/utils';
-import {introspectionTypes} from "./language-utils";
+import { introspectionTypes } from './language-utils';
+import { orderTypesTopologically } from './schema-utils';
 
 export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -200,13 +202,11 @@ class Transformer {
 
         // Dependencies between fields and their are broken up via GraphQL's thunk approach (fields are only requested when
         // needed, which is after all types have been converted). However, an object's reference to its implemented
-        // interfaces does not support the thunk approach, so we need to make sure they are transformed first
-        const originalTypes = objectValues(schema.getTypeMap());
-        const orderedTypes = [
-            ...originalTypes.filter(t => t instanceof GraphQLInterfaceType),
-            ...originalTypes.filter(t => !(t instanceof GraphQLInterfaceType))
-        ];
-        for (const type of orderedTypes) {
+        // interfaces and a union's reference to its option types do not support the thunk approach, so we need to make
+        // sure they are transformed first
+        // -> interfaces first, then objects, then unions
+        const originalTypes = orderTypesTopologically(objectValues(schema.getTypeMap()));
+        for (const type of originalTypes) {
             this.processType(type);
         }
 

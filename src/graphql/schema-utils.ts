@@ -1,4 +1,7 @@
-import {getNullableType,GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull,GraphQLObjectType, GraphQLSchema,GraphQLType} from 'graphql';
+import {
+    getNullableType, GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull,
+    GraphQLObjectType, GraphQLSchema, GraphQLType, GraphQLUnionType
+} from 'graphql';
 
 /**
  * Finds a field by traversing a schema from field to field
@@ -46,4 +49,21 @@ export function isRootType(type: GraphQLType, schema: GraphQLSchema) {
     return type == schema.getQueryType() ||
         type == schema.getMutationType() ||
         type == schema.getSubscriptionType();
+}
+
+/**
+ * Orders the given types so that no forward references occur when traversing the type hierarchy
+ * Note that only interface implementations and union option types are respected, fields are not included
+ */
+export function orderTypesTopologically<T extends GraphQLType>(types: T[]): T[] {
+    function order(t: GraphQLType) {
+        if (t instanceof GraphQLInterfaceType) {
+            return 0;
+        }
+        if (t instanceof GraphQLUnionType) {
+            return 2;
+        }
+        return 1;
+    }
+    return [...types].sort((a, b) => order(a) - order(b));
 }

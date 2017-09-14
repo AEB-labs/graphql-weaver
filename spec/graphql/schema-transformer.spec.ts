@@ -1,7 +1,10 @@
 import {
-    GraphQLFieldConfigMap, GraphQLInt, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLSchema, GraphQLString
+    GraphQLFieldConfigMap, GraphQLInt, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLSchema, GraphQLString,
+    GraphQLUnionType
 } from 'graphql';
-import { FieldsTransformationContext, transformSchema } from '../../src/graphql/schema-transformer';
+import {
+    FieldsTransformationContext, GraphQLNamedFieldConfig, transformSchema
+} from '../../src/graphql/schema-transformer';
 import { walkFields } from '../../src/graphql/schema-utils';
 
 describe('schema-transformer', () => {
@@ -36,7 +39,7 @@ describe('schema-transformer', () => {
                             return {
                                 ...typeConfig,
                                 name: 'Type2'
-                            }
+                            };
                         },
 
                         transformFields(fieldConfig: GraphQLFieldConfigMap<any, any>) {
@@ -46,7 +49,7 @@ describe('schema-transformer', () => {
                                     type: GraphQLInt,
                                     resolve: () => 42
                                 }
-                            }
+                            };
                         }
                     });
 
@@ -66,5 +69,44 @@ describe('schema-transformer', () => {
         expect(walkFields(newSchema.getQueryType(), ['field2', 'scalar'])).toBeDefined('type2.scalar is missing');
         expect(walkFields(newSchema.getQueryType(), ['field1', 'clone'])).toBeUndefined('type2.clone should not be there');
         expect(walkFields(newSchema.getQueryType(), ['field2', 'clone'])).toBeDefined('type2.clone is missing');
-    })
+    });
+
+    it('supports union types', () => {
+        const option1 = new GraphQLObjectType({
+            name: 'Option1',
+            fields: {option1: {type: GraphQLInt}},
+            isTypeOf: (obj) => { return 'option1' in obj; }
+        });
+        const option2 = new GraphQLObjectType({
+            name: 'Option2',
+            fields: {option2: {type: GraphQLInt}},
+            isTypeOf: (obj) => { return 'option1' in obj; }
+        });
+
+        const schema = new GraphQLSchema({
+            query: new GraphQLObjectType({
+                name: 'Query',
+                fields: {
+                    union: {
+                        type: new GraphQLUnionType({
+                            name: 'Union',
+                            types: [ option1, option2 ]
+                        })
+                    }
+                }
+            })
+        });
+
+        const newSchema = transformSchema(schema, {
+            transformField(config: GraphQLNamedFieldConfig<any, any>) {
+                return {
+                    ...config,
+                    name: config.name + '_'
+                };
+            }
+        });
+        const unionType = newSchema.getQueryType().getFields()['union_'].type;
+        expect(unionType instanceof GraphQLUnionType).toBeTruthy();
+        expect((unionType as GraphQLUnionType).getTypes().length).toBe(2);
+    });
 });
