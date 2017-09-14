@@ -191,6 +191,58 @@ const schema: GraphQLSchema = weaveSchemas({
 
 For a simple module, see [`TypePrefixModule`](src/pipeline/type-prefixes.ts). The section *Architecture* below gives an overview over the pipeline architecture.
 
+To simplify modifications to a schema, graphql-weaver ships [`transformSchema`](src/graphql/schema-transformer.ts) (and [`transformExtendedSchema`](src/extended-schema/extended-schema-transformer.ts)). You can change types and fields as you like with a simple function:
+
+```typescript
+const transformedSchema = transformSchema(originalSchema, {
+    transformField(field: GraphQLNamedFieldConfig<any, any>, context) {
+        // Rename a field in a type
+        if (context.oldOuterType.name == 'MyType') {
+            return {
+                ...field,
+                name: field.name + 'ButCooler'
+            }
+        }
+        return field;
+    },
+
+    transformObjectType(type: GraphQLObjectTypeConfig<any, any>) {
+        if (type.name == 'MyType') {
+            return {
+                ...type,
+                name: 'MyCoolType'
+            };
+        }
+        return type;
+    },
+
+    transformFields(fields: GraphQLFieldConfigMap<any, any>, context) {
+        // You can even copy types on the fly and transform the copies
+        const type2 = context.copyType(context.oldOuterType, {
+            transformObjectType(typeConfig: GraphQLObjectTypeConfig<any, any>) {
+                return {
+                    ...typeConfig,
+                    name: typeConfig.name + '2',
+                    resolve: (source: any) => source
+                };
+            }
+        });
+
+        // This just adds a reflexive field "self" to all types, but its type does not have
+        // the "self" field (because it is a copy from the original type, see above)
+        // it also won't have the "cool" rename applied because the top-level transformers are not applied
+        return {
+            ...fields,
+            self: {
+                type: type2
+            }
+        }
+    }
+});
+```
+
+[This test case](spec/graphql/schema-transformer.spec.ts) demonstrates that and how it works.
+
 ## Contributing
 
 After cloning the repository, run

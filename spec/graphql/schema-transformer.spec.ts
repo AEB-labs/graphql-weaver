@@ -109,4 +109,81 @@ describe('schema-transformer', () => {
         expect(unionType instanceof GraphQLUnionType).toBeTruthy();
         expect((unionType as GraphQLUnionType).getTypes().length).toBe(2);
     });
+
+    it('supports the README case', () => {
+        const myType = new GraphQLObjectType({
+            name: 'MyType',
+            fields: {
+                name: {
+                    type: GraphQLString
+                }
+            }
+        });
+
+        const originalSchema = new GraphQLSchema({
+            query: new GraphQLObjectType({
+                name: 'Query',
+                fields: {
+                    myField: {
+                        type: myType
+                    }
+                }
+            })
+        });
+
+        const transformedSchema = transformSchema(originalSchema, {
+            transformField(field: GraphQLNamedFieldConfig<any, any>, context) {
+                // Rename a field in a type
+                if (context.oldOuterType.name == 'MyType') {
+                    return {
+                        ...field,
+                        name: field.name + 'ButCooler'
+                    }
+                }
+                return field;
+            },
+
+            transformObjectType(type: GraphQLObjectTypeConfig<any, any>) {
+                if (type.name == 'MyType') {
+                    return {
+                        ...type,
+                        name: 'MyCoolType'
+                    };
+                }
+                return type;
+            },
+
+            transformFields(fields: GraphQLFieldConfigMap<any, any>, context) {
+                // You can even copy types on the fly and transform the copies
+                const type2 = context.copyType(context.oldOuterType, {
+                    transformObjectType(typeConfig: GraphQLObjectTypeConfig<any, any>) {
+                        return {
+                            ...typeConfig,
+                            name: typeConfig.name + '2',
+                            resolve: (source: any) => source
+                        };
+                    }
+                });
+
+                // This just adds a reflexive field "self" to all types, but its type does not have
+                // the "self" field (because it is a copy from the original type, see above)
+                // it also won't have the "cool" rename applied because the top-level transformers are not applied
+                return {
+                    ...fields,
+                    self: {
+                        type: type2
+                    }
+                }
+            }
+        });
+
+        const myTypeRes = transformedSchema.getQueryType().getFields()['myField'].type as GraphQLObjectType;
+        expect(myTypeRes).toBeDefined();
+        expect(myTypeRes.getFields()['nameButCooler']).toBeDefined();
+        expect(myTypeRes.getFields()['self']).toBeDefined();
+        const reflexiveTypeRes = myTypeRes.getFields()['self'].type as GraphQLObjectType;
+        expect(reflexiveTypeRes.name).toBe('MyType2');
+        expect(reflexiveTypeRes.getFields()['self']).not.toBeDefined();
+        expect(reflexiveTypeRes.getFields()['name']).toBeDefined();
+    })
 });
