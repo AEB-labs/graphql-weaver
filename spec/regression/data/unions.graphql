@@ -1,0 +1,12 @@
+{
+    unions {
+        union {
+            ... on UOption1 {
+                option1
+            }
+            ... on UOption2 {
+                option2
+            }
+        }
+    }
+}
