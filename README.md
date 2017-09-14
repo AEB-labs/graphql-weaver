@@ -76,7 +76,7 @@ query {
 If there are many recommendations, this is ineficcient because all songs are queried independently.  If the library schema supports querying multiple songs at once, you can set `batchMode` to `true`. If the library schema may return the songs in a different order than the ids its get, you need to set `keyField` too.
 
 ```typescript
-const schema: GraphQLSchema = await weaveSchema({
+const schema: GraphQLSchema = await weaveSchemas({
     endpoints: [{
         namespace: 'library',
         url: 'http://example.com/library/graphql'
