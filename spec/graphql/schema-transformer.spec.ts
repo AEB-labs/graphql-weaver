@@ -159,8 +159,7 @@ describe('schema-transformer', () => {
                     transformObjectType(typeConfig: GraphQLObjectTypeConfig<any, any>) {
                         return {
                             ...typeConfig,
-                            name: typeConfig.name + '2',
-                            resolve: (source: any) => source
+                            name: typeConfig.name + '2'
                         };
                     }
                 });
@@ -171,7 +170,8 @@ describe('schema-transformer', () => {
                 return {
                     ...fields,
                     self: {
-                        type: type2
+                        type: type2,
+                        resolve: (source: any) => source
                     }
                 }
             }
