@@ -1,8 +1,10 @@
 import {
-    DocumentNode, FieldNode, getNamedType, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
+    DocumentNode, FieldNode, getNamedType, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
     GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType,
-    GraphQLInterfaceType, GraphQLList, GraphQLObjectType, GraphQLResolveInfo, OperationDefinitionNode, TypeInfo,
-    ValueNode, visit, visitWithTypeInfo
+    GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLObjectType, GraphQLResolveInfo, OperationDefinitionNode,
+    TypeInfo,
+    ValueNode, visit, visitWithTypeInfo, GraphQLInputObjectTypeConfig, Thunk, GraphQLArgumentConfig,
+    GraphQLEnumValueConfigMap
 } from 'graphql';
 import { PipelineModule } from './pipeline-module';
 import { ExtendedSchema, JoinConfig, LinkConfig } from '../extended-schema/extended-schema';
@@ -531,7 +533,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
         let newFilterType: GraphQLInputType | undefined;
         if (rightFilterArg) {
-            const newFilterTypeName = leftObjectType.name + 'With' + rightObjectType.name + 'Filter';
+            const newFilterTypeName = this.generateJoinFilterTypeName(leftObjectType, leftFilterArg, rightObjectType, rightFilterArg);
             let newFilterFields: GraphQLInputFieldConfigMap;
             if (!leftFilterArg) {
                 newFilterFields = {
@@ -540,6 +542,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
                 };
             } else {
+
                 const leftFilterType = context.mapType(leftFilterArg.type);
                 if (!(leftFilterType instanceof GraphQLInputObjectType)) {
                     throw new Error(`Expected filter argument of ${leftType.name}.${linkField.name} to be of InputObjectType`);
@@ -552,10 +555,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
                 };
             }
-            newFilterType = new GraphQLInputObjectType({
-                name: newFilterTypeName,
-                fields: newFilterFields
-            });
+            newFilterType = this.findOrCreateInputObjectType(newFilterTypeName, { fields: newFilterFields });
         } else {
             newFilterType = leftFilterArg ? leftFilterArg.type : undefined;
         }
@@ -582,7 +582,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             if (!(rightOrderByType instanceof GraphQLEnumType)) {
                 throw new Error(`Expected orderBy argument of ${targetField.name} to be of enum type`);
             }
-            const newOrderByTypeName = leftObjectType.name + 'With' + rightObjectType.name + 'OrderBy';
+            const newOrderByTypeName = this.generateJoinOrderByTypeName(leftObjectType, leftOrderByArg, rightObjectType, rightOrderByArg);
             let newEnumValues: GraphQLEnumValue[] = [];
             if (leftOrderByArg) {
                 const leftOrderByType = leftOrderByArg.type;
@@ -600,9 +600,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 })))
             ];
 
-
-            newOrderByType = new GraphQLEnumType({
-                name: newOrderByTypeName,
+            newOrderByType = newOrderByType = this.findOrCreateEnumType(newOrderByTypeName, {
                 values: arrayToObject(newEnumValues.map(({name, value, deprecationReason}) => ({
                     name, value, deprecationReason
                 })), val => val.name)
@@ -787,5 +785,51 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             }
         };
     }
+
+    protected generateJoinFilterTypeName(leftObjectType: GraphQLNamedType, leftFilterArg: GraphQLArgument, rightObjectType: GraphQLNamedType, rightFilterArg: GraphQLArgument): string {
+        let leftPart = "";
+        let rightPart = "";
+        if (leftFilterArg) {
+            leftPart = leftFilterArg.type instanceof GraphQLInputObjectType ? leftFilterArg.type.name.replace(/Filter$/, '') : leftObjectType.name;
+        }
+        if (rightFilterArg) {
+            rightPart = rightFilterArg.type instanceof GraphQLInputObjectType ? rightFilterArg.type.name.replace(/Filter$/, '') : rightObjectType.name;
+        }
+        const separator = leftPart && rightPart ? 'With' : '';
+        return `${leftPart}${separator}${rightPart}JoinedFilter`;
+    }
+
+    protected generateJoinOrderByTypeName(leftObjectType: GraphQLNamedType, leftOrderArg: GraphQLArgumentConfig|undefined, rightObjectType: GraphQLNamedType, rightOrderArg: GraphQLArgumentConfig): string {
+        let leftPart = "";
+        let rightPart = "";
+        if (leftOrderArg) {
+            leftPart = leftOrderArg.type instanceof GraphQLEnumType ? leftOrderArg.type.name.replace(/OrderBy$/, '') : leftObjectType.name;
+        }
+        if (rightOrderArg) {
+            rightPart = rightOrderArg.type instanceof GraphQLEnumType ? rightOrderArg.type.name.replace(/OrderBy$/, '') : rightObjectType.name;
+        }
+        const separator = leftPart && rightPart ? 'With' : '';
+        return `${leftPart}${separator}${rightPart}JoinedOrderBy`;
+    }
+
+    protected findOrCreateInputObjectType(name: string, fallback: { fields: Thunk<GraphQLInputFieldConfigMap>, description?: string }): GraphQLInputObjectType|GraphQLEnumType {
+        let result = this.inputObjectTypeMap[name];
+        if (!result) {
+            result = new GraphQLInputObjectType({ ...fallback, name: name });
+            this.inputObjectTypeMap[name] = result;
+        }
+        return result;
+    }
+
+    protected findOrCreateEnumType(name: string, fallback: {values: GraphQLEnumValueConfigMap, description?: string;}): GraphQLInputObjectType|GraphQLEnumType {
+        let result = this.inputObjectTypeMap[name];
+        if (!result) {
+            result = new GraphQLEnumType({ ...fallback, name: name });
+            this.inputObjectTypeMap[name] = result;
+        }
+        return result;
+    }
+
+    private inputObjectTypeMap: { [typeName: string]: GraphQLInputObjectType|GraphQLEnumType } = {};
 
 }
