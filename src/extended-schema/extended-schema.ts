@@ -11,7 +11,7 @@ export interface LinkConfig {
     batchMode: boolean
     keyField?: string
     ignore?: boolean
-
+    oneToMany?: boolean
     /**
      * If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.
      */

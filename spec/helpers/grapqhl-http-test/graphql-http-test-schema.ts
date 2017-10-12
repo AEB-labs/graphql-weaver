@@ -92,6 +92,9 @@ export const defaultTestSchema = new GraphQLSchema({
                 type: new GraphQLList(testTypes.personType),
                 resolve: async (obj, args) => {
                     let people = await allPeople;
+                    if(args.nationality) {
+                        people = people.filter(p => p.nationality === args.nationality);
+                    }
                     if (args.filter && args.filter.isCool != undefined) {
                         people = people.filter(person => args.filter.isCool === person.isCool);
                     }
@@ -110,7 +113,8 @@ export const defaultTestSchema = new GraphQLSchema({
                     filter: {type: testTypes.personFilterType},
                     orderBy: {type: testTypes.personOrderType},
                     last: {type: GraphQLInt},
-                    first: {type: GraphQLInt}
+                    first: {type: GraphQLInt},
+                    nationality: {type: GraphQLString}
                 }
             }
         }

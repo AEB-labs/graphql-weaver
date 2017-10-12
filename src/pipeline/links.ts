@@ -481,7 +481,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     return fetchDeferred(key, info, context);
                 }
             },
-            type: isListMode ? new GraphQLList(targetRawType) : targetRawType
+            type: isListMode || linkConfig.oneToMany ? new GraphQLList(targetRawType) : targetRawType
         };
     }
 
