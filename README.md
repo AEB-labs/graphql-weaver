@@ -99,6 +99,46 @@ const schema: GraphQLSchema = await weaveSchemas({
 });
 ```
 
+In the case where you want to perfom a link from a single id to a list of many related items, include `linkFieldName` as an alias for the linked list of items, and the `oneToMany` flag. 
+```typescript
+const schema: GraphQLSchema = await weaveSchemas({
+    endpoints: [{
+        namespace: 'library',
+        url: 'http://example.com/library/graphql'
+    }, {
+        namespace: 'recommendations',
+        url: 'http://example.com/recommendations/graphql',
+        fieldMetadata: {
+            'Artist.name': { // Field name in type Artist
+                link: {
+                    field: 'library.allSongs', // field allSongs in namespace library
+                    argument: 'filter.artistName', // argument of library.Song
+                    batchMode: false,
+                    oneToMany: true,
+                    linkFieldName: 'songsByThisArtist'
+                }
+            }
+        }
+     }]
+});
+```
+This assumes the library schema has a field `allSongs` which accepts a `filter` argument, where one of the filter properties is `artistName`. This also assumes that the recommendations schema has a type `Artist` with a field `name` which contains the artists name. This configuration will add new virtual field `songsByThisArtist` on the `Artist` type which will allow you to query an Artist along with their songs like this:
+
+```graphql
+query {
+    recommendations {
+        myFavoriteArtists {
+            name
+            genre
+            songsByThisArtist {
+                id
+                title
+                year
+            }
+        }
+    }
+}
+```
 ### Joins
 
 What if you want to sort the recommendations by the song age, or filter by artist? The recommendation service currently does not know about these fields, so it does not offer an API to sort or order by any of them. Using graphql-weaver, this problem is easily solved:
