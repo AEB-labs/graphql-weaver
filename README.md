@@ -6,6 +6,8 @@ A tool to combine, link and transform GraphQL schemas
 
 Use graphql-weaver if you have multiple GraphQL servers and want to combine them into one API. Features like namespacing, links and custom transformation modules allow you to augment the API as you like.
 
+**[Try it online in Apollo Launchpad](https://launchpad.graphql.com/0m5x0k495)**
+
 ## How to use
 
 ```bash
