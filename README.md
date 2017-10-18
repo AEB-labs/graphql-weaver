@@ -57,7 +57,7 @@ const schema: GraphQLSchema = await weaveSchemas({
      }]
 });
 ```
-This assumes the library schema has a field `Song` which accepts a `id` argument, and the recommendations schema has a type `Recommendation` with a field `song` which contains the song id. Then, you can query the recommendations with all song information like this:
+This assumes the library schema has a field `Song` with argument `id`, and the recommendations schema has a type `Recommendation` with a field `song` which contains the song id. Then, you can query the recommendations with all song information like this:
 
 ```graphql
 query {
@@ -224,8 +224,7 @@ const transformedSchema = transformSchema(originalSchema, {
             transformObjectType(typeConfig: GraphQLObjectTypeConfig<any, any>) {
                 return {
                     ...typeConfig,
-                    name: typeConfig.name + '2',
-                    resolve: (source: any) => source
+                    name: typeConfig.name + '2'
                 };
             }
         });
@@ -236,7 +235,8 @@ const transformedSchema = transformSchema(originalSchema, {
         return {
             ...fields,
             self: {
-                type: type2
+                type: type2,
+                resolve: (source: any) => source
             }
         }
     }
