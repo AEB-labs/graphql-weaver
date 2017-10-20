@@ -423,6 +423,12 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         if (linkConfig.keyField && !(linkConfig.keyField in targetRawType.getFields())) {
             throw new Error(`Link on ${context.oldOuterType}.${config.name} defines keyField as ${linkConfig.keyField}, but there is no such field in target type ${targetRawType}.`);
         }
+        if(linkConfig.batchMode && linkConfig.oneToMany) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies both batchMode and oneToMany, but these modes are mutually exclusive.`);
+        }
+        if(linkConfig.oneToMany && !isListType(targetField.type)) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies oneToMany, but ${linkConfig.field} is not of type GraphQLList.`);
+        }
 
         const isListMode = isListType(config.type);
         const keyType = getKeyType({
@@ -481,7 +487,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     return fetchDeferred(key, info, context);
                 }
             },
-            type: isListMode ? new GraphQLList(targetRawType) : targetRawType
+            type: isListMode || linkConfig.oneToMany ? new GraphQLList(targetRawType) : targetRawType
         };
     }
 
@@ -502,6 +508,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         }
         if (!linkConfig.batchMode || !linkConfig.keyField) {
             throw new Error(`@join only possible on @link fields with batchMode=true and keyField set`);
+        }
+        if (linkConfig.oneToMany) {
+            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies oneToMany, but @join does not support one-to-many links.`);
         }
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
         throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
