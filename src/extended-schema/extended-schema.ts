@@ -28,7 +28,7 @@ export interface LinkConfig {
      */
     batchMode: boolean
     /**
-     * When using batchMode, this specifies the field on the source type to gather agument values to be used in the batched request
+     * When using batchMode, you can set this to a field in the target type which will be compared against the key values to match target objects to the link locations. If omitted, the elements returned by the target fields are assumed to be in the same order as the keys given as argument value.
      * 
      * @type {string}
      * @memberof LinkConfig
