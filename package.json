@@ -19,7 +19,7 @@
     "@types/body-parser": "^1.16.3",
     "@types/cors": "^2.8.1",
     "@types/fs-extra": "^3.0.2",
-    "@types/graphql": "^0.10.0",
+    "@types/graphql": "^0.11.5",
     "@types/jasmine": "^2.5.52",
     "@types/node": "^7.0.22",
     "@types/node-fetch": "^1.6.7",
@@ -27,7 +27,7 @@
     "cors": "^2.8.3",
     "express": "^4.15.3",
     "fs-extra": "^3.0.1",
-    "graphql": "^0.10.0",
+    "graphql": "^0.11.7",
     "graphql-server-express": "^1.1.0",
     "jasmine": "^2.6.0",
     "jasmine-promises": "^0.4.1",
@@ -45,7 +45,7 @@
     "trace-error": "~0.0.7"
   },
   "peerDependencies": {
-    "@types/graphql": "~0.10.0",
-    "graphql": "~0.10.0"
+    "@types/graphql": "~0.10.0 || ~0.11.0",
+    "graphql": "~0.10.0 || ~0.11.0"
   }
 }
