@@ -4,7 +4,7 @@ import {
     DocumentNode, execute, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
 } from 'graphql';
 import { PipelineModule, PostMergeModuleContext, PreMergeModuleContext } from '../src/pipeline/pipeline-module';
-import { transformSchema } from '../src/graphql/schema-transformer';
+import { transformSchema } from 'graphql-transformer';
 import { Query } from '../src/graphql/common';
 import { assertSuccessfulResult } from '../src/graphql/execution-result';
 

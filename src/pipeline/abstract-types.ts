@@ -4,7 +4,7 @@ import {
     FieldNode, getNamedType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLSchema,
     GraphQLTypeResolver, GraphQLUnionTypeConfig, isAbstractType, SelectionSetNode, TypeInfo, visit, visitWithTypeInfo
 } from 'graphql';
-import { SchemaTransformationContext, SchemaTransformer, transformSchema } from '../graphql/schema-transformer';
+import { SchemaTransformationContext, SchemaTransformer, transformSchema } from 'graphql-transformer';
 import { Query } from '../graphql/common';
 import { getAliasOrName } from '../graphql/language-utils';
 

@@ -1,11 +1,10 @@
 import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 import {
-    bindTransformerFunctions,
     FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext,
     SchemaTransformer, transformSchema
-} from '../graphql/schema-transformer';
+} from 'graphql-transformer';
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
-import { mapValues, maybeDo } from '../utils/utils';
+import { bindNullable, mapValues, maybeDo } from '../utils/utils';
 
 export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -130,4 +129,18 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
 
     const newSchema = transformSchema(schema.schema, regularTransformer);
     return new ExtendedSchema(newSchema, new SchemaMetadata({fieldMetadata}));
+}
+
+function bindTransformerFunctions(t: SchemaTransformer): SchemaTransformer {
+    return {
+        transformScalarType: bindNullable(t.transformScalarType, t),
+        transformEnumType: bindNullable(t.transformEnumType, t),
+        transformInterfaceType: bindNullable(t.transformInterfaceType, t),
+        transformInputObjectType: bindNullable(t.transformInputObjectType, t),
+        transformUnionType: bindNullable(t.transformUnionType, t),
+        transformObjectType: bindNullable(t.transformObjectType, t),
+        transformDirective: bindNullable(t.transformDirective, t),
+        transformField: bindNullable(t.transformField, t),
+        transformInputField: bindNullable(t.transformInputField, t)
+    };
 }

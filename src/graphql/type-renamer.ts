@@ -1,5 +1,5 @@
 import { GraphQLSchema } from 'graphql';
-import { SchemaTransformer, transformSchema } from './schema-transformer';
+import { SchemaTransformer, transformSchema } from 'graphql-transformer';
 
 /**
  * Creates a new schema that equals the given one but with all names of non-native types transformed by a custom callback

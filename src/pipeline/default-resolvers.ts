@@ -1,5 +1,5 @@
 import { PipelineModule } from './pipeline-module';
-import { GraphQLNamedFieldConfig, SchemaTransformer } from '../graphql/schema-transformer';
+import { GraphQLNamedFieldConfig, SchemaTransformer } from 'graphql-transformer';
 
 /**
  * Replaces default (undefined) resolves with resolvers that use the alias instead of field name for lookup

@@ -12,7 +12,7 @@ import {
     ExtendedSchemaTransformer, GraphQLFieldConfigMapWithMetadata, GraphQLNamedFieldConfigWithMetadata,
     transformExtendedSchema
 } from '../extended-schema/extended-schema-transformer';
-import { FieldsTransformationContext, FieldTransformationContext } from '../graphql/schema-transformer';
+import { FieldsTransformationContext, FieldTransformationContext } from 'graphql-transformer';
 import { arrayToObject, compact, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {

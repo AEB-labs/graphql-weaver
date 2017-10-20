@@ -1,11 +1,6 @@
 import { PipelineModule } from './pipeline-module';
-import {
-    GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLNamedType, GraphQLScalarType, GraphQLSchema,
-    GraphQLString,
-    GraphQLType
-} from "graphql";
-import {objectValues} from "../utils/utils";
-import {SchemaTransformer} from "../graphql/schema-transformer";
+import { GraphQLScalarType } from 'graphql';
+import { SchemaTransformer } from 'graphql-transformer';
 
 /**
  * Overwrite the default behaviour from generateClientSchema which sets values of custom scalar types to false.

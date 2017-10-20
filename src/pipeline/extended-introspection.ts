@@ -3,7 +3,7 @@ import { GraphQLFieldConfigMap } from 'graphql';
 import {
     EXTENDED_INTROSPECTION_FIELD, getExtendedIntrospectionData, getExtendedIntrospectionType
 } from '../extended-schema/extended-introspection';
-import { FieldsTransformationContext, transformSchema } from '../graphql/schema-transformer';
+import { FieldsTransformationContext, transformSchema } from 'graphql-transformer';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 
 /**

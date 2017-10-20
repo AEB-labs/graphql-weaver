@@ -233,7 +233,7 @@ const schema: GraphQLSchema = weaveSchemas({
 
 For a simple module, see [`TypePrefixModule`](src/pipeline/type-prefixes.ts). The section *Architecture* below gives an overview over the pipeline architecture.
 
-To simplify modifications to a schema, graphql-weaver ships [`transformSchema`](src/graphql/schema-transformer.ts) (and [`transformExtendedSchema`](src/extended-schema/extended-schema-transformer.ts)). You can change types and fields as you like with a simple function:
+To simplify modifications to a schema, graphql-weaver ships [`graphql-transformer`](https://github.com/AEB-labs/graphql-transformer) (and [`transformExtendedSchema`](src/extended-schema/extended-schema-transformer.ts)). You can change types and fields as you like with a simple function:
 
 ```typescript
 const transformedSchema = transformSchema(originalSchema, {
@@ -283,7 +283,7 @@ const transformedSchema = transformSchema(originalSchema, {
 });
 ```
 
-[This test case](spec/graphql/schema-transformer.spec.ts) demonstrates that and how it works.
+For more information, refer to the [graphql-transformer](https://github.com/AEB-labs/graphql-transformer) project.
 
 ## Contributing
 

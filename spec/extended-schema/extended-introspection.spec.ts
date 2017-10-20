@@ -6,7 +6,7 @@ import {
 } from '../../src/extended-schema/extended-introspection';
 import { fetchSchemaMetadata } from '../../src/extended-schema/fetch-metadata';
 import { LocalGraphQLClient } from '../../src/graphql-client/local-client';
-import { transformSchema } from '../../src/graphql/schema-transformer';
+import { transformSchema } from 'graphql-transformer';
 import { filterValues, objectFromKeys } from '../../src/utils/utils';
 import { assertSuccessfulResult } from '../../src/graphql/execution-result';
 
