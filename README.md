@@ -99,7 +99,7 @@ const schema: GraphQLSchema = await weaveSchemas({
 });
 ```
 
-In the case where you want to perfom a link from a single id to a list of many related items, include `linkFieldName` as an alias for the linked list of items, and the `oneToMany` flag. 
+In the case where you want to perfom a link from a single id to a list of many related items, include `linkFieldName` as an alias for the linked list of items, and the `oneToMany` flag. Since we are making a single request for a GraphQL list of items, batchMode is not required and should be set to false. 
 ```typescript
 const schema: GraphQLSchema = await weaveSchemas({
     endpoints: [{
@@ -113,9 +113,9 @@ const schema: GraphQLSchema = await weaveSchemas({
                 link: {
                     field: 'library.allSongs', // field allSongs in namespace library
                     argument: 'filter.artistName', // argument of library.Song
-                    batchMode: false,
+                    batchMode: false, // batchMode must be set to false
                     oneToMany: true,
-                    linkFieldName: 'songsByThisArtist'
+                    linkFieldName: 'songsByThisArtist' // the "virtual" field that will be populated
                 }
             }
         }

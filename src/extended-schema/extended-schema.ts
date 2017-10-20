@@ -6,14 +6,53 @@ export interface FieldMetadata {
 }
 
 export interface LinkConfig {
+    /**
+     * The field name on the target type that will be used to populate the link.
+     * 
+     * @type {string}
+     * @memberof LinkConfig
+     */
     field: string
+    /**
+     * The argument to use when requesting data from the target field.
+     * 
+     * @type {string}
+     * @memberof LinkConfig
+     */
     argument: string
+    /**
+     * When requesting mutiple items from a target field that supports an argument list set batchMode to "true" to submit all argument values in a single batch.
+     * 
+     * @type {boolean}
+     * @memberof LinkConfig
+     */
     batchMode: boolean
+    /**
+     * When using batchMode, this specifies the field on the source type to gather agument values to be used in the batched request
+     * 
+     * @type {string}
+     * @memberof LinkConfig
+     */
     keyField?: string
+    /**
+     * Disables the processing of this metaData. No links will be produced in the weaved schema.
+     * 
+     * @type {boolean}
+     * @memberof LinkConfig
+     */
     ignore?: boolean
+    /**
+     * Set to "true" to link this field to multiple target objects. The target field should accept one key as an argument and return a list of items. A linkFieldName is required to create a virtual field to contain the linked data. This cannot be combined with batchMode.
+     * 
+     * @type {boolean}
+     * @memberof LinkConfig
+     */
     oneToMany?: boolean
     /**
-     * If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field.
+     * If specified, a new field with this name will be added with the target type. If not specified, the annotated field will be replaced with the link field. If creating a one-to-many link, this is required to create a virtual field to contain the linked list of data.
+     * 
+     * @type {string}
+     * @memberof LinkConfig
      */
     linkFieldName?: string
 }
