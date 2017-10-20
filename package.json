@@ -2,8 +2,8 @@
   "name": "graphql-weaver",
   "version": "0.10.0",
   "description": "A tool to combine, link and transform GraphQL schemas",
-  "main": "dist/main.js",
-  "types": "./dist/main.d.ts",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc && dependency-check ./package.json",
     "start": "node graphql-proxy",
