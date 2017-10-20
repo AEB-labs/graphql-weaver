@@ -60,3 +60,4 @@ reports/
 
 # .npmignore specifics
 spec/
+dist/spec/
