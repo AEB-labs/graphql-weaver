@@ -4,13 +4,26 @@
       "message": "Argument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
       "locations": [
         {
-          "line": 11,
+          "line": 12,
+          "column": 25
+        }
+      ],
+      "path": [
+        "facLocal",
+        "factorial"
+      ]
+    },
+    {
+      "message": "GraphQL error at line 18, column 42:\nArgument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.\n\nGraphQL error at line 19, column 42:\nArgument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 17,
           "column": 9
         }
       ],
       "path": [
-        "ns3",
-        "factorial"
+        "facLocalTwoErrors",
+        "math"
       ]
     },
     {
@@ -25,18 +38,53 @@
         "ns1",
         "horst"
       ]
+    },
+    {
+      "message": "Argument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 24,
+          "column": 26
+        }
+      ],
+      "path": [
+        "facRemote",
+        "factorial"
+      ]
+    },
+    {
+      "message": "GraphQL error at line 28, column 42:\nArgument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.\n\nGraphQL error at line 29, column 42:\nArgument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 27,
+          "column": 9
+        }
+      ],
+      "path": [
+        "facRemoteTwoErrors",
+        "math"
+      ]
     }
   ],
   "data": {
+    "ns2": {
+      "greta": "Greta"
+    },
     "ns1": {
       "hans": "Hans",
       "horst": null
     },
-    "ns2": {
-      "greta": "Greta"
-    },
-    "ns3": {
+    "facLocal": {
       "factorial": null
+    },
+    "facLocalTwoErrors": {
+      "math": null
+    },
+    "facRemote": {
+      "factorial": null
+    },
+    "facRemoteTwoErrors": {
+      "math": null
     }
   }
 }

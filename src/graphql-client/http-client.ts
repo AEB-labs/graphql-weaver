@@ -1,8 +1,10 @@
-import { DocumentNode, print } from 'graphql';
-import fetch, { Request } from 'node-fetch';
+import { DocumentNode, ExecutionResult, GraphQLError, GraphQLErrorLocation, Location, parse, print } from 'graphql';
+import fetch, { Request, Response } from 'node-fetch';
 import { GraphQLClient } from './graphql-client';
+import { findNodeAtLocation } from '../graphql/node-at-location';
+import { findNodeInOtherDocument } from '../graphql/ast-synchronization';
 import TraceError = require('trace-error');
-import { Response } from 'node-fetch';
+import { compact } from '../utils/utils';
 
 export class HttpGraphQLClient implements GraphQLClient {
     public readonly url: string;
@@ -45,7 +47,7 @@ export class HttpGraphQLClient implements GraphQLClient {
         if (typeof json != 'object') {
             throw new Error(`Response from GraphQL endpoint at ${this.url} is not an object`);
         }
-        return json;
+        return await this.processResponse(json, document, variables, context, introspect);
     }
 
     protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<Response> {
@@ -74,5 +76,37 @@ export class HttpGraphQLClient implements GraphQLClient {
             query: print(document),
             variables
         });
+    }
+
+    protected async processResponse(response: ExecutionResult, document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<ExecutionResult> {
+        if (!response || !response.errors || !response.errors.length || !response.errors.some(er => !!er.locations && er.locations.length > 0)) {
+            return response;
+        }
+
+        const printedAST = parse(print(document)); // format it the same way like getBody() did
+        return {
+            ...response,
+            errors: response.errors.map(error => {
+                if (!error.locations || !error.locations.length) {
+                    return error;
+                }
+                const positions = compact(error.locations.map(location => this.mapLocationsToOriginal(location, printedAST, document)));
+                const source = positions.length ? positions[0].source : undefined;
+                return new GraphQLError(error.message, undefined, source, positions.map(p => p.start), error.path);
+            })
+        }
+    }
+
+    private mapLocationsToOriginal(location: GraphQLErrorLocation, sourceDocument: DocumentNode, targetDocument: DocumentNode): Location|undefined {
+        const nodeInPrinted = findNodeAtLocation(location, sourceDocument);
+        if (!nodeInPrinted) {
+            return undefined;
+        }
+        // find node
+        const nodeInOriginalDoc = findNodeInOtherDocument(nodeInPrinted, sourceDocument, targetDocument);
+        if (!nodeInOriginalDoc || !nodeInOriginalDoc.loc) {
+            return undefined;
+        }
+        return nodeInOriginalDoc.loc;
     }
 }

@@ -1,7 +1,11 @@
-import { GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, ValueNode } from 'graphql';
-import {testTypes} from "../../helpers/test-types";
+import {
+    DocumentNode, ExecutionResult, graphql, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema,
+    GraphQLString, print, ValueNode
+} from 'graphql';
 import { WeavingConfig } from '../../../src/config/weaving-config';
 import { isNumber } from 'util';
+import { Request, Response } from 'node-fetch';
+import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
 
 export async function getConfig(): Promise<WeavingConfig> {
     const nonNegativeIntType = new GraphQLScalarType({
@@ -22,6 +26,51 @@ export async function getConfig(): Promise<WeavingConfig> {
             return null;
         }
     });
+
+    const facSchema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+            name: 'Query',
+            fields: {
+                factorial: {
+                    type: GraphQLInt,
+                    resolve: (source, args, context) => fac(args['value']),
+                    args: {
+                        value: {
+                            type: nonNegativeIntType
+                        }
+                    }
+                },
+                math: {
+                    type: new GraphQLObjectType({
+                        name: 'Math',
+                        fields: {
+                            factorial: {
+                                type: GraphQLInt,
+                                resolve: (source, args, context) => fac(args['value']),
+                                args: {
+                                    value: {
+                                        type: nonNegativeIntType
+                                    }
+                                }
+                            }
+                        }
+                    }),
+                    resolve: () => ({})
+                }
+            }
+        })
+    });
+
+    class FakeHttpGraphQLClient extends HttpGraphQLClient {
+        constructor(private schema: GraphQLSchema) {
+            super({ url: '' });
+        }
+
+        async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any) {
+            const result = await graphql(this.schema, print(document), {}, context, variables);
+            return new Response(JSON.stringify(result));
+        }
+}
 
     return {
         endpoints: [
@@ -62,25 +111,16 @@ export async function getConfig(): Promise<WeavingConfig> {
             },
 
             {
-                namespace: 'ns3',
-                typePrefix: 'Ns3',
-                schema: new GraphQLSchema({
-                    query: new GraphQLObjectType({
-                        name: 'Query',
-                        fields: {
-                            factorial: {
-                                type: GraphQLInt,
-                                resolve: (source, args, context) => fac(args['value']),
-                                args: {
-                                    value: {
-                                        type: nonNegativeIntType
-                                    }
-                                }
-                            }
-                        }
-                    })
-                })
+                namespace: 'facLocal',
+                typePrefix: 'FacLocal',
+                schema: facSchema
             },
+
+            {
+                namespace: 'facRemote',
+                typePrefix: 'FacRemote',
+                client: new FakeHttpGraphQLClient(facSchema)
+            }
         ]
     };
 }

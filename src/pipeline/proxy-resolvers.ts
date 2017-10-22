@@ -1,6 +1,6 @@
 import { PipelineModule } from './pipeline-module';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from 'graphql-transformer';
-import { ExecutionResult, GraphQLError, GraphQLLeafType, GraphQLResolveInfo, print, ResponsePath } from 'graphql';
+import { DocumentNode, GraphQLErrorLocation, GraphQLResolveInfo } from 'graphql';
 import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { Query } from '../graphql/common';
@@ -10,8 +10,8 @@ import { isRootType } from '../graphql/schema-utils';
 import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
 import { moveErrorsToData } from '../graphql/errors-in-result';
-import { isArray } from 'util';
 import { prefixGraphQLErrorPath } from './helpers/error-paths';
+import { findNodeAtLocation } from '../graphql/node-at-location';
 
 export interface Config {
     readonly client: GraphQLClient

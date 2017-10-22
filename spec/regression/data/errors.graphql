@@ -7,7 +7,26 @@
         hans
         horst
     }
-    ns3 {
+
+    facLocal {
+       factorial(value: -1)
+    }
+    facLocalTwoErrors: facLocal {
+        # test these separately because these get wrapped into a new error on the facLocalTwoErrors
+        # we need the math object because flat fields directly on the endpoint's Query type are queries separately (until we implement the according optimization)
+        math {
+            factorial1: factorial(value: -1)
+            factorial2: factorial(value: -1)
+        }
+    }
+
+    facRemote {
         factorial(value: -1)
+    }
+    facRemoteTwoErrors: facRemote {
+        math {
+            factorial1: factorial(value: -1)
+            factorial2: factorial(value: -1)
+        }
     }
 }
