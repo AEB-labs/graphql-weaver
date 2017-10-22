@@ -15,7 +15,7 @@
       ]
     },
     {
-      "message": "GraphQL error at line 39, column 43:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".\n\nGraphQL error at line 40, column 43:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "message": "GraphQL error at line 39, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".\n\nGraphQL error at line 40, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
       "path": [
         "userValidationErrors",
         "greta",
@@ -27,6 +27,14 @@
       "path": [
         "systemValidationError",
         "lisa",
+        "husband"
+      ]
+    },
+    {
+      "message": "No horst by name",
+      "path": [
+        "linkFieldError",
+        "gretaLinkBroken",
         "husband"
       ]
     },
@@ -43,6 +51,20 @@
         "greta",
         "husband",
         "age"
+      ]
+    },
+    {
+      "message": "Errors retrieving key field \"name\":\n\nNo name for this horst\n\nNo name for this horst",
+      "locations": [
+        {
+          "line": 59,
+          "column": 13
+        }
+      ],
+      "path": [
+        "linkKeyError",
+        "gretaKeyBroken",
+        "husband"
       ]
     }
   ],
@@ -70,6 +92,18 @@
     },
     "userValidationErrors": {
       "greta": {
+        "name": "Greta",
+        "husband": null
+      }
+    },
+    "linkFieldError": {
+      "gretaLinkBroken": {
+        "name": "Greta",
+        "husband": null
+      }
+    },
+    "linkKeyError": {
+      "gretaKeyBroken": {
         "name": "Greta",
         "husband": null
       }

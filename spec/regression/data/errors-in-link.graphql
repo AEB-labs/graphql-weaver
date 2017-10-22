@@ -32,13 +32,33 @@
     # this generates a validation error that can be mapped back into this query
     # the difference to normal errors like above (age), the whole query fails its result will be null
     userValidationErrors: ns2 {
-    greta {
-        name
-        husband {
+        greta {
             name
-            validate1: validateName(name: "Marie-Louise")
-            validate2: validateName(name: "Marie-Louise")
+            husband {
+                name
+                validate1: validateName(name: "Marie-Louise")
+                validate2: validateName(name: "Marie-Louise")
+            }
         }
     }
-}
+
+    # link field generates error
+    linkFieldError: ns2 {
+        gretaLinkBroken {
+            name
+            husband {
+                name
+            }
+        }
+    }
+
+    # key field on link target generates error
+    linkKeyError: ns2 {
+        gretaKeyBroken {
+            name
+            husband {
+                name
+            }
+        }
+    }
 }

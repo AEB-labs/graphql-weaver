@@ -1,5 +1,6 @@
 import {
-    GraphQLBoolean, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, ValueNode
+    GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString,
+    ValueNode
 } from 'graphql';
 import {testTypes} from "../../helpers/test-types";
 import { WeavingConfig } from '../../../src/config/weaving-config';
@@ -81,7 +82,43 @@ export async function getConfig(): Promise<WeavingConfig> {
                                     }
                                 },
                                 resolve: () => ({})
-                            }
+                            },
+
+                            horstByNameBroken: {
+                                type: new GraphQLList(new GraphQLObjectType({
+                                    name: 'HorstByNameBroken',
+                                    fields: {
+                                        name: {
+                                            type: GraphQLString,
+                                            resolve: () => 'Horst'
+                                        },
+                                    }
+                                })),
+                                args: {
+                                    name: {
+                                        type: new GraphQLList(nameType)
+                                    }
+                                },
+                                resolve: () => { throw new Error('No horst by name'); }
+                            },
+
+                            horstByName: { // tbh, broken, too
+                                type: new GraphQLList(new GraphQLObjectType({
+                                    name: 'HorstByName',
+                                    fields: {
+                                        name: {
+                                            type: GraphQLString,
+                                            resolve: () => { throw new Error('No name for this horst') }
+                                        },
+                                    }
+                                })),
+                                args: {
+                                    name: {
+                                        type: new GraphQLList(nameType)
+                                    }
+                                },
+                                resolve: () => [{},{}]
+                            },
                         }
                     })
                 })
@@ -101,6 +138,34 @@ export async function getConfig(): Promise<WeavingConfig> {
                             lisa: {
                                 type: wifeType,
                                 resolve: () => ({name: 'Lisa', husband: 'Hans-Joachim' })
+                            },
+                            gretaLinkBroken: {
+                                type: new GraphQLObjectType({
+                                    name: 'GretaLinkBroken',
+                                    fields: {
+                                        name: {
+                                            type: GraphQLString
+                                        },
+                                        husband: {
+                                            type: nameType
+                                        },
+                                    }
+                                }),
+                                resolve: () => ({name: 'Greta', husband: 'Horst' })
+                            },
+                            gretaKeyBroken: {
+                                type: new GraphQLObjectType({
+                                    name: 'GretaKeyBroken',
+                                    fields: {
+                                        name: {
+                                            type: GraphQLString
+                                        },
+                                        husband: {
+                                            type: nameType
+                                        },
+                                    }
+                                }),
+                                resolve: () => ({name: 'Greta', husband: 'Horst' })
                             }
                         }
                     })
@@ -111,6 +176,22 @@ export async function getConfig(): Promise<WeavingConfig> {
                             field: 'ns1.horst',
                             argument: 'name',
                             batchMode: false
+                        }
+                    },
+                    'GretaLinkBroken.husband': {
+                        link: {
+                            field: 'ns1.horstByNameBroken',
+                            argument: 'name',
+                            batchMode: true,
+                            keyField: 'name'
+                        }
+                    },
+                    'GretaKeyBroken.husband': {
+                        link: {
+                            field: 'ns1.horstByName',
+                            argument: 'name',
+                            batchMode: true,
+                            keyField: 'name'
                         }
                     }
                 }

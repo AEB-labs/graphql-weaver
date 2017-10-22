@@ -385,6 +385,6 @@ function checkObjectsAndKeysForErrorValues(objects: any, keyFieldAlias: string, 
         .map((item: any) => item[keyFieldAlias])
         .filter((keyValue: any) => keyValue instanceof FieldErrorValue);
     if (erroredKeys.length) {
-        throw new Error(`Errors retrieving key field ${keyFieldName}:\n\n${erroredKeys.map(error => error.getError().message).join('\n\n')}`);
+        throw new Error(`Errors retrieving key field ${JSON.stringify(keyFieldName)}:\n\n${erroredKeys.map(error => error.getError().message).join('\n\n')}`);
     }
 }
