@@ -1,8 +1,7 @@
 import {
     ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField,
     GraphQLInputObjectType, GraphQLInputType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType,
-    GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode,
-    GraphQLEnumType, GraphQLError, ResponsePath
+    GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, ResponsePath, SelectionSetNode, VariableDefinitionNode
 } from 'graphql';
 import { getNonNullType, walkFields } from '../../graphql/schema-utils';
 import { LinkConfig } from '../../extended-schema/extended-schema';
@@ -14,7 +13,7 @@ import {
 } from '../../graphql/language-utils';
 import { isArray } from 'util';
 import { assertSuccessfulResult } from '../../graphql/execution-result';
-import { moveErrorsToData } from '../../graphql/errors-in-result';
+import { FieldErrorValue, moveErrorsToData } from '../../graphql/errors-in-result';
 import { prefixGraphQLErrorPath } from './error-paths';
 
 export const FILTER_ARG = 'filter';
@@ -211,6 +210,8 @@ export async function fetchLinkedObjects(params: {
             path: info.path
         });
 
+        checkObjectsAndKeysForErrorValues(data, keyFieldAlias, linkConfig.keyField!);
+
         // unordered case: endpoints does not preserve order, so we need to remap based on a key field
         // first, create a lookup table from id to item
         if (!isArray(data)) {
@@ -331,6 +332,8 @@ export async function fetchJoinedObjects(params: {
         throw new Error(`Result of ${targetFieldPath.join('.')} expected to be an array because batchMode is true`);
     }
 
+    checkObjectsAndKeysForErrorValues(data, keyFieldAlias, linkConfig.keyField!);
+
     const objectsByID = new Map((<any[]>data).map(item => <[any, any]>[item[keyFieldAlias], item]));
 
     return {
@@ -371,4 +374,17 @@ export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: Grap
     // Even if the types do not match, we can still continue and just pass the link value as argument. For ID/String/Int mismatches, this should not be a problem.
     // However, we need to use the argument type as variable name, so this will be returned
     return argumentType;
+}
+
+function checkObjectsAndKeysForErrorValues(objects: any, keyFieldAlias: string, keyFieldName: string) {
+    // Don't try to access the key field on this error object - just throw it
+    if (objects instanceof FieldErrorValue) {
+        throw objects.getError();
+    }
+    const erroredKeys: FieldErrorValue[] = objects
+        .map((item: any) => item[keyFieldAlias])
+        .filter((keyValue: any) => keyValue instanceof FieldErrorValue);
+    if (erroredKeys.length) {
+        throw new Error(`Errors retrieving key field ${keyFieldName}:\n\n${erroredKeys.map(error => error.getError().message).join('\n\n')}`);
+    }
 }
