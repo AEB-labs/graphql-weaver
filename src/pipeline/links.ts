@@ -59,6 +59,11 @@ export class LinksModule implements PipelineModule {
             throw new Error(`Schema is not built yet`);
         }
 
+        // this funciton is quite heavy, don't call it if the schema does not use @join or @link at all
+        if (!this.transformationInfo || this.transformationInfo.isEmpty()) {
+            return query;
+        }
+
         const typeInfo = new TypeInfo(this.linkedSchema.schema);
         let variableValues = query.variableValues;
         const operation = <OperationDefinitionNode | undefined>query.document.definitions.filter(def => def.kind == 'OperationDefinition')[0];
@@ -69,10 +74,12 @@ export class LinksModule implements PipelineModule {
 
         type FieldStackEntry = { joinConfig?: JoinConfig, isLinkFieldSelectedYet?: boolean };
         let fieldStack: FieldStackEntry[] = [];
+        let hasChanges = false;
 
         let document: DocumentNode = visit(query.document, visitWithTypeInfo(typeInfo, {
             Field: {
                 enter: (child: FieldNode) => {
+                    const oldChild = child;
                     const fieldStackOuter = fieldStack[fieldStack.length - 1];
                     const fieldStackTop: FieldStackEntry = {};
                     fieldStack.push(fieldStackTop);
@@ -250,12 +257,17 @@ export class LinksModule implements PipelineModule {
                             };
                         }
                     }
-                    return child;
+                    if (child != oldChild) {
+                        hasChanges = true;
+                        return child;
+                    }
+                    return undefined;
                 },
 
                 leave(child: FieldNode): FieldNode | undefined {
                     const fieldStackTop = fieldStack.pop();
                     if (fieldStackTop && fieldStackTop.joinConfig && !fieldStackTop.isLinkFieldSelectedYet) {
+                        hasChanges = true;
                         return {
                             ...child,
                             selectionSet: {
@@ -271,6 +283,11 @@ export class LinksModule implements PipelineModule {
                 }
             }
         }));
+
+        // avoid query re-building if no @link or @join field is used
+        if (!hasChanges) {
+            return query;
+        }
 
         // Remove now unnecessary fragments, to avoid processing them in further modules
         // Remove unnecessary variables, e.g. the joined filters
@@ -330,6 +347,10 @@ class SchemaTransformationInfo {
 
     private getLinkTransformationInfoKey(typeName: string, fieldName: string) {
         return `${typeName}.${fieldName}`;
+    }
+
+    isEmpty() {
+        return this.linkTransformationInfos.size == 0 && this.joinTransformationInfos.size == 0;
     }
 }
 
