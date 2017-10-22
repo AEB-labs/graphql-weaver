@@ -5,7 +5,7 @@ import {
 } from 'graphql';
 import { getNonNullType, walkFields } from '../../graphql/schema-utils';
 import { LinkConfig } from '../../extended-schema/extended-schema';
-import { arrayToObject, intersect, throwError } from '../../utils/utils';
+import { arrayToObject, intersect, modifyPropertyAtPath, throwError } from '../../utils/utils';
 import { getFieldAsQueryParts, SlimGraphQLResolveInfo } from '../../graphql/field-as-query';
 import {
     addFieldSelectionSafely, addVariableDefinitionSafely, createFieldNode, createNestedArgumentWithVariableNode,
@@ -222,19 +222,6 @@ export async function fetchLinkedObjects(params: {
         return fetchBatchWithKeyField(keys);
     }
     return fetchBatchOneToOne(keys);
-}
-
-function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: string[]): { [key: string]: any } {
-    if (!path.length) {
-        return obj;
-    }
-    const [segment, ...rest] = path;
-    obj = obj || {};
-    const val = obj[segment];
-    return {
-        ...obj,
-        [segment]: rest.length ? modifyPropertyAtPath(val, fn, rest) : fn(val)
-    };
 }
 
 export async function fetchJoinedObjects(params: {

@@ -1,3 +1,5 @@
+import { isArray, isNumber } from 'util';
+
 export function objectValues<T>(obj: { [name: string]: T }): T[] {
     return Object.keys(obj).map(i => obj[i]);
 }
@@ -161,4 +163,62 @@ export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => bo
         }
     }
     return [trues, falses];
+}
+
+export function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: (string|number)[]): any {
+    if (!path.length) {
+        return fn(obj);
+    }
+    const [segment, ...rest] = path;
+
+    // keep arrays if possible
+    if (typeof segment == 'number' && segment >= 0) {
+        if (obj == undefined) {
+            obj = [];
+        }
+        if (isArray(obj)) {
+            const oldItem = obj[segment];
+            const newItem = modifyPropertyAtPath(oldItem, fn, rest);
+            return replaceArrayItem(obj, segment, newItem);
+        }
+        if (typeof obj != 'object') {
+            throw new TypeError(`Expected array, but got ${typeof obj} while trying to replace property path ${path}`);
+        }
+    }
+
+    if (obj == undefined) {
+        obj = {};
+    }
+    if (typeof obj != 'object') {
+        throw new TypeError(`Expected object, but got ${typeof obj} while trying to replace property path ${path}`);
+    }
+
+    const val = obj[segment];
+    return {
+        ...obj,
+        [segment]: modifyPropertyAtPath(val, fn, rest)
+    };
+}
+
+export function replaceArrayItem(array: any[], index: number, newValue: any) {
+    const before = array.slice(0, index /* exclusive */);
+    const after = array.slice(index + 1);
+    const beforeFill = repeat(undefined, index - before.length); // make sure
+    return [
+        ...before,
+        ...beforeFill,
+        newValue,
+        ...after
+    ];
+}
+
+export function repeat(value: any, count: number) {
+    if (count <= 0) {
+        return [];
+    }
+    const arr = new Array(count);
+    for (let i = 0; i < count; i++) {
+        arr[i] = value;
+    }
+    return arr;
 }
