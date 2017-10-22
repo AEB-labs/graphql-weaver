@@ -12,7 +12,7 @@ const benchmarks: BenchmarkFactories = [
 ];
 
 const comparisons: BenchmarkConfig[][] = [
-    //COMPARISON
+    COMPARISON
 ];
 
 async function run() {
