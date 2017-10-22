@@ -1,0 +1,11 @@
+{
+    ns2 {
+        greta {
+            name
+            husband {
+                name
+                age
+            }
+        }
+    }
+}

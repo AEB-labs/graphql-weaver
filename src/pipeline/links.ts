@@ -700,7 +700,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                         operation: info.operation,
                         variableValues: info.variableValues,
                         fragments: info.fragments,
-                        fieldNodes
+                        fieldNodes,
+                        path: info.path
                     };
 
                     // optimization: if "first" had to be scratched from the left query, do it at least on the right query

@@ -1,6 +1,5 @@
-import { ExecutionResult, GraphQLError } from 'graphql';
+import { GraphQLError } from 'graphql';
 import { FieldErrorValue, moveErrorsToData } from '../../src/graphql/errors-in-result';
-import any = jasmine.any;
 
 describe('moveErrorsIntoResult', () => {
     it('moves error of direct field', () => {

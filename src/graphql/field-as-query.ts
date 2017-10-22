@@ -1,6 +1,7 @@
 import {
     ASTNode, DefinitionNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode,
-    OperationDefinitionNode, OperationTypeNode, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode,
+    OperationDefinitionNode, OperationTypeNode, ResponsePath, SelectionNode, SelectionSetNode, VariableDefinitionNode,
+    VariableNode,
     visit
 } from 'graphql';
 import { Query } from './common';
@@ -19,6 +20,7 @@ export interface SlimGraphQLResolveInfo {
     fragments: { [fragmentName: string]: FragmentDefinitionNode };
     operation: OperationDefinitionNode;
     variableValues: { [variableName: string]: any };
+    path: ResponsePath
 }
 
 /**

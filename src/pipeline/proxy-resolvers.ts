@@ -11,6 +11,7 @@ import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
 import { moveErrorsToData } from '../graphql/errors-in-result';
 import { isArray } from 'util';
+import { prefixGraphQLErrorPath } from './helpers/error-paths';
 
 export interface Config {
     readonly client: GraphQLClient
@@ -66,25 +67,4 @@ export class ResolverTransformer implements SchemaTransformer {
             }
         };
     }
-}
-
-function prefixGraphQLErrorPath(error: GraphQLError, pathPrefix: ResponsePath, removePrefixLength: number) {
-    if (!(error instanceof GraphQLError) || !error.path) {
-        return error;
-    }
-    const newPath = [
-        ...responsePathToArray(pathPrefix),
-        ...error.path.slice(removePrefixLength)
-    ];
-    return new GraphQLError(error.message, error.nodes, error.source, error.positions, newPath, error.originalError)
-}
-
-function responsePathToArray(path: ResponsePath): (string|number)[] {
-    if (!path) {
-        return [];
-    }
-    return [
-        ...responsePathToArray(path.prev),
-        path.key
-    ];
 }

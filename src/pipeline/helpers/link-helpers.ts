@@ -1,7 +1,8 @@
 import {
     ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField,
     GraphQLInputObjectType, GraphQLInputType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType,
-    GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode, GraphQLEnumType
+    GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, SelectionSetNode, VariableDefinitionNode,
+    GraphQLEnumType, GraphQLError, ResponsePath
 } from 'graphql';
 import { getNonNullType, walkFields } from '../../graphql/schema-utils';
 import { LinkConfig } from '../../extended-schema/extended-schema';
@@ -13,6 +14,8 @@ import {
 } from '../../graphql/language-utils';
 import { isArray } from 'util';
 import { assertSuccessfulResult } from '../../graphql/execution-result';
+import { moveErrorsToData } from '../../graphql/errors-in-result';
+import { prefixGraphQLErrorPath } from './error-paths';
 
 export const FILTER_ARG = 'filter';
 export const ORDER_BY_ARG = 'orderBy';
@@ -35,7 +38,8 @@ async function basicResolve(params: {
     variableValues: { [name: string]: any },
     fragments: FragmentDefinitionNode[],
     context: any,
-    schema: GraphQLSchema
+    schema: GraphQLSchema,
+    path: ResponsePath
 }) {
     const {payloadSelectionSet, variableValues, variableDefinitions, context, schema, targetFieldPath, args, fragments} = params;
 
@@ -75,7 +79,7 @@ async function basicResolve(params: {
     // (because the linked fields obviously have not been truncated there)
     // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
     const result = await execute(schema, document, {} /* root */, context, variableValues);
-    const resultData = assertSuccessfulResult(result);
+    const resultData = assertSuccessfulResult(moveErrorsToData(result, e => prefixGraphQLErrorPath(e, params.path, targetFieldPath.length)));
 
     // unwrap
     return targetFieldPath.reduce((data, fieldName) => data![fieldName], resultData);
@@ -130,7 +134,8 @@ export async function fetchLinkedObjects(params: {
             args: [
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
-            payloadSelectionSet: originalParts.selectionSet
+            payloadSelectionSet: originalParts.selectionSet,
+            path: info.path
         });
     }
 
@@ -163,7 +168,8 @@ export async function fetchLinkedObjects(params: {
             args: [
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
-            payloadSelectionSet: originalParts.selectionSet
+            payloadSelectionSet: originalParts.selectionSet,
+            path: info.path
         });
     }
 
@@ -201,7 +207,8 @@ export async function fetchLinkedObjects(params: {
             args: [
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
-            payloadSelectionSet
+            payloadSelectionSet,
+            path: info.path
         });
 
         // unordered case: endpoints does not preserve order, so we need to remap based on a key field
@@ -316,7 +323,8 @@ export async function fetchJoinedObjects(params: {
         variableValues,
         fragments,
         args,
-        payloadSelectionSet
+        payloadSelectionSet,
+        path: info.path
     });
 
     if (!isArray(data)) {

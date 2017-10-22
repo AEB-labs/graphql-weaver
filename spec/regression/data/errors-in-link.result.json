@@ -1,0 +1,30 @@
+{
+  "errors": [
+    {
+      "message": "horst age not available",
+      "locations": [
+        {
+          "line": 7,
+          "column": 17
+        }
+      ],
+      "path": [
+        "ns2",
+        "greta",
+        "husband",
+        "age"
+      ]
+    }
+  ],
+  "data": {
+    "ns2": {
+      "greta": {
+        "name": "Greta",
+        "husband": {
+          "name": "Horst",
+          "age": null
+        }
+      }
+    }
+  }
+}
