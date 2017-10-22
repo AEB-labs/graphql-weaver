@@ -16,6 +16,12 @@
     },
     {
       "message": "GraphQL error at line 39, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".\n\nGraphQL error at line 40, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "locations": [
+        {
+          "line": 37,
+          "column": 13
+        }
+      ],
       "path": [
         "userValidationErrors",
         "greta",
@@ -24,6 +30,12 @@
     },
     {
       "message": "Variable \"$name\" got invalid value \"Hans-Joachim\".\nExpected type \"Name\", found \"Hans-Joachim\": I don't like this name: Hans-Joachim",
+      "locations": [
+        {
+          "line": 15,
+          "column": 13
+        }
+      ],
       "path": [
         "systemValidationError",
         "lisa",
@@ -32,6 +44,12 @@
     },
     {
       "message": "No horst by name",
+      "locations": [
+        {
+          "line": 49,
+          "column": 13
+        }
+      ],
       "path": [
         "linkFieldError",
         "gretaLinkBroken",

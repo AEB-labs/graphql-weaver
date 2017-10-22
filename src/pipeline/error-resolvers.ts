@@ -21,7 +21,7 @@ export class ErrorResolversTransformer implements SchemaTransformer {
             async resolve(source, args, context, info) {
                 const value = await (config.resolve || defaultFieldResolver)(source, args, context, info);
                 if (value instanceof FieldErrorValue) {
-                    throw value.errors[0];
+                    throw value.getError();
                 }
                 return value;
             }
