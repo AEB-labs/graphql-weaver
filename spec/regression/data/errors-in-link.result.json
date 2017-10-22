@@ -1,6 +1,36 @@
 {
   "errors": [
     {
+      "message": "Argument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "locations": [
+        {
+          "line": 28,
+          "column": 36
+        }
+      ],
+      "path": [
+        "userValidationError",
+        "greta",
+        "husband"
+      ]
+    },
+    {
+      "message": "GraphQL error at line 39, column 43:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".\n\nGraphQL error at line 40, column 43:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "path": [
+        "userValidationErrors",
+        "greta",
+        "husband"
+      ]
+    },
+    {
+      "message": "Variable \"$name\" got invalid value \"Hans-Joachim\".\nExpected type \"Name\", found \"Hans-Joachim\": I don't like this name: Hans-Joachim",
+      "path": [
+        "systemValidationError",
+        "lisa",
+        "husband"
+      ]
+    },
+    {
       "message": "horst age not available",
       "locations": [
         {
@@ -24,6 +54,24 @@
           "name": "Horst",
           "age": null
         }
+      }
+    },
+    "systemValidationError": {
+      "lisa": {
+        "name": "Lisa",
+        "husband": null
+      }
+    },
+    "userValidationError": {
+      "greta": {
+        "name": "Greta",
+        "husband": null
+      }
+    },
+    "userValidationErrors": {
+      "greta": {
+        "name": "Greta",
+        "husband": null
       }
     }
   }

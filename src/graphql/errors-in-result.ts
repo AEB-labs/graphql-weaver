@@ -1,9 +1,16 @@
-
 import { ExecutionResult, GraphQLError } from 'graphql';
 import { modifyPropertyAtPath, replaceArrayItem } from '../utils/utils';
 
 export class FieldErrorValue {
     constructor(public readonly originalValue: any, public readonly errors: GraphQLError[] = []) {}
+
+    getError() {
+        if (this.errors.length == 1) {
+            return this.errors[0];
+        }
+        // don't need to be fancy, this should not happen anyway.
+        return new Error(this.errors.map(err => err.message).join('\n\n'));
+    }
 }
 
 /**

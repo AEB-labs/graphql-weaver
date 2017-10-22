@@ -1,16 +1,16 @@
 import {
-    DocumentNode, ExecutionResult, graphql, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema,
-    GraphQLString, print, ValueNode
+    DocumentNode, graphql, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, print,
+    ValueNode
 } from 'graphql';
 import { WeavingConfig } from '../../../src/config/weaving-config';
 import { isNumber } from 'util';
-import { Request, Response } from 'node-fetch';
+import { Response } from 'node-fetch';
 import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
 
 export async function getConfig(): Promise<WeavingConfig> {
     const nonNegativeIntType = new GraphQLScalarType({
         name: 'NonNegativeInt',
-        parseValue(value: ValueNode) {
+        parseValue(value) {
             if (!isNumber(value) || !isFinite(value) || value < 0) {
                 throw new TypeError('Not a non-negative integer: ' + value);
             }

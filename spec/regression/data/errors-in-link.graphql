@@ -4,8 +4,41 @@
             name
             husband {
                 name
+                age # generates runtime error
+            }
+        }
+    }
+    # this generates a validation error at a location that can not be mapped to something in this query
+    systemValidationError: ns2 {
+        lisa {
+            name
+            husband {
+                name
                 age
             }
         }
     }
+    # this generates a validation error that can be mapped back into this query
+    # the difference to normal errors like above (age), the whole query fails its result will be null
+    userValidationError: ns2 {
+        greta {
+            name
+            husband {
+                name
+                validateName(name: "Marie-Louise")
+            }
+        }
+    }
+    # this generates a validation error that can be mapped back into this query
+    # the difference to normal errors like above (age), the whole query fails its result will be null
+    userValidationErrors: ns2 {
+    greta {
+        name
+        husband {
+            name
+            validate1: validateName(name: "Marie-Louise")
+            validate2: validateName(name: "Marie-Louise")
+        }
+    }
+}
 }

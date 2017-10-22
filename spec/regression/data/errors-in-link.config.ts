@@ -1,8 +1,48 @@
-import { GraphQLInt, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
+import {
+    GraphQLBoolean, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, ValueNode
+} from 'graphql';
 import {testTypes} from "../../helpers/test-types";
 import { WeavingConfig } from '../../../src/config/weaving-config';
 
 export async function getConfig(): Promise<WeavingConfig> {
+    function isNiceName(str: string) {
+        return str.match(/^[a-zA-Z]+$/);
+    }
+
+    const nameType = new GraphQLScalarType({
+        name: 'Name',
+        parseValue(value) {
+            if (typeof value != 'string' || !isNiceName(value)) {
+                throw new TypeError(`I don't like this name: ${value}`);
+            }
+            return value;
+        },
+        serialize(value) {
+            if (typeof value != 'string' || !isNiceName(value)) {
+                throw new TypeError(`I don't like this name: ${value}`);
+            }
+            return value;
+        },
+        parseLiteral(valueNode) {
+            if (valueNode.kind == 'StringValue' && isNiceName(valueNode.value)) {
+                return valueNode.value;
+            }
+            return null;
+        }
+    });
+
+    const wifeType = new GraphQLObjectType({
+        name: 'Wife',
+        fields: {
+            name: {
+                type: GraphQLString
+            },
+            husband: {
+                type: GraphQLString,
+            }
+        }
+    });
+
     return {
         endpoints: [
             {
@@ -23,12 +63,21 @@ export async function getConfig(): Promise<WeavingConfig> {
                                         age: {
                                             type: GraphQLInt,
                                             resolve: () => { throw new Error('horst age not available'); }
+                                        },
+                                        validateName: {
+                                            type: GraphQLBoolean,
+                                            resolve: () => true,
+                                            args: {
+                                                name: {
+                                                    type: nameType
+                                                }
+                                            }
                                         }
                                     }
                                 }),
                                 args: {
                                     name: {
-                                        type: GraphQLString
+                                        type: nameType
                                     }
                                 },
                                 resolve: () => ({})
@@ -46,26 +95,18 @@ export async function getConfig(): Promise<WeavingConfig> {
                         name: 'Query',
                         fields: {
                             greta: {
-                                type: new GraphQLObjectType({
-                                    name: 'Greta',
-                                    fields: {
-                                        name: {
-                                            type: GraphQLString,
-                                            resolve: () => 'Greta'
-                                        },
-                                        husband: {
-                                            type: GraphQLString,
-                                            resolve: () => 'Horst'
-                                        }
-                                    }
-                                }),
-                                resolve: () => ({})
+                                type: wifeType,
+                                resolve: () => ({name: 'Greta', husband: 'Horst' })
+                            },
+                            lisa: {
+                                type: wifeType,
+                                resolve: () => ({name: 'Lisa', husband: 'Hans-Joachim' })
                             }
                         }
                     })
                 }),
                 fieldMetadata: {
-                    'Greta.husband': {
+                    'Wife.husband': {
                         link: {
                             field: 'ns1.horst',
                             argument: 'name',
