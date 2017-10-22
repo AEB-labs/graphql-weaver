@@ -1,14 +1,16 @@
 {
-  "horst": {
-    "name": "Horst",
-    "visitedCountries": [
-      {
-        "countryName": "Deutschland"
-      },
-      {
-        "countryName": "Frankreich"
-      },
-      null
-    ]
+  "data": {
+    "horst": {
+      "name": "Horst",
+      "visitedCountries": [
+        {
+          "countryName": "Deutschland"
+        },
+        {
+          "countryName": "Frankreich"
+        },
+        null
+      ]
+    }
   }
 }

@@ -1,12 +1,14 @@
 {
-  "Deutschland": {
-    "people": [
-      {
-        "name": "Horst"
-      },
-      {
-        "name": "Helga"
-      }
-    ]
+  "data": {
+    "Deutschland": {
+      "people": [
+        {
+          "name": "Horst"
+        },
+        {
+          "name": "Helga"
+        }
+      ]
+    }
   }
 }

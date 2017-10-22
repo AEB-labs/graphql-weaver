@@ -1,5 +1,7 @@
 {
-  "local": {
-    "info": "This is an internal endpoint"
+  "data": {
+    "local": {
+      "info": "This is an internal endpoint"
+    }
   }
 }

@@ -1,35 +1,37 @@
 {
-  "field1": {
-    "a": "value1"
-  },
-  "field2": {
-    "a": "value2"
-  },
-  "field1WithTypename": {
-    "a": "value1",
-    "__typename": "Type1"
-  },
-  "field2WithTypename": {
-    "a": "value2",
-    "__typename": "Type2"
-  },
-  "field1WithFragment": {
-    "a": "value1",
-    "a1": "value1_1"
-  },
-  "field1NonMatched": {},
-  "field2WithFragment": {
-    "a": "value2",
-    "a2": "value2_2"
-  },
-  "field1WithFragmentAndTypename": {
-    "__typename": "Type1",
-    "a": "value1",
-    "a1": "value1_1"
-  },
-  "field2WithFragmentAndTypename": {
-    "__typename": "Type2",
-    "a": "value2",
-    "a2": "value2_2"
+  "data": {
+    "field1": {
+      "a": "value1"
+    },
+    "field2": {
+      "a": "value2"
+    },
+    "field1WithTypename": {
+      "a": "value1",
+      "__typename": "Type1"
+    },
+    "field2WithTypename": {
+      "a": "value2",
+      "__typename": "Type2"
+    },
+    "field1WithFragment": {
+      "a": "value1",
+      "a1": "value1_1"
+    },
+    "field1NonMatched": {},
+    "field2WithFragment": {
+      "a": "value2",
+      "a2": "value2_2"
+    },
+    "field1WithFragmentAndTypename": {
+      "__typename": "Type1",
+      "a": "value1",
+      "a1": "value1_1"
+    },
+    "field2WithFragmentAndTypename": {
+      "__typename": "Type2",
+      "a": "value2",
+      "a2": "value2_2"
+    }
   }
 }

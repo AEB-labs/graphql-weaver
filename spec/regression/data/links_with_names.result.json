@@ -1,25 +1,27 @@
 {
-  "allPeople": [
-    {
-      "name": "Horst",
-      "nationality": "DE",
-      "country": {
-        "description": "Deutschland"
+  "data": {
+    "allPeople": [
+      {
+        "name": "Horst",
+        "nationality": "DE",
+        "country": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": "DE",
+        "country": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": "FR",
+        "country": {
+          "description": "Frankreich"
+        }
       }
-    },
-    {
-      "name": "Helga",
-      "nationality": "DE",
-      "country": {
-        "description": "Deutschland"
-      }
-    },
-    {
-      "name": "Jacqueline",
-      "nationality": "FR",
-      "country": {
-        "description": "Frankreich"
-      }
-    }
-  ]
+    ]
+  }
 }

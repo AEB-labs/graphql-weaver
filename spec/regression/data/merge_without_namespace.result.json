@@ -1,4 +1,6 @@
 {
-  "info1": "This is internal endpoint 1",
-  "info2": "This is internal endpoint 2"
+  "data": {
+    "info1": "This is internal endpoint 1",
+    "info2": "This is internal endpoint 2"
+  }
 }

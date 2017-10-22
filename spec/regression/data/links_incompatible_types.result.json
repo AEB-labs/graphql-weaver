@@ -1,8 +1,10 @@
 {
-  "horst": {
-    "name": "Horst",
-    "nationality": {
-      "description": "Deutschland"
+  "data": {
+    "horst": {
+      "name": "Horst",
+      "nationality": {
+        "description": "Deutschland"
+      }
     }
   }
 }

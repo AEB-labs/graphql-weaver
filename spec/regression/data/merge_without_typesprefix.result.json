@@ -1,12 +1,14 @@
 {
-  "car": {
-    "__typename": "Car",
-    "color": "blue",
-    "doorCount": 3
-  },
-  "person": {
-    "__typename": "Person",
-    "name": "Chuck Norris",
-    "isCool": true
+  "data": {
+    "car": {
+      "__typename": "Car",
+      "color": "blue",
+      "doorCount": 3
+    },
+    "person": {
+      "__typename": "Person",
+      "name": "Chuck Norris",
+      "isCool": true
+    }
   }
 }

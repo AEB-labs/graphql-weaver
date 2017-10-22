@@ -1,22 +1,24 @@
 {
-  "allPeople": [
-    {
-      "name": "Horst",
-      "nationality": {
-        "description": "Deutschland"
+  "data": {
+    "allPeople": [
+      {
+        "name": "Horst",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Helga",
+        "nationality": {
+          "description": "Deutschland"
+        }
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": {
+          "description": "Frankreich"
+        }
       }
-    },
-    {
-      "name": "Helga",
-      "nationality": {
-        "description": "Deutschland"
-      }
-    },
-    {
-      "name": "Jacqueline",
-      "nationality": {
-        "description": "Frankreich"
-      }
-    }
-  ]
+    ]
+  }
 }

@@ -1,7 +1,9 @@
 {
-  "unions": {
-    "union": {
-      "option2": 123
+  "data": {
+    "unions": {
+      "union": {
+        "option2": 123
+      }
     }
   }
 }
