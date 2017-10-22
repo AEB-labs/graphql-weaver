@@ -1,6 +1,19 @@
 {
   "errors": [
     {
+      "message": "Argument \"value\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 11,
+          "column": 9
+        }
+      ],
+      "path": [
+        "ns3",
+        "factorial"
+      ]
+    },
+    {
       "message": "horst not available",
       "locations": [
         {
@@ -21,6 +34,9 @@
     },
     "ns2": {
       "greta": "Greta"
+    },
+    "ns3": {
+      "factorial": null
     }
   }
 }

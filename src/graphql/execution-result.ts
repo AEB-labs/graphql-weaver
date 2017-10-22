@@ -1,13 +1,9 @@
-import { ExecutionResult } from 'graphql';
-import TraceError = require('trace-error');
+import { ExecutionResult, GraphQLError } from 'graphql';
+import { isArray } from 'util';
 
 export function assertSuccessfulResult(executionResult: ExecutionResult): {[key: string]: any} {
-    if (executionResult.errors && executionResult.errors.length) {
-        // TODO properly handle multiple errors
-        const errObj = executionResult.errors[0];
-        if (errObj) {
-            throw new TraceError(`GraphQL error: ${errObj.message}`, errObj);
-        }
+    if (isArray(executionResult.errors) && executionResult.errors.length) {
+        throw new Error(executionResult.errors.map(error => error.message).join('\n'));
     }
 
     // non-standard, but seen it in the wild

@@ -7,4 +7,7 @@
         hans
         horst
     }
+    ns3 {
+        factorial(value: -1)
+    }
 }
