@@ -13,16 +13,17 @@ import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
 import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
-import {CustomScalarTypesSerializationModule} from "./custom-scalar-types-serialization";
+import { CustomScalarTypesSerializationModule } from './custom-scalar-types-serialization';
+import { ErrorResolversModule } from './error-resolvers';
 
 function createPreMergeModules(context: PreMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
     let customizableModules: PipelineModule[] = [];
 
     if (context.endpointConfig.typePrefix) {
-        customizableModules.push(new TypePrefixesModule(context.endpointConfig.typePrefix))
+        customizableModules.push(new TypePrefixesModule(context.endpointConfig.typePrefix));
     }
     if (context.endpointConfig.namespace) {
-        customizableModules.push(new NamespaceModule(context.endpointConfig.namespace))
+        customizableModules.push(new NamespaceModule(context.endpointConfig.namespace));
     }
 
     if (customConfig && customConfig.transformPreMergePipeline) {
@@ -33,6 +34,7 @@ function createPreMergeModules(context: PreMergeModuleContext, customConfig?: Pi
         // those three make the schema fully-functional
         new ProxyResolversModule(context),
         new DefaultResolversModule(),
+        new ErrorResolversModule(),
         new CustomScalarTypesSerializationModule(),
         new AbstractTypesModule(),
 

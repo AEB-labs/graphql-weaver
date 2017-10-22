@@ -1,6 +1,6 @@
 import { PipelineModule } from './pipeline-module';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from 'graphql-transformer';
-import { GraphQLResolveInfo, print } from 'graphql';
+import { ExecutionResult, GraphQLError, GraphQLLeafType, GraphQLResolveInfo, print, ResponsePath } from 'graphql';
 import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { Query } from '../graphql/common';
@@ -9,6 +9,8 @@ import { cloneSelectionChain, collectFieldNodesInPath } from '../graphql/languag
 import { isRootType } from '../graphql/schema-utils';
 import { collectAliasesInResponsePath } from '../graphql/resolver-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
+import { moveErrorsToData } from '../graphql/errors-in-result';
+import { isArray } from 'util';
 
 export interface Config {
     readonly client: GraphQLClient
@@ -53,8 +55,9 @@ export class ResolverTransformer implements SchemaTransformer {
 
                 query = this.config.processQuery(query);
 
-                const result = await this.config.client.execute(query.document, query.variableValues, context);
-                const data = assertSuccessfulResult(result);
+                let result = await this.config.client.execute(query.document, query.variableValues, context);
+                result = moveErrorsToData(result, e => prefixGraphQLErrorPath(e, info.path, 1));
+                const data = assertSuccessfulResult(result); // find and throw global errors
                 const propertyOnResult = aliases[aliases.length - 1];
                 if (typeof data != 'object' || !(propertyOnResult in data)) {
                     throw new Error(`Expected GraphQL endpoint to return object with property ${JSON.stringify(propertyOnResult)}`)
@@ -63,4 +66,25 @@ export class ResolverTransformer implements SchemaTransformer {
             }
         };
     }
+}
+
+function prefixGraphQLErrorPath(error: GraphQLError, pathPrefix: ResponsePath, removePrefixLength: number) {
+    if (!(error instanceof GraphQLError) || !error.path) {
+        return error;
+    }
+    const newPath = [
+        ...responsePathToArray(pathPrefix),
+        ...error.path.slice(removePrefixLength)
+    ];
+    return new GraphQLError(error.message, error.nodes, error.source, error.positions, newPath, error.originalError)
+}
+
+function responsePathToArray(path: ResponsePath): (string|number)[] {
+    if (!path) {
+        return [];
+    }
+    return [
+        ...responsePathToArray(path.prev),
+        path.key
+    ];
 }

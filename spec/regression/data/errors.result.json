@@ -1,0 +1,26 @@
+{
+  "errors": [
+    {
+      "message": "horst not available",
+      "locations": [
+        {
+          "line": 8,
+          "column": 9
+        }
+      ],
+      "path": [
+        "ns1",
+        "horst"
+      ]
+    }
+  ],
+  "data": {
+    "ns1": {
+      "hans": "Hans",
+      "horst": null
+    },
+    "ns2": {
+      "greta": "Greta"
+    }
+  }
+}

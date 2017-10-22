@@ -1,0 +1,10 @@
+{
+    ns2 {
+        greta
+    }
+    # do this later to test if source locations are mapped correctly
+    ns1 {
+        hans
+        horst
+    }
+}
