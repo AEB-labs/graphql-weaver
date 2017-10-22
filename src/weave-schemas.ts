@@ -1,18 +1,23 @@
 import { WeavingConfig } from './config/weaving-config';
 import { buildClientSchema, GraphQLSchema, introspectionQuery, IntrospectionQuery, parse } from 'graphql';
 import { DefaultClientFactory } from './graphql-client/client-factory';
-import { runPipeline } from './pipeline/pipeline';
+import { Pipeline } from './pipeline/pipeline';
 import { EndpointInfo } from './pipeline/pipeline-module';
 import { ExtendedSchema } from './extended-schema/extended-schema';
 import { fetchSchemaMetadata } from './extended-schema/fetch-metadata';
 import { GraphQLClient } from './graphql-client/graphql-client';
-import TraceError = require('trace-error');
 import { assertSuccessfulResult } from './graphql/execution-result';
+import TraceError = require('trace-error');
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
 
 export async function weaveSchemas(config: WeavingConfig): Promise<GraphQLSchema> {
+    const pipeline = await createPipeline(config);
+    return pipeline.schema.schema;
+}
+
+export async function createPipeline(config: WeavingConfig): Promise<Pipeline> {
     validateConfig(config);
 
     const endpoints = await Promise.all(config.endpoints.map(async config => {
@@ -28,7 +33,7 @@ export async function weaveSchemas(config: WeavingConfig): Promise<GraphQLSchema
         return endpointInfo;
     }));
 
-    return runPipeline(endpoints, config.pipelineConfig).schema;
+    return new Pipeline(endpoints, config.pipelineConfig);
 }
 
 function validateConfig(config: WeavingConfig) {

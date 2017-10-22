@@ -7,7 +7,6 @@ import { NamespaceModule } from './namespaces';
 import { DefaultResolversModule } from './default-resolvers';
 import { AbstractTypesModule } from './abstract-types';
 import { LinksModule } from './links';
-import { DocumentNode } from 'graphql';
 import { ProxyResolversModule } from './proxy-resolvers';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { mergeExtendedSchemas } from '../extended-schema/merge-extended-schemas';
@@ -15,6 +14,7 @@ import { ExtendedIntrospectionModule } from './extended-introspection';
 import { AdditionalMetadataModule } from './additional-metadata';
 import { CustomScalarTypesSerializationModule } from './custom-scalar-types-serialization';
 import { ErrorResolversModule } from './error-resolvers';
+import { Query } from '../graphql/common';
 
 function createPreMergeModules(context: PreMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
     let customizableModules: PipelineModule[] = [];
@@ -69,14 +69,7 @@ function createPostMergeModules(context: PostMergeModuleContext, customConfig?: 
     ];
 }
 
-type Query = { document: DocumentNode, variableValues: { [name: string]: any } }
-
-export function runPipeline(endpoints: EndpointInfo[], customConfig?: PipelineConfig): ExtendedSchema {
-    const pipeline = new Pipeline(endpoints, customConfig);
-    return pipeline.schema;
-}
-
-class Pipeline {
+export class Pipeline {
     private readonly preMergeModules: Map<string, PipelineModule[]>;
     private readonly postMergeModules: PipelineModule[];
     private _schema: ExtendedSchema | undefined;

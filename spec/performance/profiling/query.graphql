@@ -1,0 +1,158 @@
+{
+    ...bla
+}
+
+fragment bla on Query {
+    Country(identCode: "DE") {
+        ...countryFrag
+    }
+    test1: Country(identCode: "DE") {
+        ...countryFrag
+    }
+    test2: Country(identCode: "DE") {
+        ...countryFrag
+    }
+    test3: Country(identCode: "DE") {
+        ...countryFrag
+    }
+    test3: Country(identCode: "DE") {
+        ...countryFrag
+    }
+    test4: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test5: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test6: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test7: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test8: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test9: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+    test10: Country(identCode: "DE") {
+        id
+        continent
+        isoCode
+        description
+        identCode
+        id2: id
+        continent2: continent
+        description2: description
+        identCode2: identCode
+        isoCode2: isoCode
+        id3: id
+        continent3: continent
+        isoCode3: isoCode
+        description3: description
+        identCode3: identCode
+    }
+}
+
+fragment countryFrag on Country {
+    id
+    continent
+    isoCode
+    description
+    identCode
+    id2: id
+    continent2: continent
+    description2: description
+    identCode2: identCode
+    isoCode2: isoCode
+    id3: id
+    continent3: continent
+    isoCode3: isoCode
+    description3: description
+    identCode3: identCode
+}
