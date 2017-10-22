@@ -4,10 +4,6 @@ export function prefixGraphQLErrorPath(error: GraphQLError, pathPrefix: Response
     if (!(error instanceof GraphQLError) || !error.path) {
         return error;
     }
-    let origionalError = error.originalError;
-    if (origionalError instanceof GraphQLError && origionalError.originalError) {
-        origionalError = origionalError.originalError; // unwrap
-    }
     const newPath = [
         ...responsePathToArray(pathPrefix),
         ...error.path.slice(removePrefixLength)
