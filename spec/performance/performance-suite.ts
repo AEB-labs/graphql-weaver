@@ -5,8 +5,6 @@ import { COMPARISON } from './comparison/comparison';
 import { runComparisons } from './support/compare-runner';
 import { GraphQLHTTPTestEndpoint } from '../helpers/grapqhl-http-test/graphql-http-test-endpoint';
 
-new GraphQLHTTPTestEndpoint().start(1337);
-
 const benchmarks: BenchmarkFactories = [
     ...QUERY_BENCHMARKS
 ];
@@ -16,10 +14,15 @@ const comparisons: BenchmarkConfig[][] = [
 ];
 
 async function run() {
+    const testSever = new GraphQLHTTPTestEndpoint();
+    testSever.start(1337);
+
     await runBenchmarks(benchmarks);
 
     for (const comparison of comparisons) {
         await runComparisons(comparison);
     }
+
+    testSever.stop();
 }
 run();
