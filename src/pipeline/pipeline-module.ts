@@ -4,6 +4,7 @@ import { GraphQLClient } from '../graphql-client/graphql-client';
 import { ExtendedSchema } from '../extended-schema/extended-schema';
 import { Query } from '../graphql/common';
 import { ExtendedSchemaTransformer, transformExtendedSchema } from '../extended-schema/extended-schema-transformer';
+import { WeavingErrorConsumer } from '../config/errors';
 
 /**
  * Part of the pipeline that transforms both the schema and queries/resolvers
@@ -82,10 +83,16 @@ export interface PreMergeModuleContext {
      * Prepares a query written against the final schema to be run on the original schema
      */
     processQuery(query: Query): Query;
+
+    /**
+     * Can be used to log errors without aborting the whole weaving process
+     */
+    errorConsumer: WeavingErrorConsumer
 }
 
 export interface PostMergeModuleContext {
     endpoints: PreMergeModuleContext[]
+    errorConsumer: WeavingErrorConsumer
 }
 
 export interface PipelineConfig {

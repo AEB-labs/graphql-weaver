@@ -15,6 +15,7 @@ import { AdditionalMetadataModule } from './additional-metadata';
 import { CustomScalarTypesSerializationModule } from './custom-scalar-types-serialization';
 import { ErrorResolversModule } from './error-resolvers';
 import { Query } from '../graphql/common';
+import { WeavingErrorConsumer } from '../config/errors';
 
 function createPreMergeModules(context: PreMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
     let customizableModules: PipelineModule[] = [];
@@ -74,9 +75,10 @@ export class Pipeline {
     private readonly postMergeModules: PipelineModule[];
     private _schema: ExtendedSchema | undefined;
 
-    constructor(private readonly endpoints: EndpointInfo[], customConfig?: PipelineConfig) {
+    constructor(private readonly endpoints: EndpointInfo[], errorConsumer: WeavingErrorConsumer, customConfig?: PipelineConfig) {
         const extendedEndpoints = endpoints.map(endpoint => ({
             ...endpoint,
+            errorConsumer,
             processQuery: (query: Query) => this.processQuery(query, endpoint.endpointConfig.identifier!)
         }));
 
@@ -86,7 +88,8 @@ export class Pipeline {
                 createPreMergeModules(context, customConfig) // map value
             ]));
         this.postMergeModules = createPostMergeModules({
-            endpoints: extendedEndpoints
+            endpoints: extendedEndpoints,
+            errorConsumer
         }, customConfig);
     }
 

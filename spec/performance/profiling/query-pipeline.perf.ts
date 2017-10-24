@@ -30,7 +30,7 @@ function testProcessQuery(): BenchmarkConfig {
             }, 'default');
         },
         async beforeAll() {
-            pipeline = await createPipeline(config);
+            pipeline = await createPipeline(config, { consumeError: (error) => { throw error } });
             pipeline.schema; // build schema
         }
     };

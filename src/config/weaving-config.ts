@@ -16,6 +16,12 @@ export interface WeavingConfig {
      * Custom configuration of the pipeline
      */
     pipelineConfig?: PipelineConfig
+
+    /**
+     * If set, errors caused by endpoints (network errors, introspection errors) will not throw but be logged into
+     * the schema itself, to be retrievable via _errors.
+     */
+    continueOnEndpointErrors?: boolean
 }
 
 export interface EndpointConfigBase {
