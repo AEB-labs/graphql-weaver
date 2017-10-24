@@ -65,7 +65,7 @@ export interface LocalEndpointConfig extends EndpointConfigBase {
     /**
      * A GraphQL schema that is used to execute GraphQL queries
      */
-    schema: GraphQLSchema
+    schema: GraphQLSchema|Promise<GraphQLSchema>
 }
 
 export type EndpointConfig = HttpEndpointConfig | LocalEndpointConfig | CustomEndpointConfig;
