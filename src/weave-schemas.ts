@@ -10,15 +10,15 @@ import { ExtendedSchema, SchemaMetadata } from './extended-schema/extended-schem
 import { fetchSchemaMetadata } from './extended-schema/fetch-metadata';
 import { GraphQLClient } from './graphql-client/graphql-client';
 import { assertSuccessfulResult } from './graphql/execution-result';
-import { WeavingError, WeavingErrorConsumer } from './config/errors';
+import { throwingErrorConsumer, WeavingError, WeavingErrorConsumer } from './config/errors';
 import { compact } from './utils/utils';
 import { LocalGraphQLClient } from './graphql-client/local-client';
 import { transformSchema } from 'graphql-transformer/dist';
-import TraceError = require('trace-error');
 import {
     shouldAddPlaceholdersOnError, shouldContinueOnError, shouldProvideErrorsInSchema
 } from './config/error-handling';
 import { WeavingResult } from './weaving-result';
+import TraceError = require('trace-error');
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
@@ -39,7 +39,7 @@ export async function weaveSchemasExt(config: WeavingConfig): Promise<WeavingRes
 }
 
 async function weaveSchemasThrowOnError(config: WeavingConfig): Promise<WeavingResult> {
-    const pipeline = await createPipeline(config, { consumeError: (error) => { throw error; } });
+    const pipeline = await createPipeline(config, throwingErrorConsumer);
     const schema = pipeline.schema.schema;
     return {
         schema,
@@ -53,7 +53,7 @@ async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<Weavi
     function onError(error: WeavingError) {
         errors.push(error);
     }
-    const pipeline = await createPipeline(config, { consumeError: onError });
+    const pipeline = await createPipeline(config, onError);
     let schema = pipeline.schema.schema;
     if (shouldProvideErrorsInSchema(config.errorHandling) && errors.length) {
         schema = transformSchema(schema, {
@@ -89,7 +89,7 @@ async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<Weavi
     };
 }
 
-export async function createPipeline(config: WeavingConfig, errorConsumer: WeavingErrorConsumer): Promise<Pipeline> {
+export async function createPipeline(config: WeavingConfig, errorConsumer: WeavingErrorConsumer = throwingErrorConsumer): Promise<Pipeline> {
     validateConfig(config);
 
     const endpoints = await Promise.all(config.endpoints.map(async endpointConfig => {
@@ -99,7 +99,7 @@ export async function createPipeline(config: WeavingConfig, errorConsumer: Weavi
             schema = await getClientSchema(endpoint);
         } catch (error) {
             const weavingError = new WeavingError(`Failed to retrieve schema: ${error.message}`, endpointConfig, error);
-            errorConsumer.consumeError(weavingError);
+            errorConsumer(weavingError);
 
             // If this is namespaced, we can place a pseudo-field to report errors more visibly
             if (shouldAddPlaceholdersOnError(config.errorHandling) && endpointConfig.namespace) {
@@ -113,7 +113,7 @@ export async function createPipeline(config: WeavingConfig, errorConsumer: Weavi
         try {
             metadata = await fetchSchemaMetadata(endpoint, schema);
         } catch (error) {
-            errorConsumer.consumeError(new WeavingError(`Failed to retrieve schema metadata: ${error.message}`, endpointConfig, error));
+            errorConsumer(new WeavingError(`Failed to retrieve schema metadata: ${error.message}`, endpointConfig, error));
             metadata = new SchemaMetadata();
         }
         const extendedSchema = new ExtendedSchema(schema, metadata);

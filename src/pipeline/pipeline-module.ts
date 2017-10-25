@@ -87,12 +87,12 @@ export interface PreMergeModuleContext {
     /**
      * Can be used to log errors without aborting the whole weaving process
      */
-    errorConsumer: WeavingErrorConsumer
+    reportError: WeavingErrorConsumer
 }
 
 export interface PostMergeModuleContext {
     endpoints: PreMergeModuleContext[]
-    errorConsumer: WeavingErrorConsumer
+    reportError: WeavingErrorConsumer
 }
 
 export interface PipelineConfig {

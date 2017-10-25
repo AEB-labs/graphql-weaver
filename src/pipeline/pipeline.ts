@@ -48,7 +48,7 @@ function createPreMergeModules(context: PreMergeModuleContext, customConfig?: Pi
 
 function createPostMergeModules(context: PostMergeModuleContext, customConfig?: PipelineConfig): PipelineModule[] {
     let customizableModules: PipelineModule[] = [
-        new LinksModule()
+        new LinksModule({ reportError: context.reportError })
     ];
 
     if (customConfig && customConfig.transformPostMergePipeline) {
@@ -75,10 +75,10 @@ export class Pipeline {
     private readonly postMergeModules: PipelineModule[];
     private _schema: ExtendedSchema | undefined;
 
-    constructor(private readonly endpoints: EndpointInfo[], errorConsumer: WeavingErrorConsumer, customConfig?: PipelineConfig) {
+    constructor(private readonly endpoints: EndpointInfo[], reportError: WeavingErrorConsumer, customConfig?: PipelineConfig) {
         const extendedEndpoints = endpoints.map(endpoint => ({
             ...endpoint,
-            errorConsumer,
+            reportError,
             processQuery: (query: Query) => this.processQuery(query, endpoint.endpointConfig.identifier!)
         }));
 
@@ -89,7 +89,7 @@ export class Pipeline {
             ]));
         this.postMergeModules = createPostMergeModules({
             endpoints: extendedEndpoints,
-            errorConsumer
+            reportError
         }, customConfig);
     }
 

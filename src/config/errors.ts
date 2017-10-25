@@ -27,6 +27,6 @@ export class WeavingError extends Error {
     }
 }
 
-export interface WeavingErrorConsumer {
-    consumeError(error: WeavingError): void;
-}
+export type WeavingErrorConsumer = (error: WeavingError) => void;
+
+export const throwingErrorConsumer: WeavingErrorConsumer = e => { throw e; }
