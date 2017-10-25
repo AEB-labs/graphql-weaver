@@ -2,6 +2,7 @@ import { GraphQLSchema } from 'graphql';
 import { FieldMetadata } from '../extended-schema/extended-schema';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { PipelineConfig } from '../pipeline/pipeline-module';
+import { WeavingErrorHandlingMode } from './error-handling';
 
 /**
  * The configuration for weaving schemas
@@ -18,10 +19,10 @@ export interface WeavingConfig {
     pipelineConfig?: PipelineConfig
 
     /**
-     * If set, errors caused by endpoints (network errors, introspection errors) will not throw but be logged into
-     * the schema itself, to be retrievable via _errors.
+     * Configures what should happen when a recoverable error occurs during weaving. Does not affect unexpected errors
+     * that indicate bugs, those are always thrown. Default value: THROW
      */
-    continueOnEndpointErrors?: boolean
+    errorHandling?: WeavingErrorHandlingMode;
 }
 
 export interface EndpointConfigBase {

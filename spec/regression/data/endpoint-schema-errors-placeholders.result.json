@@ -6,6 +6,9 @@
           "name": "erroneous"
         },
         {
+          "name": "erroneousPrefixed"
+        },
+        {
           "name": "working"
         },
         {
@@ -16,13 +19,13 @@
         }
       ]
     },
+    "erroneous": {
+      "_error": "Failed to retrieve schema: Throwing introspection"
+    },
     "working": {
       "Country": {
         "description": "Deutschland"
       }
-    },
-    "erroneous": {
-      "_error": "Failed to retrieve schema: Throwing introspection"
     },
     "_errors": [
       {
@@ -35,7 +38,7 @@
       },
       {
         "message": "Failed to retrieve schema: Throwing introspection",
-        "endpoint": "erroneous"
+        "endpoint": "erroneousPrefixed"
       }
     ]
   }

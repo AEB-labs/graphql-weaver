@@ -1,12 +1,15 @@
 import { weaveSchemas } from '../src/weave-schemas';
 import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import {
-    DocumentNode, execute, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
+    DocumentNode, execute, ExecutionResult, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
 } from 'graphql';
 import { PipelineModule, PostMergeModuleContext, PreMergeModuleContext } from '../src/pipeline/pipeline-module';
 import { transformSchema } from 'graphql-transformer';
 import { Query } from '../src/graphql/common';
 import { assertSuccessfulResult } from '../src/graphql/execution-result';
+import { WeavingErrorHandlingMode } from '../src/config/error-handling';
+import { WeavingError } from '../src/config/errors';
+import { WeavingConfig } from '../src/config/weaving-config';
 
 describe('weaveSchemas', () => {
     const testSchema = new GraphQLSchema({
@@ -94,6 +97,42 @@ describe('weaveSchemas', () => {
 
         expect(module.queryPipelineExecuted).toBeTruthy('Query pipeline was not executed');
         expect(data['TEST']).toBe('the value');
+    });
+
+    it('throws when endpoint schemas can not be retrieved', async () => {
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                throw new Error(introspection ? 'Throwing introspection' : 'Throwing query');
+            }
+        };
+
+        async function test(config: WeavingConfig) {
+            let error: Error | undefined = undefined;
+            // can't use expect().toThrow because of promises
+            await weaveSchemas(config).catch(e => error = e);
+            expect(error).toBeDefined('failed with ' + config.errorHandling);
+            expect(error!.constructor.name).toBe(WeavingError.name);
+            expect(error!.message).toMatch(/.*Throwing introspection.*/);
+        }
+
+        await test({
+            endpoints: [
+                {
+                    client: errorClient,
+                },
+            ]
+        });
+
+        await test({
+            endpoints: [
+                {
+                    client: errorClient,
+                },
+            ],
+            errorHandling: WeavingErrorHandlingMode.THROW
+        });
+
+        // the other modes are tested via regression tests
     });
 });
 

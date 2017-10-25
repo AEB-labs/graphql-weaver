@@ -2,6 +2,7 @@ import { WeavingConfig } from '../../../src/config/weaving-config';
 import { GraphQLClient } from '../../../src/graphql-client/graphql-client';
 import { ExecutionResult } from 'graphql';
 import { defaultTestSchema } from '../../helpers/grapqhl-http-test/graphql-http-test-schema';
+import { WeavingErrorHandlingMode } from '../../../src/config/error-handling';
 
 const errorClient: GraphQLClient = {
     execute(query, vars, context, introspection): Promise<ExecutionResult> {
@@ -21,7 +22,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                 client: errorClient
             },
             {
-                namespace: 'erroneous',
+                namespace: 'erroneousPrefixed',
                 typePrefix: 'Erroneous',
                 client: errorClient
             },
@@ -31,7 +32,6 @@ export async function getConfig(): Promise<WeavingConfig> {
                 schema: defaultTestSchema
             }
         ],
-        continueOnEndpointErrors: true
+        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_PROVIDE_IN_SCHEMA
     };
 }
-
