@@ -1,5 +1,6 @@
 // Main function
-export { weaveSchemas, weaveSchemas as createProxySchema } from './src/weave-schemas';
+export { weaveSchemas, weaveSchemasExt, weaveSchemas as createProxySchema } from './src/weave-schemas';
+export { WeavingResult } from './src/weaving-result';
 
 // Configuration
 export { WeavingConfig, WeavingConfig as ProxyConfig, EndpointConfig } from './src/config/weaving-config';

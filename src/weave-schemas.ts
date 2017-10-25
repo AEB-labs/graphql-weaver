@@ -18,31 +18,45 @@ import TraceError = require('trace-error');
 import {
     shouldAddPlaceholdersOnError, shouldContinueOnError, shouldProvideErrorsInSchema
 } from './config/error-handling';
+import { WeavingResult } from './weaving-result';
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
 
 export async function weaveSchemas(config: WeavingConfig): Promise<GraphQLSchema> {
+    const result = await weaveSchemasExt(config);
+    return result.schema;
+}
+
+/**
+ * Weaves schemas according to a config. If only recoverable errors occurred, these are reported in the result.
+ */
+export async function weaveSchemasExt(config: WeavingConfig): Promise<WeavingResult> {
     if (shouldContinueOnError(config.errorHandling)) {
         return weaveSchemasContinueOnError(config);
     }
     return weaveSchemasThrowOnError(config);
 }
 
-async function weaveSchemasThrowOnError(config: WeavingConfig): Promise<GraphQLSchema> {
-    const pipeline = await createPipeline(config, { consumeError: (error) => { throw error } });
-    return pipeline.schema.schema;
+async function weaveSchemasThrowOnError(config: WeavingConfig): Promise<WeavingResult> {
+    const pipeline = await createPipeline(config, { consumeError: (error) => { throw error; } });
+    const schema = pipeline.schema.schema;
+    return {
+        schema,
+        errors: [], // in throwing mode, no recoverable errors can exists
+        hasErrors: false
+    };
 }
 
-async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<GraphQLSchema> {
+async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<WeavingResult> {
     const errors: WeavingError[] = [];
     function onError(error: WeavingError) {
         errors.push(error);
     }
     const pipeline = await createPipeline(config, { consumeError: onError });
-    const schema = pipeline.schema.schema;
+    let schema = pipeline.schema.schema;
     if (shouldProvideErrorsInSchema(config.errorHandling) && errors.length) {
-        return transformSchema(schema, {
+        schema = transformSchema(schema, {
             transformFields(config, context) {
                 if (context.oldOuterType == schema.getQueryType()) {
                     return {
@@ -61,13 +75,18 @@ async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<Graph
                             })))),
                             resolve: () => errors.map(e => ({message: e.message, endpoint: e.endpointName}))
                         }
-                    }
+                    };
                 }
                 return config;
             }
-        })
+        });
     }
-    return schema;
+
+    return {
+        schema,
+        errors,
+        hasErrors: errors.length > 0
+    };
 }
 
 export async function createPipeline(config: WeavingConfig, errorConsumer: WeavingErrorConsumer): Promise<Pipeline> {
@@ -117,9 +136,9 @@ function validateConfig(config: WeavingConfig) {
             endpointConfig.identifier = endpointConfig.namespace;
         }
         if (!endpointConfig.identifier) {
-            endpointConfig.identifier = Math.random().toString(36).slice(2)
+            endpointConfig.identifier = Math.random().toString(36).slice(2);
         }
-    })
+    });
 }
 
 async function getClientSchema(endpoint: GraphQLClient): Promise<GraphQLSchema> {

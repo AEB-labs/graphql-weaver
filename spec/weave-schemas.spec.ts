@@ -1,4 +1,4 @@
-import { weaveSchemas } from '../src/weave-schemas';
+import { weaveSchemas, weaveSchemasExt } from '../src/weave-schemas';
 import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import {
     DocumentNode, execute, ExecutionResult, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
@@ -133,6 +133,40 @@ describe('weaveSchemas', () => {
         });
 
         // the other modes are tested via regression tests
+    });
+});
+
+describe('weaveSchemasExt', () => {
+    it('reports recoverable errors', async () => {
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                throw new Error(introspection ? 'Throwing introspection' : 'Throwing query');
+            }
+        };
+
+        const result = await weaveSchemasExt({
+            endpoints: [
+                {
+                    client: errorClient,
+                },
+            ],
+            errorHandling: WeavingErrorHandlingMode.CONTINUE
+        });
+
+        expect(result.schema).toBeDefined();
+        expect(result.hasErrors).toBe(true);
+        expect(result.errors.length).toBe(1);
+        expect(result.errors[0].message).toContain('Throwing introspection');
+    });
+
+    it('reports successful results correctly', async () => {
+        const result = await weaveSchemasExt({
+            endpoints: [ ]
+        });
+
+        expect(result.schema).toBeDefined();
+        expect(result.hasErrors).toBe(false);
+        expect(result.errors).toEqual([]);
     });
 });
 
