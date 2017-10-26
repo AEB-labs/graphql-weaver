@@ -32,6 +32,6 @@ export async function getConfig(): Promise<WeavingConfig> {
                 schema: defaultTestSchema
             }
         ],
-        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_PROVIDE_IN_SCHEMA
+        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA
     };
 }

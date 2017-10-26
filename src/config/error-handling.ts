@@ -14,7 +14,7 @@ export enum WeavingErrorHandlingMode {
          * Like CONTINUE, but errors are additionally displayed to the user via a special _errors field on the root
          * query type.
          */
-    CONTINUE_AND_PROVIDE_IN_SCHEMA,
+    CONTINUE_AND_REPORT_IN_SCHEMA,
 
         /**
          * Like CONTINUE_AND_PROVIDE_IN_SCHEMA, but namespaced endpoints that completely fail are also replaced by an object
@@ -30,7 +30,7 @@ export function shouldAddPlaceholdersOnError(errorHandling: WeavingErrorHandling
 }
 
 export function shouldProvideErrorsInSchema(errorHandling: WeavingErrorHandlingMode = DEFAULT_ERROR_HANDLING_MODE) {
-    return errorHandling == WeavingErrorHandlingMode.CONTINUE_AND_PROVIDE_IN_SCHEMA || errorHandling == WeavingErrorHandlingMode.CONTINUE_AND_ADD_PLACEHOLDERS;
+    return errorHandling == WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA || errorHandling == WeavingErrorHandlingMode.CONTINUE_AND_ADD_PLACEHOLDERS;
 }
 
 export function shouldContinueOnError(errorHandling: WeavingErrorHandlingMode = DEFAULT_ERROR_HANDLING_MODE) {
