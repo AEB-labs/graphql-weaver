@@ -1,7 +1,8 @@
 import { weaveSchemas, weaveSchemasExt } from '../src/weave-schemas';
 import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import {
-    DocumentNode, execute, ExecutionResult, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
+    DocumentNode, execute, ExecutionResult, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit,
+    print
 } from 'graphql';
 import { PipelineModule, PostMergeModuleContext, PreMergeModuleContext } from '../src/pipeline/pipeline-module';
 import { transformSchema } from 'graphql-transformer';
@@ -118,21 +119,60 @@ describe('weaveSchemas', () => {
         await test({
             endpoints: [
                 {
-                    client: errorClient,
-                },
+                    client: errorClient
+                }
             ]
         });
 
         await test({
             endpoints: [
                 {
-                    client: errorClient,
-                },
+                    client: errorClient
+                }
             ],
             errorHandling: WeavingErrorHandlingMode.THROW
         });
 
         // the other modes are tested via regression tests
+    });
+
+    it('passes through client errors in originalError', async () => {
+        class CustomError extends Error {
+            constructor() {
+                super('custom message');
+                Object.setPrototypeOf(this, CustomError.prototype);
+            }
+
+            get specialValue() {
+                return true;
+            }
+        }
+
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                if (introspection) {
+                    return graphql(testSchema, print(query), {}, {}, vars);
+                } else {
+                    throw new CustomError();
+                }
+            }
+        };
+
+        const schema = await weaveSchemas({
+            endpoints: [{
+                client: errorClient
+            }]
+        });
+
+        const result = await graphql(schema, '{test}');
+
+        expect(result.errors).toBeDefined();
+        expect(result.errors!.length).toBeDefined();
+        expect(result.errors![0].message).toEqual('custom message');
+        const originalError: any = result.errors![0].originalError;
+        expect(originalError.constructor.name).toBe(CustomError.name);
+        expect(originalError instanceof CustomError).toBeTruthy();
+        expect(originalError.specialValue).toEqual(true);
     });
 });
 
@@ -147,8 +187,8 @@ describe('weaveSchemasExt', () => {
         const result = await weaveSchemasExt({
             endpoints: [
                 {
-                    client: errorClient,
-                },
+                    client: errorClient
+                }
             ],
             errorHandling: WeavingErrorHandlingMode.CONTINUE
         });
