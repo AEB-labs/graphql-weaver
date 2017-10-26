@@ -1,0 +1,27 @@
+{
+  "data": {
+    "allPeople": [
+      {
+        "name": "Horst",
+        "nationality": "DE"
+      },
+      {
+        "name": "Helga",
+        "nationality": "DE"
+      },
+      {
+        "name": "Jacqueline",
+        "nationality": "FR"
+      },
+      {
+        "name": "Zaphod",
+        "nationality": "ZZ"
+      }
+    ],
+    "_errors": [
+      {
+        "message": "Error in @join config on allPeople: Field \"nationality\" is referenced as linkField but has no @link configuration"
+      }
+    ]
+  }
+}

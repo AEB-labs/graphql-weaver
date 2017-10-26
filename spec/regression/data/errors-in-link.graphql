@@ -61,4 +61,10 @@
             }
         }
     }
+
+    # this test generates warnings regarding type mismatch which we can't get rid of without turning the runtime errors
+    # into query validation errors. So at least make sure those are the only ones
+    _errors {
+        message
+    }
 }

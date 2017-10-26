@@ -1,3 +1,5 @@
+import { WeavingError, WeavingErrorConsumer } from './errors';
+
 export enum WeavingErrorHandlingMode {
     /**
      * All errors are directly thrown in weaveSchemas
@@ -35,4 +37,30 @@ export function shouldProvideErrorsInSchema(errorHandling: WeavingErrorHandlingM
 
 export function shouldContinueOnError(errorHandling: WeavingErrorHandlingMode = DEFAULT_ERROR_HANDLING_MODE) {
     return errorHandling != WeavingErrorHandlingMode.THROW;
+}
+
+/**
+ * Calls a function in a nested error handling context.
+ *
+ * WeavingErrors thrown within the function caught and reported to the error handler "reportError". Errors reported
+ * within the function are prefixed with "errorPrefix: ".
+ */
+export function nestErrorHandling(reportError: WeavingErrorConsumer, errorPrefix: string|undefined, fn: (reportError: WeavingErrorConsumer) => void): void {
+    const resumableErrors: WeavingError[] = [];
+
+    function reportNestedError(error: WeavingError) {
+        const message = errorPrefix ? `${errorPrefix}: ${error.message}` : error.message;
+        reportError(new WeavingError(message, error.endpoint, error));
+    }
+
+    try {
+        fn(error => resumableErrors.push(error));
+    } catch (error) {
+        if (error instanceof WeavingError) {
+            reportNestedError(error);
+        } else {
+            throw error;
+        }
+    }
+    resumableErrors.forEach(reportNestedError);
 }

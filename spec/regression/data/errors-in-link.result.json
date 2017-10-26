@@ -125,6 +125,17 @@
         "name": "Greta",
         "husband": null
       }
-    }
+    },
+    "_errors": [
+      {
+        "message": "Error in @link config on Ns2Wife.husband: Link field \"husband\" is of type String, but argument \"name\" on target field \"ns1.horst\" has type Ns1Name"
+      },
+      {
+        "message": "Error in @link config on Ns2GretaLinkBroken.husband: Link field \"husband\" is of type Ns2Name, but argument \"name\" on target field \"ns1.horstByNameBroken\" has type Ns1Name"
+      },
+      {
+        "message": "Error in @link config on Ns2GretaKeyBroken.husband: Link field \"husband\" is of type Ns2Name, but argument \"name\" on target field \"ns1.horstByName\" has type Ns1Name"
+      }
+    ]
   }
 }
