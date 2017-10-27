@@ -1,0 +1,12 @@
+{
+    __type(name: "Query") {
+        fields {
+            name
+        }
+    }
+    working {
+        Country(identCode: "DE") {
+            description
+        }
+    }
+}

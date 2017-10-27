@@ -1,5 +1,6 @@
 import { GraphQLBoolean, GraphQLID, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import { WeavingConfig } from '../../../src/config/weaving-config';
+import { WeavingErrorHandlingMode } from '../../../src/config/error-handling';
 
 export async function getConfig(): Promise<WeavingConfig> {
     return {
@@ -38,6 +39,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                     },
                 }
             }
-        ]
+        ],
+        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA
     };
 }

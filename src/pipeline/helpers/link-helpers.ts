@@ -15,6 +15,7 @@ import { isArray } from 'util';
 import { assertSuccessfulResult } from '../../graphql/execution-result';
 import { FieldErrorValue, moveErrorsToData } from '../../graphql/errors-in-result';
 import { prefixGraphQLErrorPath } from './error-paths';
+import { WeavingError, WeavingErrorConsumer } from '../../config/errors';
 
 export const FILTER_ARG = 'filter';
 export const ORDER_BY_ARG = 'orderBy';
@@ -248,11 +249,11 @@ export async function fetchJoinedObjects(params: {
     const {fragments, ...originalParts} = getFieldAsQueryParts(info);
 
     const {fieldPath: targetFieldPath} = parseLinkTargetPath(linkConfig.field, unlinkedSchema) ||
-    throwError(`Link target field as ${linkConfig.field} which does not exist in the schema`);
+    throwError(() => new WeavingError(`Target field ${JSON.stringify(linkConfig.field)} does not exist`));
 
     const [filterArgumentName, ...keyFieldPath] = linkConfig.argument.split('.');
     if (!keyFieldPath) {
-        throw new Error(`argument on @link for @join must contain a dot`);
+        throw new WeavingError(`argument ${JSON.stringify(linkConfig.argument)} on link field needs to be a path of the form argumentName.fieldPath, where fieldPath is dot-separated.`);
     }
 
     const filterValue = modifyPropertyAtPath(additionalFilter, existingKeys => existingKeys ? intersect(existingKeys, keys) : keys, keyFieldPath);
@@ -347,28 +348,28 @@ export function getLinkArgumentType(linkConfig: LinkConfig, targetField: GraphQL
     const [filterArgumentName, ...keyFieldPath] = linkConfig.argument.split('.');
     const arg = targetField.args.filter(arg => arg.name == filterArgumentName)[0];
     if (!arg) {
-        throw new Error(`Field ${linkConfig.field} does not have an argument ${filterArgumentName}, which is defined on a @link config`);
+        throw new WeavingError(`Argument ${JSON.stringify(filterArgumentName)} does not exist on target field ${JSON.stringify(linkConfig.field)}`);
     }
     const type = arg.type;
     return keyFieldPath.reduce((type, fieldName) => {
         if (!(type instanceof GraphQLInputObjectType) || !(fieldName in type.getFields())) {
-            throw new Error(`${type} does not have a field ${fieldName} (encountered in argument path ${JSON.stringify(filterArgumentName)} of a @link config`);
+            throw new Error(`Argument path ${JSON.stringify(linkConfig.argument)} cannot be resolved: ${type} does not have a field ${JSON.stringify(fieldName)}`);
         }
         return type.getFields()[fieldName].type
     }, type);
 }
 
-export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: GraphQLOutputType, linkFieldName: string, parentObjectType: GraphQLNamedType, targetField: GraphQLField<any, any>}) {
+export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: GraphQLOutputType, linkFieldName: string, parentObjectType: GraphQLNamedType, targetField: GraphQLField<any, any>, reportError: WeavingErrorConsumer}) {
     const linkKeyType = getNamedType(config.linkFieldType);
     const argumentType = getNamedType(getLinkArgumentType(config.linkConfig, config.targetField));
     if (!(linkKeyType instanceof GraphQLScalarType)) {
-        throw new Error(`Type of @link field must be scalar type or list/non-null type of scalar type`);
+        throw new WeavingError(`Type of @link field must be scalar type or list/non-null type of scalar type, but is ${config.linkFieldType}`);
     }
     if (!(argumentType instanceof GraphQLScalarType)) {
-        throw new Error(`Type of argument field ${config.linkConfig.field}:${config.linkConfig.argument} must be scalar type or list/non-null-type of a scalar type, but is ${argumentType}`);
+        throw new WeavingError(`Type of argument field ${JSON.stringify(config.linkConfig.argument)} must be scalar type or list/non-null-type of a scalar type, but is ${argumentType}`);
     }
     if (argumentType != linkKeyType) {
-        console.warn(`WARN [graphql-weaver]: Key field type mismatch in @link on ${config.parentObjectType.name}.${config.linkFieldName} (has type ${linkKeyType}, but type of argument ${config.linkConfig.field}:${config.linkConfig.argument} is ${argumentType}`);
+        config.reportError(new WeavingError(`Link field ${JSON.stringify(config.linkFieldName)} is of type ${linkKeyType}, but argument ${JSON.stringify(config.linkConfig.argument)} on target field ${JSON.stringify(config.linkConfig.field)} has type ${argumentType}`));
     }
 
     // Even if the types do not match, we can still continue and just pass the link value as argument. For ID/String/Int mismatches, this should not be a problem.

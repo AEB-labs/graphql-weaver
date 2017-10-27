@@ -1,12 +1,16 @@
-import { weaveSchemas } from '../src/weave-schemas';
+import { weaveSchemas, weaveSchemasExt } from '../src/weave-schemas';
 import { GraphQLClient } from '../src/graphql-client/graphql-client';
 import {
-    DocumentNode, execute, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit
+    DocumentNode, execute, ExecutionResult, FieldNode, graphql, GraphQLObjectType, GraphQLSchema, GraphQLString, visit,
+    print
 } from 'graphql';
 import { PipelineModule, PostMergeModuleContext, PreMergeModuleContext } from '../src/pipeline/pipeline-module';
 import { transformSchema } from 'graphql-transformer';
 import { Query } from '../src/graphql/common';
 import { assertSuccessfulResult } from '../src/graphql/execution-result';
+import { WeavingErrorHandlingMode } from '../src/config/error-handling';
+import { WeavingError } from '../src/config/errors';
+import { WeavingConfig } from '../src/config/weaving-config';
 
 describe('weaveSchemas', () => {
     const testSchema = new GraphQLSchema({
@@ -94,6 +98,115 @@ describe('weaveSchemas', () => {
 
         expect(module.queryPipelineExecuted).toBeTruthy('Query pipeline was not executed');
         expect(data['TEST']).toBe('the value');
+    });
+
+    it('throws when endpoint schemas can not be retrieved', async () => {
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                throw new Error(introspection ? 'Throwing introspection' : 'Throwing query');
+            }
+        };
+
+        async function test(config: WeavingConfig) {
+            let error: Error | undefined = undefined;
+            // can't use expect().toThrow because of promises
+            await weaveSchemas(config).catch(e => error = e);
+            expect(error).toBeDefined('failed with ' + config.errorHandling);
+            expect(error!.constructor.name).toBe(WeavingError.name);
+            expect(error!.message).toMatch(/.*Throwing introspection.*/);
+        }
+
+        await test({
+            endpoints: [
+                {
+                    client: errorClient
+                }
+            ]
+        });
+
+        await test({
+            endpoints: [
+                {
+                    client: errorClient
+                }
+            ],
+            errorHandling: WeavingErrorHandlingMode.THROW
+        });
+
+        // the other modes are tested via regression tests
+    });
+
+    it('passes through client errors in originalError', async () => {
+        class CustomError extends Error {
+            constructor() {
+                super('custom message');
+                Object.setPrototypeOf(this, CustomError.prototype);
+            }
+
+            get specialValue() {
+                return true;
+            }
+        }
+
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                if (introspection) {
+                    return graphql(testSchema, print(query), {}, {}, vars);
+                } else {
+                    throw new CustomError();
+                }
+            }
+        };
+
+        const schema = await weaveSchemas({
+            endpoints: [{
+                client: errorClient
+            }]
+        });
+
+        const result = await graphql(schema, '{test}');
+
+        expect(result.errors).toBeDefined();
+        expect(result.errors!.length).toBeDefined();
+        expect(result.errors![0].message).toEqual('custom message');
+        const originalError: any = result.errors![0].originalError;
+        expect(originalError.constructor.name).toBe(CustomError.name);
+        expect(originalError instanceof CustomError).toBeTruthy();
+        expect(originalError.specialValue).toEqual(true);
+    });
+});
+
+describe('weaveSchemasExt', () => {
+    it('reports recoverable errors', async () => {
+        const errorClient: GraphQLClient = {
+            execute(query, vars, context, introspection): Promise<ExecutionResult> {
+                throw new Error(introspection ? 'Throwing introspection' : 'Throwing query');
+            }
+        };
+
+        const result = await weaveSchemasExt({
+            endpoints: [
+                {
+                    client: errorClient
+                }
+            ],
+            errorHandling: WeavingErrorHandlingMode.CONTINUE
+        });
+
+        expect(result.schema).toBeDefined();
+        expect(result.hasErrors).toBe(true);
+        expect(result.errors.length).toBe(1);
+        expect(result.errors[0].message).toContain('Throwing introspection');
+    });
+
+    it('reports successful results correctly', async () => {
+        const result = await weaveSchemasExt({
+            endpoints: [ ]
+        });
+
+        expect(result.schema).toBeDefined();
+        expect(result.hasErrors).toBe(false);
+        expect(result.errors).toEqual([]);
     });
 });
 

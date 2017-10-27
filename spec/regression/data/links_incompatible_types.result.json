@@ -5,6 +5,11 @@
       "nationality": {
         "description": "Deutschland"
       }
-    }
+    },
+    "_errors": [
+      {
+        "message": "Error in @link config on Person.nationality: Link field \"nationality\" is of type ID, but argument \"identCode\" on target field \"staticData.Country\" has type String"
+      }
+    ]
   }
 }

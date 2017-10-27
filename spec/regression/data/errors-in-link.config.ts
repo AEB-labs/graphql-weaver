@@ -1,9 +1,8 @@
 import {
-    GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString,
-    ValueNode
+    GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString
 } from 'graphql';
-import {testTypes} from "../../helpers/test-types";
 import { WeavingConfig } from '../../../src/config/weaving-config';
+import { WeavingErrorHandlingMode } from '../../../src/config/error-handling';
 
 export async function getConfig(): Promise<WeavingConfig> {
     function isNiceName(str: string) {
@@ -144,7 +143,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                                     name: 'GretaLinkBroken',
                                     fields: {
                                         name: {
-                                            type: GraphQLString
+                                            type: GraphQLString // need string here instead of name because we want this resolver *not* to fail when returning the bad names
                                         },
                                         husband: {
                                             type: nameType
@@ -196,6 +195,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                     }
                 }
             }
-        ]
+        ],
+        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA
     };
 }
