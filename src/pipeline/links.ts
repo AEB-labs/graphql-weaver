@@ -617,14 +617,21 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
         let newOrderByType: GraphQLInputType | undefined;
         if (rightOrderByArg) {
-            const rightOrderByType = rightOrderByArg.type;
+            let rightOrderByType = rightOrderByArg.type;
+            if (rightOrderByType instanceof GraphQLList) {
+                // list of enum?
+                rightOrderByType = rightOrderByType.ofType
+            }
             if (!(rightOrderByType instanceof GraphQLEnumType)) {
                 throw new WeavingError(`orderBy argument of target field ${JSON.stringify(targetFieldPath)} should be of enum type, but is ${rightOrderByType.constructor.name}`);
             }
             const newOrderByTypeName = this.generateJoinOrderByTypeName(leftObjectType, leftOrderByArg, rightObjectType, rightOrderByArg);
             let newEnumValues: GraphQLEnumValue[] = [];
             if (leftOrderByArg) {
-                const leftOrderByType = leftOrderByArg.type;
+                let leftOrderByType = leftOrderByArg.type;
+                if (leftOrderByType instanceof GraphQLList) {
+                    leftOrderByType = leftOrderByType.ofType;
+                }
                 if (!(leftOrderByType instanceof GraphQLEnumType)) {
                     throw new WeavingError(`orderBy argument should be of enum type, but is ${leftOrderByType.constructor.name}`);
                 }
