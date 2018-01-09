@@ -17,7 +17,7 @@ const config: WeavingConfig = {
     ]
 };
 
-function testDirect(): BenchmarkConfig {
+function testDirect(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
     const client = new HttpGraphQLClient({ url: UPSTREAM_URL });
     const document = parse(queryStr);
 
@@ -25,18 +25,18 @@ function testDirect(): BenchmarkConfig {
         name: 'direct',
         maxTime: 5,
         async fn() {
-            await client.execute(document)
+            await client.execute(document, params)
         }
     };
 }
 
-function testProxied(): BenchmarkConfig {
+function testProxied(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
     let schema: GraphQLSchema;
     return {
         name: 'woven',
         maxTime: 5,
         async fn() {
-            await execute(schema, parse(queryStr), {}, {}, {});
+            await execute(schema, parse(queryStr), {}, {}, params);
         },
         async beforeAll() {
             schema = await weaveSchemas(config);
@@ -45,5 +45,9 @@ function testProxied(): BenchmarkConfig {
 }
 
 export const COMPARISON: BenchmarkConfig[] = [
-    testDirect(), testProxied()
+    testDirect({ useLargeList: false }), testProxied({ useLargeList: false })
+];
+
+export const COMPARISON_LARGE: BenchmarkConfig[] = [
+    testDirect({ useLargeList: true }), testProxied({ useLargeList: true })
 ];

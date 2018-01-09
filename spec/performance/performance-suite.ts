@@ -4,9 +4,11 @@ import { QUERY_BENCHMARKS } from './profiling/query-pipeline.perf';
 import { COMPARISON } from './comparison/comparison';
 import { runComparisons } from './support/compare-runner';
 import { GraphQLHTTPTestEndpoint } from '../helpers/grapqhl-http-test/graphql-http-test-endpoint';
+import { JOIN_BENCHMARKS } from './profiling/join';
 
 const benchmarks: BenchmarkFactories = [
-    ...QUERY_BENCHMARKS
+    ...QUERY_BENCHMARKS,
+    ...JOIN_BENCHMARKS
 ];
 
 const comparisons: BenchmarkConfig[][] = [
