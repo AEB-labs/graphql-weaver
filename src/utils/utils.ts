@@ -250,3 +250,7 @@ export function getOrSetFromMap<K, V>(map: Map<K, V>, key: K, defaultFn: () => V
     map.set(key, value);
     return value;
 }
+
+export function isPromise<T>(value: any): value is Promise<T> {
+    return typeof value === 'object' && value !== null && typeof value.then === 'function';
+}
