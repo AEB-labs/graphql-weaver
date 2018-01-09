@@ -22,7 +22,7 @@ function testDirect(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
     const document = parse(queryStr);
 
     return {
-        name: 'direct',
+        name: `direct ${params && params.useLargeList ? 'with large list' : ''}`,
         maxTime: 5,
         async fn() {
             await client.execute(document, params)
@@ -33,7 +33,7 @@ function testDirect(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
 function testProxied(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
     let schema: GraphQLSchema;
     return {
-        name: 'woven',
+        name: `woven ${params && params.useLargeList ? 'with large list' : ''}`,
         maxTime: 5,
         async fn() {
             await execute(schema, parse(queryStr), {}, {}, params);
