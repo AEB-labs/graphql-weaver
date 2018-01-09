@@ -1,6 +1,21 @@
 {
   "errors": [
     {
+      "message": "horst age not available",
+      "locations": [
+        {
+          "line": 7,
+          "column": 17
+        }
+      ],
+      "path": [
+        "ns2",
+        "greta",
+        "husband",
+        "age"
+      ]
+    },
+    {
       "message": "Argument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
       "locations": [
         {
@@ -43,35 +58,6 @@
       ]
     },
     {
-      "message": "No horst by name",
-      "locations": [
-        {
-          "line": 49,
-          "column": 13
-        }
-      ],
-      "path": [
-        "linkFieldError",
-        "gretaLinkBroken",
-        "husband"
-      ]
-    },
-    {
-      "message": "horst age not available",
-      "locations": [
-        {
-          "line": 7,
-          "column": 17
-        }
-      ],
-      "path": [
-        "ns2",
-        "greta",
-        "husband",
-        "age"
-      ]
-    },
-    {
       "message": "Errors retrieving key field \"name\":\n\nNo name for this horst\n\nNo name for this horst",
       "locations": [
         {
@@ -82,6 +68,20 @@
       "path": [
         "linkKeyError",
         "gretaKeyBroken",
+        "husband"
+      ]
+    },
+    {
+      "message": "No horst by name",
+      "locations": [
+        {
+          "line": 49,
+          "column": 13
+        }
+      ],
+      "path": [
+        "linkFieldError",
+        "gretaLinkBroken",
         "husband"
       ]
     }
