@@ -19,6 +19,8 @@ describe('regression tests', () => {
     const dir = path.join(__dirname, 'data');
     const files = fs.readdirSync(dir);
 
+    const saveActualAsExpected = process.argv.includes('--save-actual-as-expected');
+
     for (const fileName of files) {
         if (!fileName.endsWith('.graphql')) {
             continue;
@@ -26,10 +28,16 @@ describe('regression tests', () => {
         const queryString = fs.readFileSync(path.join(dir, fileName), 'utf-8');
         it(fileName, async() => {
             const configFile = require(path.join(dir, fileName.replace(/.graphql$/, '.config.ts')));
-            let expectedResult = JSON.parse(fs.readFileSync(path.join(dir, fileName.replace(/.graphql$/, '.result.json')), 'utf-8'));
+            const resultPath = path.join(dir, fileName.replace(/.graphql$/, '.result.json'));
+            let expectedResult = JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
             const variablesPath = path.join(dir, fileName.replace(/.graphql$/, '.vars.json'));
             const variableValues = fs.existsSync(variablesPath) ? JSON.parse(fs.readFileSync(variablesPath, 'utf-8')) : {};
             const result = await testConfigWithQuery(await configFile.getConfig(), queryString, variableValues);
+
+            if (saveActualAsExpected && !(jasmine as any).matchersUtil.equals(result, expectedResult)) {
+                fs.writeFileSync(resultPath, JSON.stringify(result, undefined, '  '), 'utf-8');
+            }
+
             (<any>expect(result)).toEqualJSON(expectedResult);
         });
     }
