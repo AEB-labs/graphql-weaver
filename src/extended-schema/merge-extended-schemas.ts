@@ -12,5 +12,5 @@ export function mergeExtendedSchemas(...schemas: ExtendedSchema[]) {
 }
 
 export function mergeFieldMetadata(...metadatas: Map<string, FieldMetadata>[]) {
-    return new Map(flatMap(metadatas, map => Array.from(map)));
+    return new Map<string, FieldMetadata>(flatMap(metadatas, map => Array.from(map)));
 }

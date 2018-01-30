@@ -1,10 +1,8 @@
 import {
-    DocumentNode, FieldNode, getNamedType, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField,
-    GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType,
-    GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLObjectType, GraphQLResolveInfo, OperationDefinitionNode,
-    TypeInfo,
-    ValueNode, visit, visitWithTypeInfo, GraphQLInputObjectTypeConfig, Thunk, GraphQLArgumentConfig,
-    GraphQLEnumValueConfigMap
+    DocumentNode, FieldNode, getNamedType, GraphQLArgument, GraphQLArgumentConfig, GraphQLEnumType, GraphQLEnumValue,
+    GraphQLEnumValueConfigMap, GraphQLField, GraphQLFieldConfigArgumentMap, GraphQLInputFieldConfigMap,
+    GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLObjectType,
+    GraphQLResolveInfo, OperationDefinitionNode, Thunk, TypeInfo, ValueNode, visit, visitWithTypeInfo
 } from 'graphql';
 import { PipelineModule } from './pipeline-module';
 import { ExtendedSchema, JoinConfig, LinkConfig } from '../extended-schema/extended-schema';
@@ -24,7 +22,9 @@ import { dropUnusedFragments, dropUnusedVariables, SlimGraphQLResolveInfo } from
 import {
     addVariableDefinitionSafely, createFieldNode, expandSelections, getAliasOrName
 } from '../graphql/language-utils';
+import { WeavingError, WeavingErrorConsumer } from '../config/errors';
 import DataLoader = require('dataloader');
+import { nestErrorHandling } from '../config/error-handling';
 
 const JOIN_ALIAS = '_joined'; // used when a joined field is not selected
 
@@ -36,18 +36,16 @@ export class LinksModule implements PipelineModule {
     private linkedSchema: ExtendedSchema | undefined;
     private transformationInfo: SchemaTransformationInfo | undefined;
 
+    constructor(private moduleConfig: { reportError: WeavingErrorConsumer }) {
+    }
+
     transformExtendedSchema(schema: ExtendedSchema): ExtendedSchema {
         this.unlinkedSchema = schema;
-        const transformer = new SchemaLinkTransformer(schema);
+        const transformer = new SchemaLinkTransformer(schema, this.moduleConfig.reportError);
         this.linkedSchema = transformExtendedSchema(schema, transformer);
         this.transformationInfo = transformer.transformationInfo;
         return this.linkedSchema!;
     }
-
-    // does not work because we currently need the schema
-    /*getSchemaTransformer() {
-     return new SchemaLinkTransformer(this.config);
-     }*/
 
     /**
      * Replaces linked fields by scalar fields
@@ -203,7 +201,7 @@ export class LinksModule implements PipelineModule {
                         // remove order clause if it actually applies to the right side
                         const orderBy = (child.arguments || []).filter(arg => arg.name.value == ORDER_BY_ARG)[0];
                         if (orderBy) {
-                            let orderByValue: string|undefined;
+                            let orderByValue: string | undefined;
                             switch (orderBy.value.kind) {
                                 case 'Variable':
                                     orderByValue = variableValues[orderBy.value.name.value];
@@ -224,7 +222,7 @@ export class LinksModule implements PipelineModule {
                             // let dropUnusedVariables() below take care of the variable definition in that case
 
                             // first, remove
-                            let newArgs = (child.arguments ||[]).filter(arg => arg != orderBy);
+                            let newArgs = (child.arguments || []).filter(arg => arg != orderBy);
                             // then, add if appropiate
                             if (orderByValue && !hasRightOrderBy) {
                                 newArgs = [
@@ -372,7 +370,7 @@ interface LinkTransformationInfo {
 class ResolvedLinkObject {
     private _ResolvedLinkObject: never;
 
-    constructor(obj: {[key:string]:any}) {
+    constructor(obj: { [key: string]: any }) {
         Object.assign(this, obj);
     }
 
@@ -384,14 +382,17 @@ class ResolvedLinkObject {
 class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     public readonly transformationInfo = new SchemaTransformationInfo();
 
-    constructor(private readonly schema: ExtendedSchema) {
+    constructor(private readonly schema: ExtendedSchema, private readonly reportError: WeavingErrorConsumer) {
 
     }
 
     transformField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext): GraphQLNamedFieldConfigWithMetadata<any, any> {
         if (config.metadata && config.metadata.join && !config.metadata.join.ignore) {
-            config = this.transformJoinField(config, context, config.metadata.join);
-            config.metadata!.join!.ignore = true;
+            const joinMetadata = config.metadata.join;
+            nestErrorHandling(this.reportError, `Error in @join config on ${config.name}`, (reportError) => {
+                config = this.transformJoinField(config, context, joinMetadata, reportError);
+                config.metadata!.join!.ignore = true;
+            });
         }
 
         return config;
@@ -401,29 +402,34 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         const newFields: GraphQLFieldConfigMapWithMetadata = {};
         for (const [name, fieldConfig] of objectEntries(fields)) {
             if (fieldConfig.metadata && fieldConfig.metadata.link && !fieldConfig.metadata.link.ignore) {
-                const {name: newName, ...newConfig} = this.transformLinkField({...fieldConfig, name}, context, fieldConfig.metadata.link);
-                if (newName != name) {
-                    newFields[name] = {
-                        ...fieldConfig,
+                const linkConfig = fieldConfig.metadata.link;
+                nestErrorHandling(this.reportError, `Error in @link config on ${context.oldOuterType.name}.${name}`, (reportError) => {
+                    const {name: newName, ...newConfig} = this.transformLinkField({
+                        ...fieldConfig, name
+                    }, context, linkConfig, reportError);
+                    if (newName != name) {
+                        newFields[name] = {
+                            ...fieldConfig,
+                            metadata: {
+                                ...fieldConfig.metadata,
+                                link: {
+                                    ...linkConfig,
+                                    ignore: true
+                                }
+                            }
+                        }; // preserve old field with to linked flag
+                    }
+                    newFields[newName] = {
+                        ...newConfig,
                         metadata: {
-                            ...fieldConfig.metadata,
+                            ...newConfig.metadata,
                             link: {
-                                ...fieldConfig.metadata.link,
+                                ...linkConfig,
                                 ignore: true
                             }
                         }
-                    }; // preserve old field with to linked flag
-                }
-                newFields[newName] = {
-                    ...newConfig,
-                    metadata: {
-                        ...newConfig.metadata,
-                        link: {
-                            ...fieldConfig.metadata.link,
-                            ignore: true
-                        }
-                    }
-                };
+                    };
+                });
             } else {
                 newFields[name] = fieldConfig;
             }
@@ -431,24 +437,24 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         return newFields;
     }
 
-    private transformLinkField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldsTransformationContext, linkConfig: LinkConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
+    private transformLinkField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldsTransformationContext, linkConfig: LinkConfig, reportError: WeavingErrorConsumer): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const unlinkedSchema = this.schema.schema;
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
-        throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
+        throwError(() => new WeavingError(`Target field ${JSON.stringify(linkConfig.field)} does not exist`));
 
         const targetRawType = <GraphQLObjectType | GraphQLInterfaceType>getNamedType(context.mapType(targetField.type));
 
         if (!(targetRawType instanceof GraphQLObjectType) && !(targetRawType instanceof GraphQLInterfaceType)) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field}, which is of type ${targetRawType}, but only object and interface types are supported.`)
+            throw new WeavingError(`Target field ${JSON.stringify(linkConfig.field)} is of type ${targetRawType}, but only object and interface types are supported.`);
         }
         if (linkConfig.keyField && !(linkConfig.keyField in targetRawType.getFields())) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} defines keyField as ${linkConfig.keyField}, but there is no such field in target type ${targetRawType}.`);
+            throw new WeavingError(`keyField ${JSON.stringify(linkConfig.keyField)} does not exist in target type ${targetRawType.name}.`);
         }
-        if(linkConfig.batchMode && linkConfig.oneToMany) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies both batchMode and oneToMany, but these modes are mutually exclusive.`);
+        if (linkConfig.batchMode && linkConfig.oneToMany) {
+            throw new WeavingError(`batchMode and oneToMany are mutually exclusive.`);
         }
-        if(linkConfig.oneToMany && !isListType(targetField.type)) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies oneToMany, but ${linkConfig.field} is not of type GraphQLList.`);
+        if (linkConfig.oneToMany && !isListType(targetField.type)) {
+            throw new WeavingError(`oneToMany is configured, but target field ${JSON.stringify(linkConfig.field)} is not of type GraphQLList.`);
         }
 
         const isListMode = isListType(config.type);
@@ -457,7 +463,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             linkFieldType: context.mapType(config.type),
             targetField,
             parentObjectType: context.mapType(context.oldOuterType),
-            linkConfig
+            linkConfig,
+            reportError
         });
 
         const dataLoaders = new ArrayKeyWeakMap<FieldNode | any, DataLoader<any, any>>();
@@ -512,32 +519,33 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         };
     }
 
-    private transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig): GraphQLNamedFieldConfigWithMetadata<any, any> {
+    private transformJoinField(config: GraphQLNamedFieldConfigWithMetadata<any, any>, context: FieldTransformationContext, joinConfig: JoinConfig,
+                               reportError: WeavingErrorConsumer): GraphQLNamedFieldConfigWithMetadata<any, any> {
         const linkFieldName = joinConfig.linkField;
         const leftType = getNamedType(context.oldField.type);
         if (!(leftType instanceof GraphQLObjectType) && !(leftType instanceof GraphQLInterfaceType)) {
-            throw new Error(`@join feature only supported on object types and interface types, but is ${leftType}`);
+            throw new WeavingError(`@join feature only supported on object types and interface types, but is ${leftType.constructor.name}`);
         }
         const linkField: GraphQLField<any, any> = leftType.getFields()[linkFieldName]; // why any?
         if (!linkField) {
-            throw new Error(`linkField ${JSON.stringify(linkFieldName)} configured by @join does not exist on ${leftType.name}`);
+            throw new WeavingError(`linkField ${JSON.stringify(linkFieldName)} does not exist in this type`);
         }
         const linkFieldMetadata = this.schema.getFieldMetadata(<GraphQLObjectType>leftType, linkField); // no metadata on interfaces yet
         const linkConfig = linkFieldMetadata ? linkFieldMetadata.link : undefined;
         if (!linkConfig) {
-            throw new Error(`Field ${leftType.name}.${linkFieldName} is referenced as linkField but has no @link configuration`);
+            throw new WeavingError(`Field ${JSON.stringify(linkFieldName)} is referenced as linkField but has no @link configuration`);
         }
         if (!linkConfig.batchMode || !linkConfig.keyField) {
-            throw new Error(`@join only possible on @link fields with batchMode=true and keyField set`);
+            throw new WeavingError(`@join is only possible on @link fields with batchMode=true and keyField set`);
         }
         if (linkConfig.oneToMany) {
-            throw new Error(`Link on ${context.oldOuterType}.${config.name} specfies oneToMany, but @join does not support one-to-many links.`);
+            throw new WeavingError(`Link specifies oneToMany, but @join does not support one-to-many links.`);
         }
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
-        throwError(`Link on ${context.oldOuterType}.${config.name} defines target field as ${linkConfig.field} which does not exist in the schema`);
+        throwError(`Link defines target field as ${JSON.stringify(linkConfig.field)} which does not exist`);
 
         if (isListType(linkField.type)) {
-            throw new Error(`@join not available for linkFields with array type (${context.oldOuterType}.${config.name} specifies @join with linkName ${linkFieldName}`);
+            throw new WeavingError(`@join not available for linkFields with array type`);
         }
 
         const leftObjectType = getNamedType(context.oldField.type);
@@ -548,7 +556,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             linkFieldType: linkField.type,
             targetField,
             parentObjectType: leftObjectType,
-            linkConfig
+            linkConfig,
+            reportError
         });
 
         // This may differ from the name of the linkField in case the link field is renamed
@@ -575,7 +584,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
                 const leftFilterType = context.mapType(leftFilterArg.type);
                 if (!(leftFilterType instanceof GraphQLInputObjectType)) {
-                    throw new Error(`Expected filter argument of ${leftType.name}.${linkField.name} to be of InputObjectType`);
+                    throw new WeavingError(`Type of filter argument should be InputObjectType, but is ${leftFilterArg.type}`);
                 }
 
                 newFilterFields = {
@@ -585,7 +594,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
                 };
             }
-            newFilterType = this.findOrCreateInputObjectType(newFilterTypeName, { fields: newFilterFields });
+            newFilterType = this.findOrCreateInputObjectType(newFilterTypeName, {fields: newFilterFields});
         } else {
             newFilterType = leftFilterArg ? leftFilterArg.type : undefined;
         }
@@ -608,16 +617,16 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
 
         let newOrderByType: GraphQLInputType | undefined;
         if (rightOrderByArg) {
-            const rightOrderByType = rightOrderByArg.type;
+            let rightOrderByType = getNamedType(rightOrderByArg.type);
             if (!(rightOrderByType instanceof GraphQLEnumType)) {
-                throw new Error(`Expected orderBy argument of ${targetField.name} to be of enum type`);
+                throw new WeavingError(`orderBy argument of target field ${JSON.stringify(targetFieldPath)} should be of enum type, but is ${rightOrderByType.constructor.name}`);
             }
             const newOrderByTypeName = this.generateJoinOrderByTypeName(leftObjectType, leftOrderByArg, rightObjectType, rightOrderByArg);
             let newEnumValues: GraphQLEnumValue[] = [];
             if (leftOrderByArg) {
-                const leftOrderByType = leftOrderByArg.type;
+                let leftOrderByType = getNamedType(leftOrderByArg.type);
                 if (!(leftOrderByType instanceof GraphQLEnumType)) {
-                    throw new Error(`Expected orderBy argument of ${config.name} to be of enum type`);
+                    throw new WeavingError(`orderBy argument should be of enum type, but is ${leftOrderByType.constructor.name}`);
                 }
                 newEnumValues = leftOrderByType.getValues();
             }
@@ -630,7 +639,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 })))
             ];
 
-            newOrderByType = newOrderByType = this.findOrCreateEnumType(newOrderByTypeName, {
+            newOrderByType = this.findOrCreateEnumType(newOrderByTypeName, {
                 values: arrayToObject(newEnumValues.map(({name, value, deprecationReason}) => ({
                     name, value, deprecationReason
                 })), val => val.name)
@@ -711,7 +720,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 }
                 // undefined means that the link field was never selected by the user, so it has been added as
                 // an alias to JOIN_ALIAS by the query transformer
-                const anyAliasFieldNodePair = linkFieldNodesByAlias[0] as  [string | undefined, FieldNode[]]|undefined;
+                const anyAliasFieldNodePair = linkFieldNodesByAlias[0] as  [string | undefined, FieldNode[]] | undefined;
                 const anyLinkFieldAlias = anyAliasFieldNodePair ? anyAliasFieldNodePair[0] || JOIN_ALIAS : JOIN_ALIAS;
                 const rightKeysToLeftObjects = anyAliasFieldNodePair ? groupBy(leftObjects, obj => obj[anyLinkFieldAlias]) : new Map<any, any[]>();
                 const rightKeys = Array.from(rightKeysToLeftObjects.keys());
@@ -729,7 +738,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     // we can do this because count(right) >= count(left) always
                     // this is not possible for outer joins, because there we need to detect if an object *has* a right
                     // object, and limiting the results would miss some right objects
-                    let first: number|undefined = undefined;
+                    let first: number | undefined = undefined;
                     if ((rightFilter || rightOrderBy) && doInnerJoin && FIRST_ARG in args) {
                         first = args[FIRST_ARG];
                     }
@@ -818,8 +827,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     }
 
     protected generateJoinFilterTypeName(leftObjectType: GraphQLNamedType, leftFilterArg: GraphQLArgument, rightObjectType: GraphQLNamedType, rightFilterArg: GraphQLArgument): string {
-        let leftPart = "";
-        let rightPart = "";
+        let leftPart = '';
+        let rightPart = '';
         if (leftFilterArg) {
             leftPart = leftFilterArg.type instanceof GraphQLInputObjectType ? leftFilterArg.type.name.replace(/Filter$/, '') : leftObjectType.name;
         }
@@ -830,9 +839,9 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         return `${leftPart}${separator}${rightPart}JoinedFilter`;
     }
 
-    protected generateJoinOrderByTypeName(leftObjectType: GraphQLNamedType, leftOrderArg: GraphQLArgumentConfig|undefined, rightObjectType: GraphQLNamedType, rightOrderArg: GraphQLArgumentConfig): string {
-        let leftPart = "";
-        let rightPart = "";
+    protected generateJoinOrderByTypeName(leftObjectType: GraphQLNamedType, leftOrderArg: GraphQLArgumentConfig | undefined, rightObjectType: GraphQLNamedType, rightOrderArg: GraphQLArgumentConfig): string {
+        let leftPart = '';
+        let rightPart = '';
         if (leftOrderArg) {
             leftPart = leftOrderArg.type instanceof GraphQLEnumType ? leftOrderArg.type.name.replace(/OrderBy$/, '') : leftObjectType.name;
         }
@@ -843,24 +852,24 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
         return `${leftPart}${separator}${rightPart}JoinedOrderBy`;
     }
 
-    protected findOrCreateInputObjectType(name: string, fallback: { fields: Thunk<GraphQLInputFieldConfigMap>, description?: string }): GraphQLInputObjectType|GraphQLEnumType {
+    protected findOrCreateInputObjectType(name: string, fallback: { fields: Thunk<GraphQLInputFieldConfigMap>, description?: string }): GraphQLInputObjectType | GraphQLEnumType {
         let result = this.inputObjectTypeMap[name];
         if (!result) {
-            result = new GraphQLInputObjectType({ ...fallback, name: name });
+            result = new GraphQLInputObjectType({...fallback, name: name});
             this.inputObjectTypeMap[name] = result;
         }
         return result;
     }
 
-    protected findOrCreateEnumType(name: string, fallback: {values: GraphQLEnumValueConfigMap, description?: string;}): GraphQLInputObjectType|GraphQLEnumType {
+    protected findOrCreateEnumType(name: string, fallback: { values: GraphQLEnumValueConfigMap, description?: string; }): GraphQLInputObjectType | GraphQLEnumType {
         let result = this.inputObjectTypeMap[name];
         if (!result) {
-            result = new GraphQLEnumType({ ...fallback, name: name });
+            result = new GraphQLEnumType({...fallback, name: name});
             this.inputObjectTypeMap[name] = result;
         }
         return result;
     }
 
-    private inputObjectTypeMap: { [typeName: string]: GraphQLInputObjectType|GraphQLEnumType } = {};
+    private inputObjectTypeMap: { [typeName: string]: GraphQLInputObjectType | GraphQLEnumType } = {};
 
 }

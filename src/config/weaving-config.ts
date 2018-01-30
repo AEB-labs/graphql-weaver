@@ -2,6 +2,7 @@ import { GraphQLSchema } from 'graphql';
 import { FieldMetadata } from '../extended-schema/extended-schema';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { PipelineConfig } from '../pipeline/pipeline-module';
+import { WeavingErrorHandlingMode } from './error-handling';
 
 /**
  * The configuration for weaving schemas
@@ -16,6 +17,12 @@ export interface WeavingConfig {
      * Custom configuration of the pipeline
      */
     pipelineConfig?: PipelineConfig
+
+    /**
+     * Configures what should happen when a recoverable error occurs during weaving. Does not affect unexpected errors
+     * that indicate bugs, those are always thrown. Default value: THROW
+     */
+    errorHandling?: WeavingErrorHandlingMode;
 }
 
 export interface EndpointConfigBase {
@@ -59,7 +66,7 @@ export interface LocalEndpointConfig extends EndpointConfigBase {
     /**
      * A GraphQL schema that is used to execute GraphQL queries
      */
-    schema: GraphQLSchema
+    schema: GraphQLSchema|Promise<GraphQLSchema>
 }
 
 export type EndpointConfig = HttpEndpointConfig | LocalEndpointConfig | CustomEndpointConfig;

@@ -1,4 +1,4 @@
-import { isArray, isNumber } from 'util';
+import { isArray, isFunction, isNumber } from 'util';
 
 export function objectValues<T>(obj: { [name: string]: T }): T[] {
     return Object.keys(obj).map(i => obj[i]);
@@ -127,8 +127,13 @@ export function mapAndCompact<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut 
     return input.map(fn).filter(a => a != undefined) as TOut[];
 }
 
-export function throwError(message: string): never {
-    throw new Error(message);
+export function throwError(fn: () => Error): never
+export function throwError(message: string): never
+export function throwError(arg: any): never {
+    if (isFunction(arg)) {
+        throw arg();
+    }
+    throw new Error(arg);
 }
 
 export function groupBy<TItem, TKey>(arr: TItem[], keyFn: (key: TItem) => TKey): Map<TKey, TItem[]> {
@@ -244,4 +249,8 @@ export function getOrSetFromMap<K, V>(map: Map<K, V>, key: K, defaultFn: () => V
     const value = defaultFn();
     map.set(key, value);
     return value;
+}
+
+export function isPromise<T>(value: any): value is Promise<T> {
+    return typeof value === 'object' && value !== null && typeof value.then === 'function';
 }

@@ -190,7 +190,7 @@ query {
 
 A note on efficiency: The list of recommendations should be relatively small (not more than a few hundred), as all recommendations need to be fetched so that their ids can be sent to the library for filtering and sorting.
 
-### Custom Transformations
+### Custom transformations
 
 All four presented features (namespaces, type prefixes, links and joins) are implemented as independent modules. If you need something else, you can just write your own module:
 
@@ -284,6 +284,44 @@ const transformedSchema = transformSchema(originalSchema, {
 ```
 
 For more information, refer to the [graphql-transformer](https://github.com/AEB-labs/graphql-transformer) project.
+
+### Schema error handling
+
+By default, `weaveSchemas` throws a `WeavingError` if an endpoint schema could not be fetched or the link and join features
+are configured incorrectly. You can change this behavior with the `errorHandling` property:
+
+```typescript
+weaveSchemas({
+    endpoints: [ /* ... */ ],
+    errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA
+})
+```
+
+There are four modes available:
+
+* `THROW` is the default behavior which throws all schema errors
+* `CONTINUE` ignores errors. If the endpoint schema cannot be created at all, it will be missing in the result config.
+    If a join or link feature is malconfigured, this one configuration will be skipped.
+    Use `weaveSchemasExt` to retrieve a list of errors.
+* `CONTINUE_AND_REPORT_IN_SCHEMA` behaves like `CONTINUE`, but errors are additionally displayed to the user via a
+    special _errors field on the root query type.
+* `CONTINUE_AND_ADD_PLACEHOLDERS` is like `CONTINUE_AND_REPORT_IN_SCHEMA`, but namespaced endpoints that completely fail
+    are also replaced by an object with a field _error. 
+    
+### Runtime error handling
+
+Since version 0.11, graphql-weaver propagates runtime errors of endpoints transparently and in the most intuitive way.
+
+* If a user requested fields from two endpoints of which one failed and one succeeded, the result data of the successful
+    endpoint will be returned and the error of the failing one will be propagated.
+* If the endpoint reported errors for some fields but returned data for other fields, graphql-weaver will pass this
+    through exactly. The errors will be reported at the correct fields in the woven schema.
+* If the error reported by the endpoint included source location information, graphql-weaver will try to map this these
+    source location to the woven schema. If the location can not be mapped, the field's location in the woven schema
+    will be used, so if you get a location, you can be sure it is a location in your request to graphql-weaver.
+    
+For the most part, this means everything should work as expected. However, the mapping is more complex as it might
+seem, so if you find an error mapping that looks wrong, please open an issue. 
 
 ## Contributing
 

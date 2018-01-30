@@ -1,8 +1,11 @@
 // Main function
-export { weaveSchemas, weaveSchemas as createProxySchema } from './src/weave-schemas';
+export { weaveSchemas, weaveSchemasExt, weaveSchemas as createProxySchema } from './src/weave-schemas';
+export { WeavingResult } from './src/weaving-result';
 
 // Configuration
 export { WeavingConfig, WeavingConfig as ProxyConfig, EndpointConfig } from './src/config/weaving-config';
+export { WeavingErrorHandlingMode } from './src/config/error-handling';
+export { WeavingError } from './src/config/errors';
 export {
     PipelineConfig, PreMergeModuleContext, PostMergeModuleContext, PipelineModule
 } from './src/pipeline/pipeline-module';

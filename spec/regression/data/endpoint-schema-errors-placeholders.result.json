@@ -1,0 +1,45 @@
+{
+  "data": {
+    "__type": {
+      "fields": [
+        {
+          "name": "erroneous"
+        },
+        {
+          "name": "erroneousPrefixed"
+        },
+        {
+          "name": "working"
+        },
+        {
+          "name": "_extIntrospection"
+        },
+        {
+          "name": "_errors"
+        }
+      ]
+    },
+    "erroneous": {
+      "_error": "Failed to retrieve schema: Throwing introspection"
+    },
+    "working": {
+      "Country": {
+        "description": "Deutschland"
+      }
+    },
+    "_errors": [
+      {
+        "message": "Failed to retrieve schema: Throwing introspection",
+        "endpoint": "namespaceless-erroneous"
+      },
+      {
+        "message": "Failed to retrieve schema: Throwing introspection",
+        "endpoint": "erroneous"
+      },
+      {
+        "message": "Failed to retrieve schema: Throwing introspection",
+        "endpoint": "erroneousPrefixed"
+      }
+    ]
+  }
+}

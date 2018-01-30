@@ -1,9 +1,10 @@
-import { GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
+import { GraphQLBoolean, GraphQLInt, GraphQLList, GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { testTypes } from '../test-types';
 
 const allCountries = getAllCountries();
+const allCountriesLargeList = getAllCountriesTimes(10000);
 const allPeople = getAllPeople();
 
 function comparator(orderBy: string) {
@@ -16,7 +17,7 @@ function comparator(orderBy: string) {
         field = orderBy.substr(0, orderBy.length - '_DESC'.length);
         dir = -1;
     } else {
-        return (a: any) => 0;
+        return () => 0;
     }
 
     function compareAsc(lhs: any, rhs: any) {
@@ -47,7 +48,7 @@ export const defaultTestSchema = new GraphQLSchema({
             allCountries: {
                 type: new GraphQLList(testTypes.countryType),
                 resolve: async (obj, args) => {
-                    let countries = await allCountries;
+                    let countries = args.useLargeList ? await allCountriesLargeList : await allCountries;
                     if (args.filter && args.filter.identCode_in) {
                         countries = countries.filter(country => args.filter.identCode_in.includes(country.identCode));
                     }
@@ -69,7 +70,8 @@ export const defaultTestSchema = new GraphQLSchema({
                     filter: {type: testTypes.countryFilterType},
                     orderBy: {type: testTypes.countryOrderType},
                     last: {type: GraphQLInt},
-                    first: {type: GraphQLInt}
+                    first: {type: GraphQLInt},
+                    useLargeList: {type: GraphQLBoolean}
                 }
             },
             Country: {
@@ -131,6 +133,15 @@ async function countryByIdentCode(identCode: string) {
 
 async function getAllCountries() {
     return <{ id: string, identCode: string, isoCode: string, description: string, continent?: string }[]> await readTestDataFromJson('countries.json');
+}
+
+async function getAllCountriesTimes(n: number) {
+    const countries = [];
+    const single = await getAllCountries();
+    for (let i = 0; i < n; i++) {
+        countries.push(...single);
+    }
+    return countries;
 }
 
 // async function allDeliveries() { return await readTestDataFromJson('deliveries.json') }

@@ -1,1 +1,1 @@
-{allCountries{identCode, description}}
+query q($useLargeList: Boolean){allCountries(useLargeList: $useLargeList ){identCode, description}}

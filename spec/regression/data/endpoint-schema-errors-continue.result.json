@@ -1,0 +1,19 @@
+{
+  "data": {
+    "__type": {
+      "fields": [
+        {
+          "name": "working"
+        },
+        {
+          "name": "_extIntrospection"
+        }
+      ]
+    },
+    "working": {
+      "Country": {
+        "description": "Deutschland"
+      }
+    }
+  }
+}
