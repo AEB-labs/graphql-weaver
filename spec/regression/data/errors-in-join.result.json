@@ -1,0 +1,19 @@
+{
+  "errors": [
+    {
+      "message": "Field \"locations\" reported error: Runtime error in Query.locations",
+      "locations": [
+        {
+          "line": 2,
+          "column": 5
+        }
+      ],
+      "path": [
+        "events"
+      ]
+    }
+  ],
+  "data": {
+    "events": null
+  }
+}

@@ -1,5 +1,5 @@
 import {
-    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField,
+    ArgumentNode, DocumentNode, execute, FieldNode, FragmentDefinitionNode, getNamedType, GraphQLError, GraphQLField,
     GraphQLInputObjectType, GraphQLInputType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType,
     GraphQLScalarType, GraphQLSchema, OperationDefinitionNode, ResponsePath, SelectionSetNode, VariableDefinitionNode
 } from 'graphql';
@@ -79,10 +79,26 @@ async function basicResolve(params: {
     // (because the linked fields obviously have not been truncated there)
     // TODO invesitage nested links, might be necessary to execute this particiular query pipeline module
     const result = await execute(schema, document, {} /* root */, context, variableValues);
+
     const resultData = assertSuccessfulResult(moveErrorsToData(result, e => prefixGraphQLErrorPath(e, params.path, targetFieldPath.length)));
 
     // unwrap
-    return targetFieldPath.reduce((data, fieldName) => data![fieldName], resultData);
+    return targetFieldPath.reduce((data, fieldName) => {
+        if (!(fieldName in data)) {
+            throw new Error(`Property "${fieldName}" missing in result of "${targetFieldPath.join('.')}"`);
+        }
+        const result = data![fieldName];
+        if (result instanceof FieldErrorValue) {
+            const err = result.getError();
+            const message = `Field "${targetFieldPath.join('.')}" reported error: ${err.message}`;
+            if (err instanceof GraphQLError) {
+                throw new GraphQLError(message, err.nodes, err.source, err.positions, err.path, err);
+            } else {
+                throw new Error(message);
+            }
+        }
+        return result;
+    }, resultData);
 }
 
 /**
