@@ -1,0 +1,29 @@
+{
+    staticData {
+        ...join
+    }
+}
+
+fragment join on CountryNSQuery {
+    allPeople(filter: { nationality: { continent: Europe }}) {
+        ...peopleCountries
+    }
+}
+
+fragment peopleCountries on CountryNSPerson {
+    name
+    id:nationality {
+        ...simpleCountry
+    }
+}
+
+fragment simpleCountry on CountryNSCountry {
+    alias: id
+    id: identCode
+    ...countryIsoCode
+}
+
+fragment countryIsoCode on CountryNSCountry {
+    identCode: isoCode
+    isoCode: description
+}

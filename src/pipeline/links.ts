@@ -698,7 +698,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                 const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
 
                 // all the names/aliases under which the link field has been requested
-                const linkFieldNodes = expandSelections(selections)
+                const linkFieldNodes = expandSelections(selections, info.fragments)
                     .filter(node => node.name.value == outLinkFieldName);
                 const linkFieldNodesByAlias: [string | undefined, FieldNode[]][] = Array.from(groupBy(linkFieldNodes, node => getAliasOrName(node)));
                 const linkFieldAliases = linkFieldNodesByAlias.map(([alias]) => alias);
