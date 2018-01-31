@@ -1,0 +1,170 @@
+{
+  "errors": [
+    {
+      "message": "Argument \"filter\" has invalid value {eventFilterValue: -1}.\nIn field \"eventFilterValue\": Expected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 38,
+          "column": 38
+        }
+      ],
+      "path": [
+        "events_neg1_neg1"
+      ]
+    },
+    {
+      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value {\"names\":[\"Berlin\",\"Stuttgart\",\"Munich\"],\"locationFilterValue\":-1}.\nIn field \"locationFilterValue\": Expected type \"NonNegativeInt\", found -1: Not a non-negative integer: -1",
+      "locations": [
+        {
+          "line": 34,
+          "column": 5
+        }
+      ],
+      "path": [
+        "events_0_neg1"
+      ]
+    }
+  ],
+  "data": {
+    "events_1_1": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      }
+    ],
+    "events_0_0": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      }
+    ],
+    "events_null_null": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      }
+    ],
+    "events_1_1_var": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": 1
+        },
+        "eventFilterValue": 1
+      }
+    ],
+    "events_0_0_var": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": 0
+        },
+        "eventFilterValue": 0
+      }
+    ],
+    "events_null_null_var": [
+      {
+        "location": {
+          "name": "Berlin",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      },
+      {
+        "location": {
+          "name": "Stuttgart",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      },
+      {
+        "location": {
+          "name": "Munich",
+          "locationFilterValue": null
+        },
+        "eventFilterValue": null
+      }
+    ],
+    "events_0_neg1": null,
+    "events_neg1_neg1": null
+  }
+}
