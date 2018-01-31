@@ -26,9 +26,15 @@ export class CustomScalarTypesSerializationTransformer implements SchemaTransfor
 }
 
 function parseValue(value: any) {
-    return value || false;
+    if (value == undefined || value == null) {
+        return false;
+    }
+    return value
 }
 
 function parseLiteral(value: any) {
-    return value || false;
+    if (value == undefined || value == null) {
+        return false;
+    }
+    return value
 }
