@@ -13,3 +13,10 @@ export async function testConfigWithQuery(proxyConfig: WeavingConfig, query: str
     const schema = await weaveSchemas(proxyConfig);
     return graphql(schema, query, {cariedOnRootValue: true}, {}, variableValues, undefined);
 }
+
+export function normalizeJSON(value: any) {
+    if (value === undefined) {
+        return undefined;
+    }
+    return JSON.parse(JSON.stringify(value));
+}
