@@ -1,0 +1,14 @@
+query q($zero: NonNegativeInt, $null: NonNegativeInt, $one: NonNegativeInt){
+    sum_0_0: sum(lhs: 0, rhs: 0)
+    sum_1_0: sum(lhs: 1, rhs: 0)
+    sum_null_2: sum(lhs: null, rhs: 2)
+    sum_null_0: sum(lhs: null, rhs: 0)
+    sum_null_null: sum(lhs: null, rhs: null)
+    sum_neg1_null: sum(lhs: -1, rhs: 0)
+
+    sum_0_0_var: sum(lhs: $zero, rhs: $zero)
+    sum_1_0_var: sum(lhs: $one, rhs: $zero)
+    sum_null_1_var: sum(lhs: $null, rhs: $one)
+    sum_null_0_var: sum(lhs: $null, rhs: $zero)
+    sum_null_null_var: sum(lhs: $null, rhs: $null)
+}

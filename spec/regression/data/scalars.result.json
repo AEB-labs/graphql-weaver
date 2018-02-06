@@ -1,0 +1,29 @@
+{
+  "errors": [
+    {
+      "message": "Argument \"lhs\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "locations": [
+        {
+          "line": 7,
+          "column": 29
+        }
+      ],
+      "path": [
+        "sum_neg1_null"
+      ]
+    }
+  ],
+  "data": {
+    "sum_0_0": 0,
+    "sum_1_0": 1,
+    "sum_null_2": 2,
+    "sum_null_0": 0,
+    "sum_null_null": null,
+    "sum_neg1_null": null,
+    "sum_0_0_var": 0,
+    "sum_1_0_var": 1,
+    "sum_null_1_var": 1,
+    "sum_null_0_var": 0,
+    "sum_null_null_var": null
+  }
+}

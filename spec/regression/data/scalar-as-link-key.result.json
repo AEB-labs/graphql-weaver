@@ -1,0 +1,26 @@
+{
+  "data": {
+    "events": [
+      {
+        "location": {
+          "id": 0
+        }
+      },
+      {
+        "location": {
+          "id": 1
+        }
+      },
+      {
+        "location": null
+      }
+    ],
+    "events_loc_0": [
+      {
+        "location": {
+          "id": 0
+        }
+      }
+    ]
+  }
+}

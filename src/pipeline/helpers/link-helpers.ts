@@ -384,7 +384,9 @@ export function getKeyType(config: { linkConfig: LinkConfig, linkFieldType: Grap
     if (!(argumentType instanceof GraphQLScalarType)) {
         throw new WeavingError(`Type of argument field ${JSON.stringify(config.linkConfig.argument)} must be scalar type or list/non-null-type of a scalar type, but is ${argumentType}`);
     }
-    if (argumentType != linkKeyType) {
+    // comparing the names here. Can't use reference equality on the types because mapped and unmapped types are confused here.
+    // We don't rename scalars in this module, so this is fine
+    if (argumentType.name != linkKeyType.name) {
         config.reportError(new WeavingError(`Link field ${JSON.stringify(config.linkFieldName)} is of type ${linkKeyType}, but argument ${JSON.stringify(config.linkConfig.argument)} on target field ${JSON.stringify(config.linkConfig.field)} has type ${argumentType}`));
     }
 

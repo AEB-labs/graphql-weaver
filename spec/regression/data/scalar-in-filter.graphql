@@ -1,0 +1,41 @@
+fragment eventFrag on Event {
+    location {
+        name
+        locationFilterValue
+    }
+    eventFilterValue
+}
+
+query q($zero: NonNegativeInt, $null: NonNegativeInt, $one: NonNegativeInt) {
+    events_1_1: events(filter: { eventFilterValue: 1, location: { locationFilterValue: 1 }}) {
+        ...eventFrag
+    }
+
+    events_0_0: events(filter: { eventFilterValue: 0, location: { locationFilterValue: 0 }}) {
+        ...eventFrag
+    }
+
+    events_null_null: events(filter: { eventFilterValue: null, location: { locationFilterValue: null }}) {
+        ...eventFrag
+    }
+
+    events_1_1_var: events(filter: { eventFilterValue: $one, location: { locationFilterValue: $one }}) {
+        ...eventFrag
+    }
+
+    events_0_0_var: events(filter: { eventFilterValue: $zero, location: { locationFilterValue: $zero }}) {
+        ...eventFrag
+    }
+
+    events_null_null_var: events(filter: { eventFilterValue: $null, location: { locationFilterValue: $null }}) {
+        ...eventFrag
+    }
+
+    events_0_neg1: events(filter: { eventFilterValue: 0, location: { locationFilterValue: -1 }}) {
+        ...eventFrag
+    }
+
+    events_neg1_neg1: events(filter: { eventFilterValue: -1, location: { locationFilterValue: -1 }}) {
+        ...eventFrag
+    }
+}

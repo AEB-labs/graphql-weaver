@@ -1,0 +1,13 @@
+{
+    events {
+        location {
+            id
+        }
+    }
+
+    events_loc_0: events(filter: { location: { ids: [ 0 ] } }) {
+        location {
+            id
+        }
+    }
+}
