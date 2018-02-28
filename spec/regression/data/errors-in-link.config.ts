@@ -27,7 +27,7 @@ export async function getConfig(): Promise<WeavingConfig> {
             if (valueNode.kind == 'StringValue' && isNiceName(valueNode.value)) {
                 return valueNode.value;
             }
-            return null;
+            return undefined;
         }
     });
 
