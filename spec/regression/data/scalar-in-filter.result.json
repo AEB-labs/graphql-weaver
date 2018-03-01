@@ -1,11 +1,11 @@
 {
   "errors": [
     {
-      "message": "Argument \"filter\" has invalid value {eventFilterValue: -1}.\nIn field \"eventFilterValue\": Expected type \"NonNegativeInt\", found -1.",
+      "message": "Expected type NonNegativeInt, found -1.",
       "locations": [
         {
           "line": 38,
-          "column": 38
+          "column": 58
         }
       ],
       "path": [
@@ -13,7 +13,7 @@
       ]
     },
     {
-      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value {\"names\":[\"Berlin\",\"Stuttgart\",\"Munich\"],\"locationFilterValue\":-1}.\nIn field \"locationFilterValue\": Expected type \"NonNegativeInt\", found -1: Not a non-negative integer: -1",
+      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value {\"names\":[\"Berlin\",\"Stuttgart\",\"Munich\"],\"locationFilterValue\":-1}; Expected type NonNegativeInt at value.locationFilterValue; Not a non-negative integer: -1",
       "locations": [
         {
           "line": 34,

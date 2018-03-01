@@ -1,7 +1,7 @@
 {
   "errors": [
     {
-      "message": "Argument \"lhs\" has invalid value -1.\nExpected type \"NonNegativeInt\", found -1.",
+      "message": "Expected type NonNegativeInt, found -1.",
       "locations": [
         {
           "line": 7,
