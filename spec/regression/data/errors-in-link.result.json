@@ -16,7 +16,7 @@
       ]
     },
     {
-      "message": "Field \"ns1.horst\" reported error: Argument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "message": "Field \"ns1.horst\" reported error: Expected type Name, found \"Marie-Louise\".",
       "locations": [
         {
           "line": 28,
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "message": "Field \"ns1.horst\" reported error: GraphQL error at line 39, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".\n\nGraphQL error at line 40, column 47:\nArgument \"name\" has invalid value \"Marie-Louise\".\nExpected type \"Name\", found \"Marie-Louise\".",
+      "message": "Field \"ns1.horst\" reported error: GraphQL error at line 39, column 47:\nExpected type Name, found \"Marie-Louise\".\n\nGraphQL error at line 40, column 47:\nExpected type Name, found \"Marie-Louise\".",
       "locations": [
         {
           "line": 37,
@@ -44,7 +44,7 @@
       ]
     },
     {
-      "message": "Field \"ns1.horst\" reported error: Variable \"$name\" got invalid value \"Hans-Joachim\".\nExpected type \"Name\", found \"Hans-Joachim\": I don't like this name: Hans-Joachim",
+      "message": "Field \"ns1.horst\" reported error: Variable \"$name\" got invalid value \"Hans-Joachim\"; Expected type Name; I don't like this name: Hans-Joachim",
       "locations": [
         {
           "line": 15,

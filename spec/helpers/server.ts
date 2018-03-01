@@ -1,6 +1,6 @@
 import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import { weaveSchemas } from '../../src/weave-schemas';
-import { GraphQLServer } from './server/graphql-server';
+import { GraphQLServer } from 'graphql-yoga';
 import { WeavingConfig } from '../../src/config/weaving-config';
 import { loadProxyConfig } from './load-config';
 
@@ -33,11 +33,13 @@ export async function start() {
     const schema = await weaveSchemas(config);
 
     const port = config.port || defaultPort;
-    const schemaManager = {
-        getSchema: () => schema
-    };
-    const graphqlServer = new GraphQLServer({
-        schemaProvider: schemaManager,
-        port
+    const server = new GraphQLServer({
+        schema,
+        context: () => ({}) // unique token
     });
+    await server.start({
+        port,
+        endpoint: '/graphql'
+    });
+    console.log(`GraphQL server running on http://localhost:${port}/`);
 }

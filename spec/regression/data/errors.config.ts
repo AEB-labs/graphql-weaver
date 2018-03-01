@@ -6,27 +6,9 @@ import { WeavingConfig } from '../../../src/config/weaving-config';
 import { isNumber } from 'util';
 import { Response } from 'node-fetch';
 import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
+import { NonNegativeInt } from '../../helpers/non-negative-int';
 
 export async function getConfig(): Promise<WeavingConfig> {
-    const nonNegativeIntType = new GraphQLScalarType({
-        name: 'NonNegativeInt',
-        parseValue(value) {
-            if (!isNumber(value) || !isFinite(value) || value < 0) {
-                throw new TypeError('Not a non-negative integer: ' + value);
-            }
-            return value;
-        },
-        serialize(value) {
-            return parseInt(value);
-        },
-        parseLiteral(valueNode) {
-            if (valueNode.kind == 'IntValue' && parseInt(valueNode.value) >= 0) {
-                return valueNode.value;
-            }
-            return null;
-        }
-    });
-
     const facSchema = new GraphQLSchema({
         query: new GraphQLObjectType({
             name: 'Query',
@@ -36,7 +18,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                     resolve: (source, args, context) => fac(args['value']),
                     args: {
                         value: {
-                            type: nonNegativeIntType
+                            type: NonNegativeInt
                         }
                     }
                 },
@@ -49,7 +31,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                                 resolve: (source, args, context) => fac(args['value']),
                                 args: {
                                     value: {
-                                        type: nonNegativeIntType
+                                        type: NonNegativeInt
                                     }
                                 }
                             }

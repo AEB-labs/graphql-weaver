@@ -91,11 +91,19 @@ async function basicResolve(params: {
         if (result instanceof FieldErrorValue) {
             const err = result.getError();
             const message = `Field "${targetFieldPath.join('.')}" reported error: ${err.message}`;
+
             if (err instanceof GraphQLError) {
-                throw new GraphQLError(message, err.nodes, err.source, err.positions, err.path, err);
-            } else {
-                throw new Error(message);
+                // see if we got some useful location information to keep
+                // but don't do this if we don't have location info, because graphql 0.13 won't add the location info of the path if it's a GraphQLError
+                const hasLocationInfo =
+                    (err.positions && err.positions.length) ||
+                    (err.nodes && err.nodes.some(node => !!node.loc));
+                if (hasLocationInfo) {
+                    throw new GraphQLError(message, err.nodes, err.source, err.positions, err.path, err);
+                }
             }
+
+            throw new Error(message);
         }
         return result;
     }, resultData);

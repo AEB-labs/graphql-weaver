@@ -1,28 +1,23 @@
 import { GraphQLSchema } from 'graphql';
 import { defaultTestSchema } from './graphql-http-test-schema';
-import { GraphQLServer } from '../server/graphql-server';
+import { GraphQLServer } from 'graphql-yoga';
+import { Server } from "http";
 
 export class GraphQLHTTPTestEndpoint {
-  private graphqlServer: GraphQLServer;
+    private server: Server;
 
-  public start(port: number, schema?: GraphQLSchema) {
+    public async start(port: number, schema?: GraphQLSchema) {
+        const server = new GraphQLServer({
+            schema: schema || defaultTestSchema
+        });
+        this.server = await server.start({
+            port,
+            endpoint: '/graphql'
+        });
+        console.log(`Test endpoint running on http://localhost:${port}/graphql`);
+    }
 
-      if (!schema) {
-          schema = defaultTestSchema;
-      }
-
-      const schemaManager = {
-          getSchema: () => schema
-      };
-
-      this.graphqlServer = new GraphQLServer({
-          schemaProvider: schemaManager,
-          port
-      });
-  }
-
-  public stop() {
-      this.graphqlServer.stop();
-  }
-
+    public stop() {
+        this.server.close();
+    }
 }

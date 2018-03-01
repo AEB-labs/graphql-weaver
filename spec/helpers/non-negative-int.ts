@@ -16,6 +16,6 @@ export const NonNegativeInt = new GraphQLScalarType({
         if (valueNode.kind == 'IntValue' && parseInt(valueNode.value) >= 0) {
             return parseInt(valueNode.value);
         }
-        return null;
+        return undefined;
     }
 });
