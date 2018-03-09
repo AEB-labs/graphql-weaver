@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist && tsc && dependency-check ./package.json",
+    "build": "rimraf dist && tsc --skipLibCheck && dependency-check ./package.json",
     "prepublishOnly": "npm run build",
     "start": "node graphql-proxy",
     "test": "tsc --noEmit --skipLibCheck && node graphql-weaver-test",
