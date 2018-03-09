@@ -1,0 +1,14 @@
+query {
+    car {
+        __typename
+        color
+        doorCount
+    }
+    local {
+        person {
+            __typename
+            name
+            isCool
+        }
+    }
+}
