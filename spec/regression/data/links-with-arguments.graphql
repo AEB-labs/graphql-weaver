@@ -1,0 +1,11 @@
+{
+    europe: countries(continent: Europe) {
+        isoCode
+        description
+    }
+
+    northAmerica: countries(continent: NorthAmerica) {
+        isoCode
+        description
+    }
+}

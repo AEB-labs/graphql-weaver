@@ -100,7 +100,7 @@ export class LinksModule implements PipelineModule {
                         }
 
                         // remove selection from the field node and map it to the source field
-                        child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child));
+                        child = createFieldNode(linkInfo.sourceFieldName, getAliasOrName(child), undefined, child.arguments);
                     }
 
                     const metadata = this.unlinkedSchema!.getFieldMetadata(parentType, typeInfo.getFieldDef());

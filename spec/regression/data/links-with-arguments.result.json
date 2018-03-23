@@ -1,0 +1,20 @@
+{
+  "data": {
+    "europe": [
+      {
+        "isoCode": "DE",
+        "description": "Deutschland"
+      },
+      {
+        "isoCode": "FR",
+        "description": "Frankreich"
+      }
+    ],
+    "northAmerica": [
+      {
+        "isoCode": "US",
+        "description": "USA"
+      }
+    ]
+  }
+}
