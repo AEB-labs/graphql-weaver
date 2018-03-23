@@ -6,6 +6,9 @@
           "name": "working"
         },
         {
+          "name": "linkConfigError"
+        },
+        {
           "name": "_extIntrospection"
         }
       ]
@@ -14,6 +17,9 @@
       "Country": {
         "description": "Deutschland"
       }
+    },
+    "linkConfigError": {
+      "field": "hello"
     }
   }
 }

@@ -401,6 +401,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
     transformFields(fields: GraphQLFieldConfigMapWithMetadata, context: FieldsTransformationContext): GraphQLFieldConfigMapWithMetadata {
         const newFields: GraphQLFieldConfigMapWithMetadata = {};
         for (const [name, fieldConfig] of objectEntries(fields)) {
+            let handledSuccessfully = false;
             if (fieldConfig.metadata && fieldConfig.metadata.link && !fieldConfig.metadata.link.ignore) {
                 const linkConfig = fieldConfig.metadata.link;
                 nestErrorHandling(this.reportError, `Error in @link config on ${context.oldOuterType.name}.${name}`, (reportError) => {
@@ -429,8 +430,12 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                             }
                         }
                     };
+                    handledSuccessfully = true;
                 });
-            } else {
+            }
+
+            // if no link config found, or link preparation threw an error, just keep the old field
+            if (!handledSuccessfully) {
                 newFields[name] = fieldConfig;
             }
         }
