@@ -26,7 +26,7 @@ import {compact, flatMap} from "../utils/utils";
  * @param selections an array of selection nodes, or undefined to not specify a SelectionSet node
  * @returns the field node
  */
-export function createFieldNode(name: string, alias?: string, selections?: SelectionNode[]): FieldNode {
+export function createFieldNode(name: string, alias?: string, selections?: SelectionNode[], args?: ArgumentNode[]): FieldNode {
     return {
         kind: 'Field',
         name: {
@@ -44,6 +44,9 @@ export function createFieldNode(name: string, alias?: string, selections?: Selec
                 kind: 'SelectionSet',
                 selections
             }
+        } : {}),
+        ...(args ? {
+            arguments: args
         } : {})
     };
 }
