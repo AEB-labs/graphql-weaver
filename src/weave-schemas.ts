@@ -19,6 +19,7 @@ import {
 } from './config/error-handling';
 import { WeavingResult } from './weaving-result';
 import TraceError = require('trace-error');
+import { convertFormattedErrorsToErrors } from './graphql-client/client-execution-result';
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
@@ -142,7 +143,8 @@ function validateConfig(config: WeavingConfig) {
 }
 
 async function getClientSchema(endpoint: GraphQLClient): Promise<GraphQLSchema> {
-    const introspectionRes = await endpoint.execute(parse(introspectionQuery), {}, undefined, true);
+    const introspectionClientRes = await endpoint.execute(parse(introspectionQuery), {}, undefined, true);
+    const introspectionRes = convertFormattedErrorsToErrors(introspectionClientRes);
     const introspection = assertSuccessfulResult(introspectionRes) as IntrospectionQuery;
     try {
         return buildClientSchema(introspection);

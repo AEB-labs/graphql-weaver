@@ -1,10 +1,11 @@
-import { DocumentNode, ExecutionResult, GraphQLError, GraphQLErrorLocation, Location, parse, print } from 'graphql';
+import { DocumentNode, GraphQLError, GraphQLErrorLocation, Location, parse, print } from 'graphql';
 import fetch, { Request, Response } from 'node-fetch';
 import { GraphQLClient } from './graphql-client';
 import { findNodeAtLocation } from '../graphql/node-at-location';
 import { findNodeInOtherDocument } from '../graphql/ast-synchronization';
 import TraceError = require('trace-error');
 import { compact } from '../utils/utils';
+import { ClientExecutionResult } from './client-execution-result';
 
 export class HttpGraphQLClient implements GraphQLClient {
     public readonly url: string;
@@ -78,7 +79,7 @@ export class HttpGraphQLClient implements GraphQLClient {
         });
     }
 
-    protected async processResponse(response: ExecutionResult, document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<ExecutionResult> {
+    protected async processResponse(response: ClientExecutionResult, document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<ClientExecutionResult> {
         if (!response || !response.errors || !response.errors.length || !response.errors.some(er => !!er.locations && er.locations.length > 0)) {
             return response;
         }
