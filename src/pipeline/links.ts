@@ -547,7 +547,7 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             throw new WeavingError(`Link specifies oneToMany, but @join does not support one-to-many links.`);
         }
         const {fieldPath: targetFieldPath, field: targetField} = parseLinkTargetPath(linkConfig.field, this.schema.schema) ||
-        throwError(`Link defines target field as ${JSON.stringify(linkConfig.field)} which does not exist`);
+        throwError(() => new WeavingError(`Link defines target field as ${JSON.stringify(linkConfig.field)} which does not exist`));
 
         if (isListType(linkField.type)) {
             throw new WeavingError(`@join not available for linkFields with array type`);
