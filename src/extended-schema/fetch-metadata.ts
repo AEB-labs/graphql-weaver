@@ -6,18 +6,20 @@ import {
 } from './extended-introspection';
 import { createFieldNode } from '../graphql/language-utils';
 import { assertSuccessfulResult } from '../graphql/execution-result';
+import { convertFormattedErrorsToErrors } from '../graphql-client/client-execution-result';
 
 /**
- * Fetches SchemaMetadata over a GraphQL endpoint
- * @param {GraphQLClient} endpoint the endpoint to submit queries
+ * Fetches SchemaMetadata over a GraphQL client
+ * @param {GraphQLClient} client the client to submit queries
  * @param {GraphQLSchema} schema the client schema
  * @returns {Promise<any>} the metadata
  */
-export async function fetchSchemaMetadata(endpoint: GraphQLClient, schema: GraphQLSchema) {
+export async function fetchSchemaMetadata(client: GraphQLClient, schema: GraphQLSchema) {
     if (!supportsExtendedIntrospection(schema)) {
         return new SchemaMetadata();
     }
-    const result = await endpoint.execute(getTailoredExtendedIntrospectionQuery(schema), undefined, undefined, true);
+    const clientResult = await client.execute(getTailoredExtendedIntrospectionQuery(schema), undefined, undefined, true);
+    const result = convertFormattedErrorsToErrors(clientResult);
     const resultData = assertSuccessfulResult(result);
     return buildSchemaMetadata(resultData[EXTENDED_INTROSPECTION_FIELD]);
 }

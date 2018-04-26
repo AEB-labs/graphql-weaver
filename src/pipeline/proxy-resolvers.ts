@@ -12,6 +12,7 @@ import { assertSuccessfulResult } from '../graphql/execution-result';
 import { moveErrorsToData } from '../graphql/errors-in-result';
 import { prefixGraphQLErrorPath } from './helpers/error-paths';
 import { findNodeAtLocation } from '../graphql/node-at-location';
+import { convertFormattedErrorsToErrors } from '../graphql-client/client-execution-result';
 
 export interface Config {
     readonly client: GraphQLClient
@@ -56,7 +57,8 @@ export class ResolverTransformer implements SchemaTransformer {
 
                 query = this.config.processQuery(query);
 
-                let result = await this.config.client.execute(query.document, query.variableValues, context);
+                const clientResult = await this.config.client.execute(query.document, query.variableValues, context);
+                let result = convertFormattedErrorsToErrors(clientResult);
                 result = moveErrorsToData(result, e => prefixGraphQLErrorPath(e, info.path, 1));
                 const data = assertSuccessfulResult(result); // find and throw global errors
                 const propertyOnResult = aliases[aliases.length - 1];
