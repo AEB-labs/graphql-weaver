@@ -15,6 +15,9 @@ export { GraphQLClient } from './src/graphql-client/graphql-client';
 export { HttpGraphQLClient } from './src/graphql-client/http-client';
 export { LocalGraphQLClient } from './src/graphql-client/local-client';
 
+// helpers to write custom clients
+export { mapErrorLocations } from './src/graphql-client/error-location-helper';
+
 // Extended schema
 export { ExtendedSchema, FieldMetadata, LinkConfig, SchemaMetadata } from './src/extended-schema/extended-schema';
 export {
