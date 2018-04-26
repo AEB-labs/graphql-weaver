@@ -13,11 +13,15 @@ const errorClient: GraphQLClient = {
 };
 
 const normalSchema = makeExecutableSchema({
-    typeDefs: gql`type Query { field: String }`,
+    // ZInner should be alphabeticaly after Query so that joining occurs before linking (to test another error case)
+    typeDefs: gql`type ZInner { field: String } type Query { inner: ZInner, inners: [ZInner] }`,
     resolvers: {
         Query: {
-            field() {
-                return 'hello';
+            inner() {
+                return { field: 'hello' };
+            },
+            inners() {
+                return [ { field: 'hello' }, { field: 'world' } ];
             }
         }
     }
@@ -49,7 +53,7 @@ export async function getConfig(): Promise<WeavingConfig> {
                 typePrefix: 'LinkConfigError',
                 schema: normalSchema,
                 fieldMetadata: {
-                    'Query.field': {
+                    'ZInner.field': {
                         link: {
                             field: 'nonexisting',
                             argument: 'id',
@@ -58,7 +62,27 @@ export async function getConfig(): Promise<WeavingConfig> {
                     }
                 }
             },
+            {
+                namespace: 'joinConfigError',
+                typePrefix: 'joinConfigError',
+                schema: normalSchema,
+                fieldMetadata: {
+                    'ZInner.field': {
+                        link: {
+                            field: 'nonexisting',
+                            argument: 'id',
+                            batchMode: true,
+                            keyField: 'key'
+                        }
+                    },
+                    'Query.inners': {
+                        join: {
+                            linkField: 'field'
+                        }
+                    }
+                }
+            },
         ],
-        errorHandling: WeavingErrorHandlingMode.CONTINUE
+        errorHandling: WeavingErrorHandlingMode.CONTINUE_AND_REPORT_IN_SCHEMA
     };
 }

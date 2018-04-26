@@ -11,6 +11,17 @@
     }
     # assert that link config errors do not remove the field but just leave it as-is without linking
     linkConfigError {
-        field
+        inner {
+            field
+        }
+    }
+    # assert that join config errors do not remove the field but just leave it as-is without joining
+    joinConfigError {
+        inners {
+            field
+        }
+    }
+    _errors {
+        message
     }
 }

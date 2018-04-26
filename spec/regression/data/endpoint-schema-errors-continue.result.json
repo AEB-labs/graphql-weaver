@@ -9,7 +9,13 @@
           "name": "linkConfigError"
         },
         {
+          "name": "joinConfigError"
+        },
+        {
           "name": "_extIntrospection"
+        },
+        {
+          "name": "_errors"
         }
       ]
     },
@@ -19,7 +25,39 @@
       }
     },
     "linkConfigError": {
-      "field": "hello"
-    }
+      "inner": {
+        "field": "hello"
+      }
+    },
+    "joinConfigError": {
+      "inners": [
+        {
+          "field": "hello"
+        },
+        {
+          "field": "world"
+        }
+      ]
+    },
+    "_errors": [
+      {
+        "message": "Failed to retrieve schema: Throwing introspection"
+      },
+      {
+        "message": "Failed to retrieve schema: Throwing introspection"
+      },
+      {
+        "message": "Failed to retrieve schema: Throwing introspection"
+      },
+      {
+        "message": "Error in @link config on LinkConfigErrorZInner.field: Target field \"nonexisting\" does not exist"
+      },
+      {
+        "message": "Error in @join config on inners: Link defines target field as \"nonexisting\" which does not exist"
+      },
+      {
+        "message": "Error in @link config on joinConfigErrorZInner.field: Target field \"nonexisting\" does not exist"
+      }
+    ]
   }
 }
