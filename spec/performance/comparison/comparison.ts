@@ -6,6 +6,7 @@ import { execute, graphql, GraphQLSchema, parse } from 'graphql';
 import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
 import * as path from 'path';
 import { assertSuccessfulResult } from '../../../src/graphql/execution-result';
+import { convertFormattedErrorsToErrors } from '../../../src/graphql-client/client-execution-result';
 
 const UPSTREAM_URL = 'http://localhost:1337/graphql';
 const queryStr = fs.readFileSync(path.resolve(__dirname, 'query.graphql'), 'utf-8');
@@ -26,7 +27,7 @@ function testDirect(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
         name: `direct ${params && params.useLargeList ? 'with large list' : ''}`,
         maxTime: 5,
         async fn() {
-            const result = await client.execute(document, params);
+            const result = convertFormattedErrorsToErrors(await client.execute(document, params));
             assertSuccessfulResult(result);
         }
     };
@@ -38,7 +39,7 @@ function testProxied(params: { useLargeList?: boolean} = {}): BenchmarkConfig {
         name: `woven ${params && params.useLargeList ? 'with large list' : ''}`,
         maxTime: 5,
         async fn() {
-            const result = await graphql(schema, queryStr, {}, {}, params);
+            const result = convertFormattedErrorsToErrors(await graphql(schema, queryStr, {}, {}, params));
             assertSuccessfulResult(result);
         },
         async beforeAll() {

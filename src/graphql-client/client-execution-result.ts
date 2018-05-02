@@ -28,8 +28,9 @@ function convertFormattedErrorToError(error: GraphQLFormattedError): GraphQLErro
         return error;
     }
 
-    // can't easily set the locations through the constructor
-    const res = new GraphQLError(error.message, undefined, undefined, undefined, error.path);
-    res.locations = error.locations;
-    return res;
+    // can't set locations directly, only through nodes or positions, but we don't have those
+    // this should not be a problem with clients that either execute the schema directly (LocalGraphQLClient) or that
+    // use mapErrorLocations (which creates GraphQLError instances directly, like HttpGraphQLClient).
+    // In fact, passing through locations is most likely to be wrong anyway if they are not mapped directly.
+    return new GraphQLError(error.message, undefined, undefined, undefined, error.path);
 }
