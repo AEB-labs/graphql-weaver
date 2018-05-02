@@ -30,7 +30,7 @@ export class HttpGraphQLClient implements GraphQLClient {
                     json = await res.json();
                     if (json && typeof json == 'object' && json.errors && typeof json.errors == 'object' && json.errors.length) {
                         // only if we got what seems like a proper unsuccessful GraphQL result, use this. Otherwise, fall back to error message
-                        return json;
+                        return await this.processResponse(json, document, variables, context, introspect);
                     }
                 } catch (error) {
                     // fall through
