@@ -1,0 +1,11 @@
+{
+    allTeams {
+        name
+        teamLead {
+            name
+            nationality {
+                description
+            }
+        }
+    }
+}

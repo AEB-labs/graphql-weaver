@@ -1,0 +1,24 @@
+{
+  "data": {
+    "allTeams": [
+      {
+        "name": "Team Blue",
+        "teamLead": {
+          "name": "Horst",
+          "nationality": {
+            "description": "Deutschland"
+          }
+        }
+      },
+      {
+        "name": "Team Red",
+        "teamLead": {
+          "name": "Jacqueline",
+          "nationality": {
+            "description": "Frankreich"
+          }
+        }
+      }
+    ]
+  }
+}
