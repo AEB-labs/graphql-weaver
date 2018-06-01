@@ -1,4 +1,4 @@
-import { ExecutionResult, graphql } from 'graphql';
+import { ExecutionResult, graphql, GraphQLSchema } from 'graphql';
 import { weaveSchemas } from '../../src/weave-schemas';
 import { WeavingConfig } from '../../src/config/weaving-config';
 
@@ -9,8 +9,8 @@ import { WeavingConfig } from '../../src/config/weaving-config';
  * @param variableValues
  * @returns {Promise<void>}
  */
-export async function testConfigWithQuery(proxyConfig: WeavingConfig, query: string, variableValues: {[name: string]: any}): Promise<ExecutionResult> {
-    const schema = await weaveSchemas(proxyConfig);
+export async function testConfigWithQuery(proxyConfig: WeavingConfig|GraphQLSchema, query: string, variableValues: {[name: string]: any}): Promise<ExecutionResult> {
+    const schema = proxyConfig instanceof GraphQLSchema ? proxyConfig : await weaveSchemas(proxyConfig);
     return graphql(schema, query, {cariedOnRootValue: true}, {}, variableValues, undefined);
 }
 
