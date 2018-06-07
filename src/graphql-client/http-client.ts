@@ -1,12 +1,9 @@
-import { DocumentNode, GraphQLError, GraphQLErrorLocation, Location, parse, print } from 'graphql';
+import { DocumentNode, print } from 'graphql';
 import fetch, { Request, Response } from 'node-fetch';
-import { GraphQLClient } from './graphql-client';
-import { findNodeAtLocation } from '../graphql/node-at-location';
-import { findNodeInOtherDocument } from '../graphql/ast-synchronization';
-import TraceError = require('trace-error');
-import { compact } from '../utils/utils';
 import { ClientExecutionResult } from './client-execution-result';
 import { mapErrorLocations } from './error-location-helper';
+import { GraphQLClient } from './graphql-client';
+import TraceError = require('trace-error');
 
 export class HttpGraphQLClient implements GraphQLClient {
     public readonly url: string;

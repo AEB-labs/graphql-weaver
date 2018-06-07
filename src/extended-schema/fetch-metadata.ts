@@ -25,7 +25,11 @@ export async function fetchSchemaMetadata(client: GraphQLClient, schema: GraphQL
 }
 
 export function supportsExtendedIntrospection(schema: GraphQLSchema) {
-    return EXTENDED_INTROSPECTION_FIELD in schema.getQueryType().getFields();
+    const queryType = schema.getQueryType();
+    if (!queryType) {
+        return false;
+    }
+    return EXTENDED_INTROSPECTION_FIELD in queryType.getFields();
 }
 
 function getTailoredExtendedIntrospectionQuery(schema: GraphQLSchema): DocumentNode {

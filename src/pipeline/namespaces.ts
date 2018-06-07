@@ -19,8 +19,8 @@ export class NamespaceModule implements PipelineModule {
 
     transformSchema(schema: GraphQLSchema) {
         const newSchema = new GraphQLSchema({
-            directives: schema.getDirectives(),
-            query: this.wrap(schema.getQueryType(), 'Query'),
+            directives: Array.from(schema.getDirectives()),
+            query: maybeDo(schema.getQueryType(), type => this.wrap(type, 'Query')),
             mutation: maybeDo(schema.getMutationType(), type => this.wrap(type, 'Mutation')),
             subscription: maybeDo(schema.getSubscriptionType(), type => this.wrap(type, 'Subscription'))
         });
@@ -85,7 +85,8 @@ export class NamespaceModule implements PipelineModule {
 function isRootTypeName(type: string, schema: GraphQLSchema) {
     const mut = schema.getMutationType();
     const sub = schema.getSubscriptionType();
-    return type == schema.getQueryType().name ||
+    const query = schema.getQueryType();
+    return (query && type == query.name) ||
         (mut && type == mut.name) ||
         (sub && type == sub.name);
 }

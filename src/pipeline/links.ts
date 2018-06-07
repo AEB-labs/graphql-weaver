@@ -115,7 +115,7 @@ export class LinksModule implements PipelineModule {
 
                         let hasRightFilter = false;
 
-                        const rightObjectType = getNamedType(typeInfo.getType()) as GraphQLObjectType;
+                        const rightObjectType = getNamedType(typeInfo.getType()!) as GraphQLObjectType;
                         const linkMetadata = this.unlinkedSchema!.getFieldMetadata(rightObjectType, metadata.join.linkField);
                         if (!linkMetadata || !linkMetadata.link) {
                             throw new Error(`Failed to retrieve linkMetadata for join field ${child.name.value} (looked up ${typeInfo.getType()}.${metadata.join.linkField})`);

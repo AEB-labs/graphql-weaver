@@ -1,6 +1,6 @@
 import { PipelineModule } from './pipeline-module';
 import { FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformer } from 'graphql-transformer';
-import { DocumentNode, GraphQLErrorLocation, GraphQLResolveInfo } from 'graphql';
+import { DocumentNode, GraphQLResolveInfo } from 'graphql';
 import { getFieldAsQueryParts, getQueryFromParts } from '../graphql/field-as-query';
 import { GraphQLClient } from '../graphql-client/graphql-client';
 import { Query } from '../graphql/common';

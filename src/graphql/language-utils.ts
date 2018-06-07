@@ -26,7 +26,7 @@ import {compact, flatMap} from "../utils/utils";
  * @param selections an array of selection nodes, or undefined to not specify a SelectionSet node
  * @returns the field node
  */
-export function createFieldNode(name: string, alias?: string, selections?: SelectionNode[], args?: ArgumentNode[]): FieldNode {
+export function createFieldNode(name: string, alias?: string, selections?: ReadonlyArray<SelectionNode>, args?: ReadonlyArray<ArgumentNode>): FieldNode {
     return {
         kind: 'Field',
         name: {
@@ -267,7 +267,7 @@ export function aliasExistsInSelection(selectionSet: SelectionSetNode, alias: st
  * @param fragments an array of fragment definitions for lookup of fragment spreads
  * @return the field nodes
  */
-export function expandSelections(selections: SelectionNode[], fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+export function expandSelections(selections: ReadonlyArray<SelectionNode>, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
     function findFragment(name: string): FragmentDefinitionNode {
         if (!(name in fragments)) {
             throw new Error(`Fragment ${name} is referenced but not defined`);
@@ -297,12 +297,12 @@ export function expandSelections(selections: SelectionNode[], fragments: { [frag
  * Inline fragments and fragment spread operators are crawled recursively. The type of fragments is not considered.
  * Multiple matching nodes are collected recusivily, according to GraphQL's field node merging logic
  */
-export function findNodesByAliasInSelections(selections: SelectionNode[], alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
+export function findNodesByAliasInSelections(selections: ReadonlyArray<SelectionNode>, alias: string, fragments: { [fragmentName: string]: FragmentDefinitionNode } = {}): FieldNode[] {
     return expandSelections(selections, fragments).filter(node => getAliasOrName(node) == alias);
 }
 
 
-export function addVariableDefinitionSafely(variableDefinitions: VariableDefinitionNode[], name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
+export function addVariableDefinitionSafely(variableDefinitions: ReadonlyArray<VariableDefinitionNode>, name: string, type: GraphQLType): { name: string, variableDefinitions: VariableDefinitionNode[] } {
     const names = new Set(variableDefinitions.map(def => def.variable.name.value));
     let varName = name;
     if (names.has(name)) {
@@ -357,7 +357,7 @@ export function collectFieldNodesInPath(selectionSet: SelectionSetNode, aliases:
         if (!matchingFieldNodes.length) {
             throw new Error(`Field ${alias} expected but not found`);
         }
-        currentSelectionSets = compact(matchingFieldNodes.map(node => node.selectionSet));
+        currentSelectionSets = compact<SelectionSetNode>(matchingFieldNodes.map(node => node.selectionSet));
         // those matching nodes all need to be compatible - except their selection sets (which will be merged)
         // As the consumer probably does not care about the selection set (this function here is there to process them, after all), this is probably ok
         fieldNodesInPath.push(matchingFieldNodes[0]);

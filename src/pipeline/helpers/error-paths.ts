@@ -11,7 +11,7 @@ export function prefixGraphQLErrorPath(error: GraphQLError, pathPrefix: Response
     return new GraphQLError(error.message, error.nodes, error.source, error.positions, newPath, error.originalError)
 }
 
-function responsePathToArray(path: ResponsePath): (string|number)[] {
+function responsePathToArray(path: ResponsePath|undefined): (string|number)[] {
     if (!path) {
         return [];
     }
