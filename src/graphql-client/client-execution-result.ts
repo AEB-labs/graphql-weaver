@@ -8,8 +8,7 @@ import { ExecutionResult, GraphQLError, GraphQLFormattedError } from 'graphql';
  */
 export interface ClientExecutionResult {
     data?: { [key: string]: any };
-    extensions?: { [key: string]: any };
-    errors?: GraphQLFormattedError[];
+    errors?: ReadonlyArray<GraphQLFormattedError>;
 }
 
 export function convertFormattedErrorsToErrors(result: ClientExecutionResult): ExecutionResult {

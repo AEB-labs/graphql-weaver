@@ -19,7 +19,7 @@ export function maybeDo<TIn, TOut>(input: TIn | null | undefined, fn: (input: TI
     return fn(input);
 }
 
-export function arrayToObject<TValue>(array: TValue[], keyFn: (obj: TValue) => string): { [name: string]: TValue } {
+export function arrayToObject<TValue>(array: ReadonlyArray<TValue>, keyFn: (obj: TValue) => string): { [name: string]: TValue } {
     const result: { [name: string]: TValue } = {};
     for (const item of array) {
         result[keyFn(item)] = item;
@@ -110,16 +110,16 @@ export function mapMapValues<TKey, TValue, TNewValue>(map: Map<TKey, TValue>, fn
     return newMap;
 }
 
-export function flatten<T>(input: T[][]): T[] {
+export function flatten<T>(input: ReadonlyArray<ReadonlyArray<T>>): T[] {
     const arr: T[] = [];
     return arr.concat(...input);
 }
 
-export function flatMap<TIn, TOut>(input: TIn[], fn: (input: TIn) => TOut[]): TOut[] {
+export function flatMap<TIn, TOut>(input: ReadonlyArray<TIn>, fn: (input: TIn) => ReadonlyArray<TOut>): TOut[] {
     return flatten(input.map(fn));
 }
 
-export function compact<T>(arr: (T | undefined | null)[]): T[] {
+export function compact<T>(arr: ReadonlyArray<T | undefined | null>): T[] {
     return arr.filter(a => a != undefined) as T[];
 }
 
@@ -150,7 +150,7 @@ export function groupBy<TItem, TKey>(arr: TItem[], keyFn: (key: TItem) => TKey):
     return map;
 }
 
-export function intersect<T>(lhs: T[], rhs: T[]): T[] {
+export function intersect<T>(lhs: ReadonlyArray<T>, rhs: ReadonlyArray<T>): T[] {
     const set = new Set(lhs);
     return rhs.filter(val => set.has(val));
 }
@@ -171,7 +171,7 @@ export function bindNullable<T>(fn: (T & Function) | undefined, obj: any): (T & 
  * @param {(item: T) => boolean} predicate
  * @returns {[T[] , T[]]} a tuple with the matching ones (first) and the non-matching ones (second)
  */
-export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => boolean): [T[], T[]] {
+export function divideArrayByPredicate<T>(items: ReadonlyArray<T>, predicate: (item: T) => boolean): [T[], T[]] {
     const trues = [];
     const falses = [];
     for (const def of items) {
@@ -184,7 +184,7 @@ export function divideArrayByPredicate<T>(items: T[], predicate: (item: T) => bo
     return [trues, falses];
 }
 
-export function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: (string|number)[]): any {
+export function modifyPropertyAtPath(obj: any, fn: (value: any) => any, path: ReadonlyArray<string|number>): any {
     if (!path.length) {
         return fn(obj);
     }

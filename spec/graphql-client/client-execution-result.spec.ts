@@ -18,7 +18,7 @@ describe('convertFormattedErrorsToErrors', () => {
                 path: ['a', 'b']
             },
             error,
-            new Error(`normal error`)
+            new Error(`normal error`) as GraphQLError // they made locations mandatory (though it can be undefined)
         ]
     };
 

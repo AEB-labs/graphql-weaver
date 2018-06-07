@@ -1,10 +1,9 @@
 import { GraphQLSchema } from 'graphql';
-import { defaultTestSchema } from './graphql-http-test-schema';
 import { GraphQLServer } from 'graphql-yoga';
-import { Server } from "http";
+import { defaultTestSchema } from './graphql-http-test-schema';
 
 export class GraphQLHTTPTestEndpoint {
-    private server: Server;
+    private server: { close(): void };
 
     public async start(port: number, schema?: GraphQLSchema) {
         const server = new GraphQLServer({

@@ -1,7 +1,7 @@
-import { ASTNode, BREAK, DocumentNode, GraphQLErrorLocation, Source, visit } from 'graphql';
+import { ASTNode, BREAK, DocumentNode, Source, SourceLocation, visit } from 'graphql';
 import LineColumnFinder = require('line-column');
 
-export function findNodeAtLocation(location: GraphQLErrorLocation, document: DocumentNode) {
+export function findNodeAtLocation(location: SourceLocation, document: DocumentNode) {
     let pos: number|undefined;
     let source: Source|undefined;
     let nodeAtLocation: ASTNode|undefined = undefined;
@@ -32,7 +32,7 @@ export function findNodeAtLocation(location: GraphQLErrorLocation, document: Doc
     return nodeAtLocation;
 }
 
-function getPositionFromLocation(location: GraphQLErrorLocation, source: Source) {
+function getPositionFromLocation(location: SourceLocation, source: Source) {
     return new LineColumnFinder(source.body).toIndex({
         line: location.line,
         col: location.column

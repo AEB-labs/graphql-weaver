@@ -8,7 +8,7 @@ import { Query } from './common';
 import { arrayToObject, divideArrayByPredicate, flatMap } from '../utils/utils';
 
 export type QueryParts = {
-    fragments: FragmentDefinitionNode[],
+    fragments: ReadonlyArray<FragmentDefinitionNode>,
     selectionSet: SelectionSetNode,
     variableDefinitions: VariableDefinitionNode[],
     variableValues: { [name: string]: any }
@@ -16,7 +16,7 @@ export type QueryParts = {
 };
 
 export interface SlimGraphQLResolveInfo {
-    fieldNodes: FieldNode[]
+    fieldNodes: ReadonlyArray<FieldNode>
     fragments: { [fragmentName: string]: FragmentDefinitionNode };
     operation: OperationDefinitionNode;
     variableValues: { [variableName: string]: any };
@@ -102,7 +102,7 @@ function collectUsedVariableNames(roots: ASTNode[]): Set<string> {
     return variables;
 }
 
-export function collectUsedFragments(roots: ASTNode[], fragmentMap: { [name: string]: FragmentDefinitionNode }) {
+export function collectUsedFragments(roots: ReadonlyArray<ASTNode>, fragmentMap: { [name: string]: FragmentDefinitionNode }) {
     let fragments: FragmentDefinitionNode[] = [];
     let originalFragments = new Set<FragmentDefinitionNode>();
     let hasChanged = false;
@@ -180,7 +180,7 @@ export function dropUnusedVariables(query: Query): Query {
  * @param fieldNodes the selections
  * @returns {any}
  */
-function collectSelections(fieldNodes: FieldNode[]): SelectionNode[] {
+function collectSelections(fieldNodes: ReadonlyArray<FieldNode>): SelectionNode[] {
     return flatMap(fieldNodes, node => node.selectionSet ? node.selectionSet.selections : []);
 }
 

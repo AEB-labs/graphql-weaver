@@ -1,4 +1,4 @@
-import { DocumentNode, GraphQLError, GraphQLErrorLocation, Location, parse, print } from 'graphql';
+import { DocumentNode, GraphQLError, SourceLocation, Location, parse, print } from 'graphql';
 import { ClientExecutionResult } from './client-execution-result';
 import { findNodeAtLocation } from '../graphql/node-at-location';
 import { findNodeInOtherDocument } from '../graphql/ast-synchronization';
@@ -22,14 +22,14 @@ export function mapErrorLocations(response: ClientExecutionResult, document: Doc
             if (!error.locations || !error.locations.length) {
                 return error;
             }
-            const positions = compact(error.locations.map(location => mapLocationsToOriginal(location, printedAST, document)));
+            const positions = compact<Location>(error.locations.map(location => mapLocationsToOriginal(location, printedAST, document)));
             const source = positions.length ? positions[0].source : undefined;
             return new GraphQLError(error.message, undefined, source, positions.map(p => p.start), error.path);
         })
     }
 }
 
-function mapLocationsToOriginal(location: GraphQLErrorLocation, sourceDocument: DocumentNode, targetDocument: DocumentNode): Location|undefined {
+function mapLocationsToOriginal(location: SourceLocation, sourceDocument: DocumentNode, targetDocument: DocumentNode): Location|undefined {
     const nodeInPrinted = findNodeAtLocation(location, sourceDocument);
     if (!nodeInPrinted) {
         return undefined;

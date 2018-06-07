@@ -23,7 +23,11 @@ export const FIRST_ARG = 'first';
 
 export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { field: GraphQLField<any, any>, fieldPath: string[] } | undefined {
     const fieldPath = path.split('.');
-    const field = walkFields(schema.getQueryType(), fieldPath);
+    const queryType = schema.getQueryType();
+    if (!queryType) {
+        return undefined;
+    }
+    const field = walkFields(queryType, fieldPath);
     if (!field) {
         return undefined;
     }
@@ -31,12 +35,12 @@ export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { fiel
 }
 
 async function basicResolve(params: {
-    targetFieldPath: string[],
+    targetFieldPath: ReadonlyArray<string>,
     payloadSelectionSet: SelectionSetNode,
     args?: ArgumentNode[],
     variableDefinitions: VariableDefinitionNode[],
     variableValues: { [name: string]: any },
-    fragments: FragmentDefinitionNode[],
+    fragments: ReadonlyArray<FragmentDefinitionNode>,
     context: any,
     schema: GraphQLSchema,
     path: ResponsePath

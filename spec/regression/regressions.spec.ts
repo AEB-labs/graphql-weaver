@@ -22,6 +22,9 @@ describe('regression tests', () => {
     const saveActualAsExpected = process.argv.includes('--save-actual-as-expected');
 
     for (const fileName of files) {
+        /*if (!fileName.startsWith('alias')) {
+            continue;
+        }*/
         if (!fileName.endsWith('.graphql')) {
             continue;
         }
@@ -52,7 +55,7 @@ describe('regression tests', () => {
 
 });
 
-function sortAndNormalizeErrors(errors: GraphQLError[]|undefined) {
+function sortAndNormalizeErrors(errors: ReadonlyArray<GraphQLError>|undefined) {
     if (!errors || !errors.length) {
         return errors;
     }

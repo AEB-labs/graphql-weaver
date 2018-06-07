@@ -18,7 +18,7 @@ export function mergeSchemas(schemas: GraphQLSchema[]) {
     const nonRootTypes = flatMap(schemas, schema => objectValues(schema.getTypeMap()).filter(type => !isRootType(type, schema)));
 
     return new GraphQLSchema({
-        query: mergeFields(schemas.map(schema => schema.getQueryType()), 'Query'),
+        query: maybeMergeFields(mapAndCompact(schemas, schema => schema.getQueryType()), 'Query'),
         mutation: maybeMergeFields(mapAndCompact(schemas, schema => schema.getMutationType()), 'Mutation'),
         subscription: maybeMergeFields(mapAndCompact(schemas, schema => schema.getSubscriptionType()), 'Subscription'),
         directives: (<GraphQLDirective[]>[]).concat(...schemas.map(schema => schema.getDirectives())),

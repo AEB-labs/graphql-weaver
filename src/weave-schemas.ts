@@ -125,7 +125,7 @@ export async function createPipeline(config: WeavingConfig, errorConsumer: Weavi
         };
         return endpointInfo;
     }));
-    const usableEndpoints = compact(endpoints);
+    const usableEndpoints = compact<EndpointInfo>(endpoints);
 
     return new Pipeline(usableEndpoints, errorConsumer, config.pipelineConfig);
 }
