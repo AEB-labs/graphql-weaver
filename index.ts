@@ -14,6 +14,7 @@ export {
 export { GraphQLClient } from './src/graphql-client/graphql-client';
 export { HttpGraphQLClient } from './src/graphql-client/http-client';
 export { LocalGraphQLClient } from './src/graphql-client/local-client';
+export { ClientExecutionResult }from './src/graphql-client/client-execution-result';
 
 // helpers to write custom clients
 export { mapErrorLocations } from './src/graphql-client/error-location-helper';
