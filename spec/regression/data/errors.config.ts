@@ -1,12 +1,18 @@
-import {
-    DocumentNode, graphql, GraphQLInt, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, print,
-    ValueNode
-} from 'graphql';
-import { WeavingConfig } from '../../../src/config/weaving-config';
-import { isNumber } from 'util';
+import { DocumentNode, graphql, GraphQLInt, GraphQLObjectType, GraphQLSchema, GraphQLString, print } from 'graphql';
 import { Response } from 'node-fetch';
+import { WeavingConfig } from '../../../src/config/weaving-config';
 import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
 import { NonNegativeInt } from '../../helpers/non-negative-int';
+
+class ErrorWithExtension extends Error {
+    extensions = {
+        code: 'TEST'
+    };
+
+    constructor(message: string) {
+        super(message);
+    }
+}
 
 export async function getConfig(): Promise<WeavingConfig> {
     const facSchema = new GraphQLSchema({
@@ -66,6 +72,10 @@ export async function getConfig(): Promise<WeavingConfig> {
                             horst: {
                                 type: GraphQLString,
                                 resolve: () => { throw new Error('horst not available'); }
+                            },
+                            extensions: {
+                                type: GraphQLString,
+                                resolve: () => { throw new ErrorWithExtension('should have extensions') }
                             },
                             hans: {
                                 type: GraphQLString,

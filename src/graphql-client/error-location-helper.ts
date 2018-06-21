@@ -24,7 +24,7 @@ export function mapErrorLocations(response: ClientExecutionResult, document: Doc
             }
             const positions = compact<Location>(error.locations.map(location => mapLocationsToOriginal(location, printedAST, document)));
             const source = positions.length ? positions[0].source : undefined;
-            return new GraphQLError(error.message, undefined, source, positions.map(p => p.start), error.path);
+            return new GraphQLError(error.message, undefined, source, positions.map(p => p.start), error.path, undefined, error.extensions);
         })
     }
 }
