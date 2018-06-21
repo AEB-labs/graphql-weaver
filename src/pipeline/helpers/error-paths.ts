@@ -8,7 +8,7 @@ export function prefixGraphQLErrorPath(error: GraphQLError, pathPrefix: Response
         ...responsePathToArray(pathPrefix),
         ...error.path.slice(removePrefixLength)
     ];
-    return new GraphQLError(error.message, error.nodes, error.source, error.positions, newPath, error.originalError)
+    return new GraphQLError(error.message, error.nodes, error.source, error.positions, newPath, error);
 }
 
 function responsePathToArray(path: ResponsePath|undefined): (string|number)[] {

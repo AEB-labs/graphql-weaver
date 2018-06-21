@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { graphql, GraphQLError } from 'graphql';
+import { formatError, graphql, GraphQLError } from 'graphql';
 import { normalizeJSON, testConfigWithQuery } from './helpers';
 import {TO_EQUAL_JSON_MATCHERS} from "../helpers/equal-json";
 import {GraphQLHTTPTestEndpoint} from "../helpers/grapqhl-http-test/graphql-http-test-endpoint";
@@ -22,9 +22,9 @@ describe('regression tests', () => {
     const saveActualAsExpected = process.argv.includes('--save-actual-as-expected');
 
     for (const fileName of files) {
-        /*if (!fileName.startsWith('alias')) {
+        if (!fileName.startsWith('errors')) {
             continue;
-        }*/
+        }
         if (!fileName.endsWith('.graphql')) {
             continue;
         }
@@ -59,7 +59,7 @@ function sortAndNormalizeErrors(errors: ReadonlyArray<GraphQLError>|undefined) {
     if (!errors || !errors.length) {
         return errors;
     }
-    return errors.map(err => normalizeJSON(err)).sort(compareErrors);
+    return errors.map(err => formatError(err)).sort(compareErrors);
 }
 
 function compareErrors(a: GraphQLError, b: GraphQLError) {

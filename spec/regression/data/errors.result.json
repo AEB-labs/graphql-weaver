@@ -4,7 +4,7 @@
       "message": "Expected type NonNegativeInt, found -1.",
       "locations": [
         {
-          "line": 12,
+          "line": 13,
           "column": 25
         }
       ],
@@ -14,10 +14,10 @@
       ]
     },
     {
-      "message": "GraphQL error at line 18, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 19, column 42:\nExpected type NonNegativeInt, found -1.",
+      "message": "GraphQL error at line 19, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 20, column 42:\nExpected type NonNegativeInt, found -1.",
       "locations": [
         {
-          "line": 17,
+          "line": 18,
           "column": 9
         }
       ],
@@ -40,10 +40,26 @@
       ]
     },
     {
+      "message": "should have extensions",
+      "locations": [
+        {
+          "line": 9,
+          "column": 9
+        }
+      ],
+      "path": [
+        "ns1",
+        "extensions"
+      ],
+      "extensions": {
+        "code": "TEST"
+      }
+    },
+    {
       "message": "Expected type NonNegativeInt, found -1.",
       "locations": [
         {
-          "line": 24,
+          "line": 25,
           "column": 26
         }
       ],
@@ -53,10 +69,10 @@
       ]
     },
     {
-      "message": "GraphQL error at line 28, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 29, column 42:\nExpected type NonNegativeInt, found -1.",
+      "message": "GraphQL error at line 29, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 30, column 42:\nExpected type NonNegativeInt, found -1.",
       "locations": [
         {
-          "line": 27,
+          "line": 28,
           "column": 9
         }
       ],
@@ -72,7 +88,8 @@
     },
     "ns1": {
       "hans": "Hans",
-      "horst": null
+      "horst": null,
+      "extensions": null
     },
     "facLocal": {
       "factorial": null

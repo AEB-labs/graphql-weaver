@@ -12,7 +12,12 @@ export class FieldErrorValue {
                 // (when throwing the error in error-resolver module)
                 // this works only if path is *not* set as this property triggers a fast path in locatedError
                 // we don't really need the path (it gets set by graphql, too), so just keep the message
-                return new Error(this.errors[0].message);
+                const plainError = new Error(this.errors[0].message);
+                if ('extensions' in error) {
+                    Object.defineProperty(plainError, 'etensions', {
+                        value: error.extensions
+                    });
+                }
             }
             // error has locations, so better keep the whole thing
             // this happens when the resolver of a link value generates a validation error (with locations)
