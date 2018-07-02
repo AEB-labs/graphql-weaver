@@ -1,0 +1,18 @@
+query {
+  skip: allPeople(skip: 1, first: 1) {
+    name
+  }
+  skipWithRightOrder: allPeople(skip: 1, first: 1, orderBy: nationality_description_ASC) {
+    name
+  }
+  skipWithRightFilter: allPeople(skip: 1, first: 1, filter: { nationality: { continent: Europe }}) {
+    name
+  }
+  skipWithRightFilterAndOrder: allPeople(skip: 1, first: 1, filter: { nationality: { continent: Europe }}, orderBy: nationality_description_DESC) {
+    name
+  }
+  # triggers an optimization
+  skipWithOnlyOnePerCountry: allPeople(skip: 1, first: 1, filter: { isCool: true, nationality: { continent: Europe } }, orderBy: nationality_description_DESC) {
+    name
+  }
+}

@@ -1,4 +1,4 @@
-query ($orderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $leftOrderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $nullFilter: CountryNSPersonWithCountryNSCountryJoinedFilter, $nullOrderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $nullFirst: Int){
+query ($orderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $leftOrderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $nullFilter: CountryNSPersonWithCountryNSCountryJoinedFilter, $nullOrderBy: CountryNSPersonWithCountryNSCountryJoinedOrderBy, $nullFirst: Int) {
   staticData {
     allPeople {
       name

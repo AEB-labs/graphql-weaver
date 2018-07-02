@@ -1,0 +1,19 @@
+{
+  "data": {
+    "skip": [
+      {"name": "Helga"}
+    ],
+    "skipWithRightOrder": [
+      {"name": "Yin"}
+    ],
+    "skipWithRightFilter": [
+      {"name": "Helga"}
+    ],
+    "skipWithRightFilterAndOrder": [
+      {"name": "Horst"}
+    ],
+    "skipWithOnlyOnePerCountry": [
+      {"name": "Horst"}
+    ]
+  }
+}

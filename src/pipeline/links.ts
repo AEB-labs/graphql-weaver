@@ -14,7 +14,8 @@ import { FieldsTransformationContext, FieldTransformationContext } from 'graphql
 import { arrayToObject, compact, flatMap, groupBy, objectEntries, throwError } from '../utils/utils';
 import { ArrayKeyWeakMap } from '../utils/multi-key-weak-map';
 import {
-    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, ORDER_BY_ARG, parseLinkTargetPath
+    fetchJoinedObjects, fetchLinkedObjects, FILTER_ARG, FIRST_ARG, getKeyType, ORDER_BY_ARG, parseLinkTargetPath,
+    SKIP_ARG
 } from './helpers/link-helpers';
 import { isListType } from '../graphql/schema-utils';
 import { Query } from '../graphql/common';
@@ -249,9 +250,13 @@ export class LinksModule implements PipelineModule {
 
                         if (child.arguments && (hasRightOrderBy || hasRightFilter)) {
                             // can't limit the number of left objects if the result set depends on the right side
+                            // same for skipping objects: although it would be safe to skip when only filtering on the
+                            // right side, we might actually not skip *enough* (because of objects removed from the
+                            // result set due to the inner join) and we would not be able to calculate how much we
+                            // missed. Therefore, we can only skip if neither filtering nor ordering by the right side.
                             child = {
                                 ...child,
-                                arguments: child.arguments!.filter(arg => arg.name.value != FIRST_ARG)
+                                arguments: child.arguments!.filter(arg => arg.name.value !== FIRST_ARG && arg.name.value !== SKIP_ARG)
                             };
                         }
                     }
@@ -673,6 +678,17 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
             };
         }
 
+        // skip
+
+        const leftSkipArgument = config.args ? config.args[SKIP_ARG] : undefined;
+        const rightSupportsSkip = targetField.args.some(arg => arg.name === SKIP_ARG);
+        if (leftSkipArgument) {
+            newArguments = {
+                ...newArguments,
+                [SKIP_ARG]: leftSkipArgument
+            };
+        }
+
         this.transformationInfo.setJoinTransformationInfo(context.newOuterType.name, config.name, {
             leftFilterArgType: leftFilterArg ? <GraphQLInputObjectType>leftFilterArg.type : undefined
         });
@@ -698,6 +714,25 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     if (orderByValue.startsWith(outLinkFieldName + '_')) {
                         rightOrderBy = orderByValue.substr((outLinkFieldName + '_').length);
                     }
+                }
+                const isRightDescSort = rightOrderBy && rightOrderBy.toUpperCase().endsWith('_DESC');
+                if (!isRightDescSort && rightOrderBy && !rightOrderBy.toUpperCase().endsWith('_ASC')) {
+                    throw new Error(`Expected order by clause ${rightOrderBy} to end with _ASC or _DESC`);
+                }
+
+                // this is variable because optimizations might do the skipping already using GraphQL so that the weaver
+                // does not need to skip manually at the end.
+                let skip: number = args[SKIP_ARG] || 0;
+                if (!rightOrderBy && !rightFilter) {
+                    // already handled by the left query
+                    skip = 0;
+                }
+
+                // this is variable because it might be handled by a query already
+                let first: number|undefined = args[FIRST_ARG];
+                if (!rightOrderBy && !rightFilter) {
+                    // already handled by the left query
+                    first = undefined;
                 }
 
                 const selections = flatMap(info.fieldNodes, node => node.selectionSet!.selections);
@@ -739,21 +774,58 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                         path: info.path
                     };
 
-                    // optimization: if "first" had to be scratched from the left query, do it at least on the right query
-                    // we can do this because count(right) >= count(left) always
-                    // this is not possible for outer joins, because there we need to detect if an object *has* a right
-                    // object, and limiting the results would miss some right objects
-                    let first: number | undefined = undefined;
-                    if ((rightFilter || rightOrderBy) && doInnerJoin && FIRST_ARG in args) {
-                        first = args[FIRST_ARG];
+                    let skipInRightQuery: number|undefined = undefined;
+                    let firstInRightQuery: number | undefined = undefined;
+
+                    // see if a pagination argument (skip/first) was present, but had been removed because there are
+                    // filter / order arguments
+                    // In this case, we might be able to at least paginate the right query
+                    if ((first !== undefined || skip !== 0) && (rightFilter || rightOrderBy)) {
+                        // If the left side determines the order, this is tricky - we supply the link values in order,
+                        // but there is no guarantee that this order is kept, and thus pagination on the unordered right
+                        // side makes no sense
+                        // One could argue that the weaver may reorder results if orderBy is not present at all -
+                        // in this case, we could still paginate - however, this is dangerous if the left field
+                        // guarantees an order without orderBy argument.
+                        // another restriction is that we do an inner join - otherwise, we need to compute the set of
+                        // objects with right=NULL, and we can't do that if some right objects are missing
+                        if (rightOrderBy && doInnerJoin) {
+                            const anyRightKeysMatchingMoreThanOneLeftObject = Array.from(rightKeysToLeftObjects.values()).some(leftObjects => leftObjects.length > 1);
+
+                            // can't skip in the right side if there are some right objects that match multiple left
+                            // objects, because we would skip too much then - skipping the whole group instead of just
+                            // one object.
+                            if (skip && rightSupportsSkip && !anyRightKeysMatchingMoreThanOneLeftObject) {
+                                skipInRightQuery = skip;
+                                skip = 0;
+                            }
+
+                            if (first != undefined) {
+                                // if "skip" still needs to applied, we need to
+                                // overfetch so we can skip them later
+                                firstInRightQuery = first + skip;
+                                // We still need to do local trimming if there might be right keys matching multiple
+                                // right objects
+                                if (!anyRightKeysMatchingMoreThanOneLeftObject) {
+                                    first = undefined;
+                                }
+                            }
+                        }
                     }
+
+                    // Note: we can't do this for "skip" because while we could safely skip so many objects from the
+                    // right list, we then would not be able to skip an exact number of inner-joined objects because
+                    // only *some* of them would be skipped by this "optimization", and we could not tell how many
+                    // would match to a left object and how many wouldn't.
+                    // for outer joins, it does not work at all (see explanation above)
 
                     const res = await fetchJoinedObjects({
                         keys: compact(rightKeys), // remove null keys
                         additionalFilter: rightFilter,
                         filterType: rightFilterArg.type,
                         orderBy: rightOrderBy,
-                        first,
+                        first: firstInRightQuery,
+                        skip: skipInRightQuery,
                         keyType,
                         linkConfig,
                         unlinkedSchema: this.schema.schema,
@@ -792,12 +864,8 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     }
 
                     if (!doInnerJoin) {
-                        const isDescSort = rightOrderBy.toUpperCase().endsWith('_DESC');
-                        if (!isDescSort && !rightOrderBy.toUpperCase().endsWith('_ASC')) {
-                            throw new Error(`Expected order by clause ${rightOrderBy} to end with _ASC or _DESC`);
-                        }
                         const leftObjectsWithoutRightObject = leftObjects.filter(obj => !leftObjectsSoFar.has(obj));
-                        if (isDescSort) {
+                        if (isRightDescSort) {
                             leftObjectList.push(...leftObjectsWithoutRightObject);
                         } else {
                             leftObjectList.unshift(...leftObjectsWithoutRightObject);
@@ -822,8 +890,10 @@ class SchemaLinkTransformer implements ExtendedSchemaTransformer {
                     leftObjectList = leftObjects;
                 }
 
-                if (args[FIRST_ARG] != undefined) {
-                    const first = args[FIRST_ARG];
+                if (skip) {
+                    leftObjectList = leftObjectList.slice(skip);
+                }
+                if (first != undefined) {
                     leftObjectList = leftObjectList.slice(0, first);
                 }
                 return leftObjectList;
