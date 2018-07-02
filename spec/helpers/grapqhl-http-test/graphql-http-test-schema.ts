@@ -58,6 +58,9 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.orderBy) {
                         countries = [...countries].sort(comparator(args.orderBy));
                     }
+                    if (args.skip) {
+                        countries = countries.slice(args.skip);
+                    }
                     if (args.first) {
                         countries = countries.slice(0, args.first /* exclusive end */);
                     }
@@ -71,6 +74,7 @@ export const defaultTestSchema = new GraphQLSchema({
                     orderBy: {type: testTypes.countryOrderType},
                     last: {type: GraphQLInt},
                     first: {type: GraphQLInt},
+                    skip: {type: GraphQLInt},
                     useLargeList: {type: GraphQLBoolean}
                 }
             },
@@ -103,6 +107,9 @@ export const defaultTestSchema = new GraphQLSchema({
                     if (args.orderBy) {
                         people = [...people].sort(comparator(args.orderBy));
                     }
+                    if (args.skip) {
+                        people = people.slice(args.skip);
+                    }
                     if (args.first) {
                         people = people.slice(0, args.first /* exclusive end */);
                     }
@@ -116,6 +123,7 @@ export const defaultTestSchema = new GraphQLSchema({
                     orderBy: {type: testTypes.personOrderType},
                     last: {type: GraphQLInt},
                     first: {type: GraphQLInt},
+                    skip: {type: GraphQLInt},
                     nationality: {type: GraphQLString}
                 }
             }

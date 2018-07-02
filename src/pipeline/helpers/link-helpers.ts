@@ -20,6 +20,7 @@ import { WeavingError, WeavingErrorConsumer } from '../../config/errors';
 export const FILTER_ARG = 'filter';
 export const ORDER_BY_ARG = 'orderBy';
 export const FIRST_ARG = 'first';
+export const SKIP_ARG = 'skip';
 
 export function parseLinkTargetPath(path: string, schema: GraphQLSchema): { field: GraphQLField<any, any>, fieldPath: string[] } | undefined {
     const fieldPath = path.split('.');
@@ -266,6 +267,7 @@ export async function fetchJoinedObjects(params: {
     additionalFilter: any,
     orderBy?: string,
     first?: number,
+    skip?: number,
     filterType: GraphQLInputType,
     keyType: GraphQLScalarType,
     linkConfig: LinkConfig,
@@ -343,6 +345,21 @@ export async function fetchJoinedObjects(params: {
             }
         };
         args = [...args, firstArg];
+    }
+
+    if (params.skip) {
+        const skipArg: ArgumentNode = {
+            kind: 'Argument',
+            name: {
+                kind: 'Name',
+                value: SKIP_ARG
+            },
+            value: {
+                kind: 'IntValue',
+                value: params.skip + ""
+            }
+        };
+        args = [...args, skipArg];
     }
 
     const data = await basicResolve({
