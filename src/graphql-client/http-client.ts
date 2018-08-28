@@ -1,5 +1,5 @@
 import { DocumentNode, print } from 'graphql';
-import fetch, { Request, Response } from 'node-fetch';
+import fetch, { Request, Response } from 'cross-fetch';
 import { ClientExecutionResult } from './client-execution-result';
 import { mapErrorLocations } from './error-location-helper';
 import { GraphQLClient } from './graphql-client';
@@ -49,13 +49,13 @@ export class HttpGraphQLClient implements GraphQLClient {
         return await this.processResponse(json, document, variables, context, introspect);
     }
 
-    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<Response> {
+    protected async fetchResponse(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<any> {
         return this.fetch(await this.getRequest(document, variables, context, introspect));
     }
 
     protected fetch = fetch;
 
-    protected async getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<Request> {
+    protected async getRequest(document: DocumentNode, variables?: { [name: string]: any }, context?: any, introspect?: boolean): Promise<any> {
         return new Request(this.url, {
             method: 'POST',
             headers: await this.getHeaders(document, variables, context, introspect),

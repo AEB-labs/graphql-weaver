@@ -40,7 +40,10 @@ export async function start() {
 
     const port = config.port || defaultPort;
     const server = new GraphQLServer({
-        schema,
+        // graphql-yoga declares @types/graphql as regular dependency (in contrast to peerDependency)
+        // updating to 1.8+ would fix it, but that causes a weird bug in the join tests,
+        // probably related to their default fieldResolver (it does some magic with aliases...)
+        schema: schema as any,
         context: () => ({}) // unique token
     });
     await server.start({
