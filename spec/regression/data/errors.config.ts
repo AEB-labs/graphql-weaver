@@ -1,5 +1,5 @@
 import { DocumentNode, graphql, GraphQLInt, GraphQLObjectType, GraphQLSchema, GraphQLString, print } from 'graphql';
-import { Response } from 'node-fetch';
+import { Response } from 'cross-fetch';
 import { WeavingConfig } from '../../../src/config/weaving-config';
 import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
 import { NonNegativeInt } from '../../helpers/non-negative-int';
