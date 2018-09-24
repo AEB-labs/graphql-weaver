@@ -147,12 +147,12 @@ export class BenchmarkResult {
     }
 
     static add(...results: BenchmarkResult[]) {
-        const samples = results.reduce((value, r) => [...value, ...r.samples], []);
+        const samples = results.reduce<number[]>((value, r) => [...value, ...r.samples], []);
         const timings = getTimings(samples);
 
         return new BenchmarkResult({
             cycles: results.reduce((value, r) => value + r.cycles, 0),
-            cycleDetails: results.reduce((value, r) => [...value, ...r.cycleDetails], []),
+            cycleDetails: results.reduce<BenchmarkCycleDetails[]>((value, r) => [...value, ...r.cycleDetails], []),
             meanTime: timings.meanTime,
             relativeMarginOfError: timings.relativeMarginOfError,
             elapsedTime: results.reduce((value, r) => value + r.elapsedTime, 0),

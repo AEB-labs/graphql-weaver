@@ -1,5 +1,5 @@
 import { PipelineModule } from './pipeline-module';
-import { GraphQLScalarType } from 'graphql';
+import { GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
 import { SchemaTransformer } from 'graphql-transformer';
 import GraphQLJSON = require('graphql-type-json');
 
@@ -17,14 +17,16 @@ export class CustomScalarTypesSerializationModule implements PipelineModule {
 
 export class CustomScalarTypesSerializationTransformer implements SchemaTransformer {
 
-    transformScalarType(type: GraphQLScalarType): GraphQLScalarType {
+    transformScalarType(config: GraphQLScalarTypeConfig<any, any>): GraphQLScalarType {
         // parseLiteral needs to parse all possible InputValues to its corresponding JSON value. the JSON scalar
         // implementation does exactly. this. parseLiteral and serialize are the identity function.
-        return {
-            ...type,
+        const newConfig: GraphQLScalarTypeConfig<any, any> = {
+            ...config,
             parseValue: (value) => GraphQLJSON.parseValue(value),
-            parseLiteral: (value) => GraphQLJSON.parseLiteral(value),
+            parseLiteral: (value, variables) => GraphQLJSON.parseLiteral(value, variables),
             serialize: (value) => GraphQLJSON.serialize(value)
-        } as GraphQLScalarType;
+        };
+
+        return new GraphQLScalarType(newConfig);
     }
 }

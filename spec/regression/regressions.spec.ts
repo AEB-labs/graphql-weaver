@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { formatError, graphql, GraphQLError } from 'graphql';
+import { formatError, graphql, GraphQLError, GraphQLFormattedError } from 'graphql';
 import { normalizeJSON, testConfigWithQuery } from './helpers';
 import {TO_EQUAL_JSON_MATCHERS} from "../helpers/equal-json";
 import {GraphQLHTTPTestEndpoint} from "../helpers/grapqhl-http-test/graphql-http-test-endpoint";
@@ -62,7 +62,7 @@ function sortAndNormalizeErrors(errors: ReadonlyArray<GraphQLError>|undefined) {
     return errors.map(err => formatError(err)).sort(compareErrors);
 }
 
-function compareErrors(a: GraphQLError, b: GraphQLError) {
+function compareErrors(a: GraphQLFormattedError, b: GraphQLFormattedError) {
     const path1 = a.path ? a.path.join('.') : undefined;
     const path2 = b.path ? b.path.join('.') : undefined;
     if (path1 && path2) {
