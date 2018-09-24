@@ -90,7 +90,7 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
 
         transformFields: (config: GraphQLFieldConfigMap<any, any>, context: FieldsTransformationContext) => {
             // If transformFields is not defined, we don't need to do anything
-            const fn = maybeDo(transformer.transformFields, fn => fn.bind(transformer));
+            const fn: TransformationFunction<GraphQLFieldConfigMapWithMetadata<any, any>, FieldsTransformationContext> = maybeDo(transformer.transformFields, fn => fn.bind(transformer));
             if (!fn) {
                 return config;
             }
