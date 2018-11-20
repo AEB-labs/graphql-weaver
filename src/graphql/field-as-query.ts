@@ -1,11 +1,6 @@
-import {
-    ASTNode, DefinitionNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode,
-    OperationDefinitionNode, OperationTypeNode, ResponsePath, SelectionNode, SelectionSetNode, VariableDefinitionNode,
-    VariableNode,
-    visit
-} from 'graphql';
-import { Query } from './common';
+import { ASTNode, DefinitionNode, DocumentNode, FieldNode, FragmentDefinitionNode, FragmentSpreadNode, OperationDefinitionNode, OperationTypeNode, ResponsePath, SelectionNode, SelectionSetNode, VariableDefinitionNode, VariableNode, visit } from 'graphql';
 import { arrayToObject, divideArrayByPredicate, flatMap } from '../utils/utils';
+import { Query } from './common';
 
 export type QueryParts = {
     fragments: ReadonlyArray<FragmentDefinitionNode>,
@@ -13,6 +8,7 @@ export type QueryParts = {
     variableDefinitions: VariableDefinitionNode[],
     variableValues: { [name: string]: any }
     operation: OperationTypeNode;
+    operationName: string | undefined;
 };
 
 export interface SlimGraphQLResolveInfo {
@@ -38,8 +34,9 @@ export function getFieldAsQueryParts(info: SlimGraphQLResolveInfo): QueryParts {
         .filter(variable => variableNames.has(variable.variable.name.value));
     const variableValues = pickIntoObject(info.variableValues, Array.from(variableNames));
     const operation = info.operation.operation;
+    const operationName = info.operation.name ? info.operation.name.value : undefined;
 
-    return {fragments, variableDefinitions, variableValues, selectionSet, operation};
+    return { fragments, variableDefinitions, variableValues, selectionSet, operation, operationName };
 }
 
 /**
@@ -52,11 +49,12 @@ export function getFieldAsQuery(info: SlimGraphQLResolveInfo): Query {
 }
 
 export function getQueryFromParts(parts: QueryParts) {
-    const {fragments, variableDefinitions, variableValues, selectionSet, operation} = parts;
+    const { fragments, variableDefinitions, variableValues, selectionSet, operation } = parts;
 
     const operationNode: OperationDefinitionNode = {
         kind: 'OperationDefinition',
         operation,
+        name: parts.operationName ? { kind: 'Name', value: parts.operationName } : undefined,
         variableDefinitions,
         selectionSet
     };
