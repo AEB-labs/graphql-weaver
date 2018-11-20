@@ -22,9 +22,6 @@ describe('regression tests', () => {
     const saveActualAsExpected = process.argv.includes('--save-actual-as-expected');
 
     for (const fileName of files) {
-        if (!fileName.startsWith('join')) {
-            continue;
-        }
         if (!fileName.endsWith('.graphql')) {
             continue;
         }
