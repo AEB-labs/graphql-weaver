@@ -9,6 +9,7 @@
     "experimentalDecorators": true,
     "removeComments": false,
     "alwaysStrict": true,
+    "skipLibCheck": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
