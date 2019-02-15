@@ -14,8 +14,11 @@ import { getAliasOrName } from '../graphql/language-utils';
 export class AbstractTypesModule implements PipelineModule {
     private schema: GraphQLSchema | undefined;
 
+    constructor(private readonly prefix: string | undefined) {
+    }
+
     transformSchema(schema: GraphQLSchema) {
-        const newSchema = transformSchema(schema, new TypeResolversTransformer());
+        const newSchema = transformSchema(schema, new TypeResolversTransformer(this.prefix));
         this.schema = schema;
         return newSchema;
     }
@@ -80,6 +83,9 @@ export class AbstractTypesModule implements PipelineModule {
  * that to locate the concrete type.
  */
 class TypeResolversTransformer implements SchemaTransformer {
+    constructor(private readonly prefix: string | undefined) {
+    }
+
     transformObjectType(config: GraphQLObjectTypeConfig<any, any>): GraphQLObjectTypeConfig<any, any> {
         return {
             ...config,
@@ -93,25 +99,28 @@ class TypeResolversTransformer implements SchemaTransformer {
     transformInterfaceType(config: GraphQLInterfaceTypeConfig<any, any>, context: SchemaTransformationContext): GraphQLInterfaceTypeConfig<any, any> {
         return {
             ...config,
-            resolveType: this.getResolver(config.name, context)
+            resolveType: this.getResolver(config.name, context, this.prefix)
         };
     };
 
     transformUnionType(config: GraphQLUnionTypeConfig<any, any>, context: SchemaTransformationContext): GraphQLUnionTypeConfig<any, any> {
         return {
             ...config,
-            resolveType: this.getResolver(config.name, context)
+            resolveType: this.getResolver(config.name, context, this.prefix)
         };
     };
 
-    getResolver(abstractTypeName: string, context: SchemaTransformationContext): GraphQLTypeResolver<any, any> {
+    getResolver(abstractTypeName: string, context: SchemaTransformationContext, prefix?: string): GraphQLTypeResolver<any, any> {
         return async obj => {
             if (!('__typename' in obj)) {
                 throw new Error(`__typename does not exist on fetched object of abstract type ${abstractTypeName}`);
             }
 
             // endpoint mapping and type prefixes should be taken care of in the links and type-prefixes modules
-            const name = obj.__typename;
+            let name = obj.__typename;
+            if (prefix && name.startsWith(prefix)) {
+                name = name.substr(prefix.length);
+            }
             const type = context.findType(name);
             if (!type) {
                 throw new Error(`__typename of abstract type ${abstractTypeName} is set to ${JSON.stringify(name)}, ` +

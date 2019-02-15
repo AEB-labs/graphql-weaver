@@ -37,7 +37,7 @@ function createPreMergeModules(context: PreMergeModuleContext, customConfig?: Pi
         new DefaultResolversModule(),
         new ErrorResolversModule(),
         new CustomScalarTypesSerializationModule(),
-        new AbstractTypesModule(),
+        new AbstractTypesModule(context.endpointConfig.typePrefix),
 
         // there should be no reason to change this one either
         new AdditionalMetadataModule(context.endpointConfig),
