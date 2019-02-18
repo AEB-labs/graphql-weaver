@@ -1,5 +1,8 @@
 {
   "data": {
-    "opName": "OpName"
+    "opName": "OpName",
+    "link": {
+      "opName": "OpName"
+    }
   }
 }
