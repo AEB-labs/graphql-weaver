@@ -6,7 +6,7 @@ const jsondiffpatch = require('jsondiffpatch');
 
 // thanks to https://github.com/jasmine/jasmine/issues/675#issuecomment-127187623
 export const TO_EQUAL_JSON_MATCHERS: CustomMatcherFactories = {
-    toEqualJSON: function(util, customEqualityTesters): CustomMatcher {
+    toEqualJSON: function(util, customEqualityTesters?): CustomMatcher {
         return {
             compare: function(actual: any, expected: any): CustomMatcherResult {
                 actual = normalizeJSON(actual);
