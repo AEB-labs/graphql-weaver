@@ -44,7 +44,8 @@ async function basicResolve(params: {
     fragments: ReadonlyArray<FragmentDefinitionNode>,
     context: any,
     schema: GraphQLSchema,
-    path: ResponsePath
+    path: ResponsePath,
+    operationName?: string
 }) {
     const {payloadSelectionSet, variableValues, variableDefinitions, context, schema, targetFieldPath, args, fragments} = params;
 
@@ -66,6 +67,10 @@ async function basicResolve(params: {
     const operation: OperationDefinitionNode = {
         kind: 'OperationDefinition',
         operation: 'query',
+        name: params.operationName ? {
+            kind: 'Name',
+            value: params.operationName
+        } : undefined,
         variableDefinitions,
         selectionSet
     };
@@ -164,7 +169,8 @@ export async function fetchLinkedObjects(params: {
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
             payloadSelectionSet: originalParts.selectionSet,
-            path: info.path
+            path: info.path,
+            operationName: info.operation.name ? info.operation.name.value : undefined
         });
     }
 
@@ -198,7 +204,8 @@ export async function fetchLinkedObjects(params: {
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
             payloadSelectionSet: originalParts.selectionSet,
-            path: info.path
+            path: info.path,
+            operationName: info.operation.name ? info.operation.name.value : undefined
         });
     }
 
@@ -237,7 +244,8 @@ export async function fetchLinkedObjects(params: {
                 createNestedArgumentWithVariableNode(linkConfig.argument, varName)
             ],
             payloadSelectionSet,
-            path: info.path
+            path: info.path,
+            operationName: info.operation.name ? info.operation.name.value : undefined
         });
 
         checkObjectsAndKeysForErrorValues(data, keyFieldAlias, linkConfig.keyField!);
@@ -371,7 +379,8 @@ export async function fetchJoinedObjects(params: {
         fragments,
         args,
         payloadSelectionSet,
-        path: info.path
+        path: info.path,
+        operationName: info.operation.name ? info.operation.name.value : undefined
     });
 
     if (!isArray(data)) {
