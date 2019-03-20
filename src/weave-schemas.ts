@@ -1,25 +1,20 @@
+import { buildClientSchema, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString, introspectionQuery, IntrospectionQuery, parse } from 'graphql';
+import { transformSchema } from 'graphql-transformer/dist';
+import { shouldAddPlaceholdersOnError, shouldContinueOnError, shouldProvideErrorsInSchema } from './config/error-handling';
+import { throwingErrorConsumer, WeavingError, WeavingErrorConsumer } from './config/errors';
 import { EndpointConfig, WeavingConfig } from './config/weaving-config';
-import {
-    buildClientSchema, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString, introspectionQuery,
-    IntrospectionQuery, parse
-} from 'graphql';
-import { DefaultClientFactory } from './graphql-client/client-factory';
-import { Pipeline } from './pipeline/pipeline';
-import { EndpointInfo } from './pipeline/pipeline-module';
 import { ExtendedSchema, SchemaMetadata } from './extended-schema/extended-schema';
 import { fetchSchemaMetadata } from './extended-schema/fetch-metadata';
+import { convertFormattedErrorsToErrors } from './graphql-client/client-execution-result';
+import { DefaultClientFactory } from './graphql-client/client-factory';
 import { GraphQLClient } from './graphql-client/graphql-client';
-import { assertSuccessfulResult } from './graphql/execution-result';
-import { throwingErrorConsumer, WeavingError, WeavingErrorConsumer } from './config/errors';
-import { compact } from './utils/utils';
 import { LocalGraphQLClient } from './graphql-client/local-client';
-import { transformSchema } from 'graphql-transformer/dist';
-import {
-    shouldAddPlaceholdersOnError, shouldContinueOnError, shouldProvideErrorsInSchema
-} from './config/error-handling';
+import { assertSuccessfulResult } from './graphql/execution-result';
+import { Pipeline } from './pipeline/pipeline';
+import { EndpointInfo } from './pipeline/pipeline-module';
+import { compact } from './utils/utils';
 import { WeavingResult } from './weaving-result';
 import TraceError = require('trace-error');
-import { convertFormattedErrorsToErrors } from './graphql-client/client-execution-result';
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();
@@ -51,9 +46,11 @@ async function weaveSchemasThrowOnError(config: WeavingConfig): Promise<WeavingR
 
 async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<WeavingResult> {
     const errors: WeavingError[] = [];
+
     function onError(error: WeavingError) {
         errors.push(error);
     }
+
     const pipeline = await createPipeline(config, onError);
     let schema = pipeline.schema.schema;
     if (shouldProvideErrorsInSchema(config.errorHandling) && errors.length) {
@@ -74,7 +71,7 @@ async function weaveSchemasContinueOnError(config: WeavingConfig): Promise<Weavi
                                     }
                                 }
                             })))),
-                            resolve: () => errors.map(e => ({message: e.message, endpoint: e.endpointName}))
+                            resolve: () => errors.map(e => ({ message: e.message, endpoint: e.endpointName }))
                         }
                     };
                 }
