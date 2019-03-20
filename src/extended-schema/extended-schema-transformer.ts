@@ -1,10 +1,7 @@
-import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
-import {
-    FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext,
-    SchemaTransformer, transformSchema
-} from 'graphql-transformer';
 import { GraphQLFieldConfig, GraphQLFieldConfigMap, GraphQLObjectType } from 'graphql';
+import { FieldsTransformationContext, FieldTransformationContext, GraphQLNamedFieldConfig, SchemaTransformationContext, SchemaTransformer, transformSchema } from 'graphql-transformer';
 import { bindNullable, mapValues, maybeDo } from '../utils/utils';
+import { ExtendedSchema, FieldMetadata, SchemaMetadata } from './extended-schema';
 
 export type TransformationFunction<TConfig, TContext extends SchemaTransformationContext>
     = (config: TConfig, context: TContext) => TConfig;
@@ -84,13 +81,13 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
             }
 
             // Do the "normal" transformation, but strip out metadata
-            const {metadata, ...regularConfig} = extendedConfig;
+            const { metadata, ...regularConfig } = extendedConfig;
             return regularConfig;
         },
 
         transformFields: (config: GraphQLFieldConfigMap<any, any>, context: FieldsTransformationContext) => {
             // If transformFields is not defined, we don't need to do anything
-            const fn: TransformationFunction<GraphQLFieldConfigMapWithMetadata<any, any>, FieldsTransformationContext> = maybeDo(transformer.transformFields, fn => fn.bind(transformer));
+            const fn: TransformationFunction<GraphQLFieldConfigMapWithMetadata<any, any>, FieldsTransformationContext> | undefined = maybeDo(transformer.transformFields, fn => fn.bind(transformer));
             if (!fn) {
                 return config;
             }
@@ -107,14 +104,14 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
                 const key = `${context.newOuterType}.${fieldName}`;
                 const metadata = fieldMetadata.get(key);
                 fieldMetadata.delete(key);
-                return {...config, metadata};
+                return { ...config, metadata };
             });
 
             // call the transformer
             const result = fn(extendedConfig, context);
 
             // Now, store the even-newer metadata and strip the metadata property from the config
-            const regularResult = mapValues(result, ({metadata, ...regularConfig}, fieldName) => {
+            const regularResult = mapValues(result, ({ metadata, ...regularConfig }, fieldName) => {
                 if (metadata) {
                     const key = `${context.newOuterType}.${fieldName}`;
                     fieldMetadata.set(key, metadata);
@@ -128,7 +125,7 @@ export function transformExtendedSchema(schema: ExtendedSchema, transformer: Ext
     };
 
     const newSchema = transformSchema(schema.schema, regularTransformer);
-    return new ExtendedSchema(newSchema, new SchemaMetadata({fieldMetadata}));
+    return new ExtendedSchema(newSchema, new SchemaMetadata({ fieldMetadata }));
 }
 
 function bindTransformerFunctions(t: SchemaTransformer): SchemaTransformer {

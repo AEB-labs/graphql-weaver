@@ -46,7 +46,7 @@ async function basicResolve(params: {
     schema: GraphQLSchema,
     path: ResponsePath,
     operationName?: string
-}) {
+}): Promise<any> {
     const {payloadSelectionSet, variableValues, variableDefinitions, context, schema, targetFieldPath, args, fragments} = params;
 
     // wrap selection in field node chain on target, and add the argument with the key field
