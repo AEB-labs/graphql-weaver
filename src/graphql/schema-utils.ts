@@ -1,5 +1,6 @@
 import {
-    getNullableType, GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNonNull,
+    getNamedType,
+    getNullableType, GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull,
     GraphQLObjectType, GraphQLSchema, GraphQLType, GraphQLUnionType
 } from 'graphql';
 
@@ -11,7 +12,7 @@ import {
  */
 export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNames: string[]): GraphQLField<any, any>|undefined {
     let field: GraphQLField<any, any>|undefined;
-    let currentType: GraphQLType = type;
+    let currentType: GraphQLNamedType = type;
     for (const fieldName of fieldNames) {
         if (!(currentType instanceof GraphQLObjectType) && !(currentType instanceof GraphQLInterfaceType)) {
             return undefined;
@@ -23,7 +24,7 @@ export function walkFields(type: GraphQLObjectType|GraphQLInterfaceType, fieldNa
         }
 
         field = fields[fieldName];
-        currentType = field.type;
+        currentType = getNamedType(field.type);
     }
     return field;
 }
