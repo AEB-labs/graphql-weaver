@@ -2,7 +2,7 @@ import { PipelineModule } from './pipeline-module';
 import {
     DocumentNode, FragmentDefinitionNode, GraphQLObjectType, GraphQLSchema, SelectionSetNode, visit
 } from 'graphql';
-import { maybeDo } from '../utils/utils';
+import { maybeDo, objectValues } from '../utils/utils';
 import { Query } from '../graphql/common';
 
 /**
@@ -22,7 +22,8 @@ export class NamespaceModule implements PipelineModule {
             directives: Array.from(schema.getDirectives()),
             query: maybeDo(schema.getQueryType(), type => this.wrap(type, 'Query')),
             mutation: maybeDo(schema.getMutationType(), type => this.wrap(type, 'Mutation')),
-            subscription: maybeDo(schema.getSubscriptionType(), type => this.wrap(type, 'Subscription'))
+            subscription: maybeDo(schema.getSubscriptionType(), type => this.wrap(type, 'Subscription')),
+            types: objectValues(schema.getTypeMap())
         });
         this.schema = newSchema;
         return newSchema;
