@@ -10,7 +10,7 @@ import { ExecutionResult, GraphQLError, GraphQLFormattedError } from 'graphql';
  * there should only be an optional `extensions` property in a formatted error instead of arbitrary properties.
  */
 export interface ClientExecutionResult {
-    data?: { [key: string]: any };
+    data?: { [key: string]: any } | null;
     errors?: ReadonlyArray<GraphQLFormattedError>;
 }
 

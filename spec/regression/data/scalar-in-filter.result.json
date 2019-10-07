@@ -13,7 +13,7 @@
       ]
     },
     {
-      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value { names: [\"Berlin\", \"Stuttgart\", \"Munich\"], locationFilterValue: -1 }; Expected type NonNegativeInt at value.locationFilterValue; Not a non-negative integer: -1",
+      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value -1 at \"locationFilter.locationFilterValue\"; Expected type NonNegativeInt. Not a non-negative integer: -1",
       "locations": [
         {
           "line": 34,

@@ -1,5 +1,5 @@
+import { ApolloServer } from 'apollo-server';
 import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
-import { GraphQLServer } from 'graphql-yoga';
 import { WeavingConfig } from '../../src/config/weaving-config';
 import { weaveSchemas } from '../../src/weave-schemas';
 import { loadProxyConfig } from './load-config';
@@ -39,16 +39,10 @@ export async function start() {
     const schema = await weaveSchemas(config);
 
     const port = config.port || defaultPort;
-    const server = new GraphQLServer({
-        // graphql-yoga declares @types/graphql as regular dependency (in contrast to peerDependency)
-        // updating to 1.8+ would fix it, but that causes a weird bug in the join tests,
-        // probably related to their default fieldResolver (it does some magic with aliases...)
-        schema: schema as any,
+    const server = new ApolloServer({
+        schema: schema,
         context: () => ({}) // unique token
     });
-    await server.start({
-        port,
-        endpoint: '/graphql'
-    });
+    await server.listen(port);
     console.log(`GraphQL server running on http://localhost:${port}/`);
 }

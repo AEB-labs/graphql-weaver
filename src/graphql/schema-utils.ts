@@ -1,7 +1,7 @@
 import {
     getNamedType,
     getNullableType, GraphQLField, GraphQLFieldMap, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull,
-    GraphQLObjectType, GraphQLSchema, GraphQLType, GraphQLUnionType
+    GraphQLObjectType, GraphQLSchema, GraphQLType, GraphQLUnionType, isNonNullType
 } from 'graphql';
 
 /**
@@ -37,10 +37,10 @@ export function isListType(type: GraphQLType){
 }
 
 export function getNonNullType<T extends GraphQLType>(type: T | GraphQLNonNull<T>): GraphQLNonNull<T> {
-    if (type instanceof GraphQLNonNull) {
+    if (isNonNullType(type)) {
         return type;
     }
-    return new GraphQLNonNull(type);
+    return new GraphQLNonNull(type) as GraphQLNonNull<T>;
 }
 
 /**
