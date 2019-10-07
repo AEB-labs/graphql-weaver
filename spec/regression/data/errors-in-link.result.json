@@ -44,7 +44,7 @@
       ]
     },
     {
-      "message": "Field \"ns1.horst\" reported error: Variable \"$name\" got invalid value \"Hans-Joachim\"; Expected type Name; I don't like this name: Hans-Joachim",
+      "message": "Field \"ns1.horst\" reported error: Variable \"$name\" got invalid value \"Hans-Joachim\"; Expected type Name. I don't like this name: Hans-Joachim",
       "locations": [
         {
           "line": 15,
@@ -54,20 +54,6 @@
       "path": [
         "systemValidationError",
         "lisa",
-        "husband"
-      ]
-    },
-    {
-      "message": "Errors retrieving key field \"name\":\n\nNo name for this horst\n\nNo name for this horst",
-      "locations": [
-        {
-          "line": 59,
-          "column": 13
-        }
-      ],
-      "path": [
-        "linkKeyError",
-        "gretaKeyBroken",
         "husband"
       ]
     },
@@ -82,6 +68,20 @@
       "path": [
         "linkFieldError",
         "gretaLinkBroken",
+        "husband"
+      ]
+    },
+    {
+      "message": "Errors retrieving key field \"name\":\n\nNo name for this horst\n\nNo name for this horst",
+      "locations": [
+        {
+          "line": 59,
+          "column": 13
+        }
+      ],
+      "path": [
+        "linkKeyError",
+        "gretaKeyBroken",
         "husband"
       ]
     }
