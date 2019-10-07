@@ -1,6 +1,6 @@
 # graphql-weaver
 
-[![npm version](https://badge.fury.io/js/graphql-weaver.svg)](https://npmjs.org/graphql-weaver) [![Build Status](https://travis-ci.org/AEB-labs/graphql-weaver.svg?branch=master)](https://travis-ci.org/AEB-labs/graphql-weaver)
+[![npm version](https://badge.fury.io/js/graphql-weaver.svg)](https://npmjs.org/graphql-weaver) [![Build Status](https://github.com/AEB-labs/graphql-weaver/workflows/Node%20CI/badge.svg)](https://github.com/AEB-labs/graphql-weaver/actions?workflow=Node+CI)
 
 A tool to combine, link and transform GraphQL schemas
 
