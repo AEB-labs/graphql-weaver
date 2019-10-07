@@ -1,4 +1,6 @@
 // Main function
+import { ExtendedIntrospectionModule } from './src/pipeline/extended-introspection';
+
 export { weaveSchemas, weaveSchemasExt, weaveSchemas as createProxySchema } from './src/weave-schemas';
 export { WeavingResult } from './src/weaving-result';
 
@@ -40,4 +42,5 @@ export {
 // some useful modules
 export { NamespaceModule }from './src/pipeline/namespaces';
 export { TypePrefixesModule }from './src/pipeline/type-prefixes';
-export { LinksModule }from './src/pipeline/links';
+export { LinksModule } from './src/pipeline/links';
+export { ExtendedIntrospectionModule } from './src/pipeline/extended-introspection';
