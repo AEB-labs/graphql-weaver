@@ -1,6 +1,6 @@
 {
   "name": "graphql-weaver",
-  "version": "0.13.7",
+  "version": "0.13.8",
   "description": "A tool to combine, link and transform GraphQL schemas",
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",
