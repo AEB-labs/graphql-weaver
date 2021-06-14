@@ -1,4 +1,4 @@
-import { buildClientSchema, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString, introspectionQuery, IntrospectionQuery, parse } from 'graphql';
+import { buildClientSchema, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString, getIntrospectionQuery, IntrospectionQuery, parse } from 'graphql';
 import { transformSchema } from 'graphql-transformer/dist';
 import { shouldAddPlaceholdersOnError, shouldContinueOnError, shouldProvideErrorsInSchema } from './config/error-handling';
 import { throwingErrorConsumer, WeavingError, WeavingErrorConsumer } from './config/errors';
@@ -140,7 +140,7 @@ function validateConfig(config: WeavingConfig) {
 }
 
 async function getClientSchema(endpoint: GraphQLClient): Promise<GraphQLSchema> {
-    const introspectionClientRes = await endpoint.execute(parse(introspectionQuery), {}, undefined, true);
+    const introspectionClientRes = await endpoint.execute(parse(getIntrospectionQuery()), {}, undefined, true);
     const introspectionRes = convertFormattedErrorsToErrors(introspectionClientRes);
     const introspection = assertSuccessfulResult(introspectionRes) as IntrospectionQuery;
     try {
