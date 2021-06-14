@@ -1,15 +1,8 @@
-import { WeavingConfig } from '../../../src/config/weaving-config';
-import * as fs from 'fs';
 import { BenchmarkConfig, BenchmarkFactories } from '../support/async-bench';
 import { weaveSchemas } from '../../../src/weave-schemas';
-import {
-    execute, graphql, GraphQLFieldResolver, GraphQLList, GraphQLObjectType, GraphQLSchema, parse, print
-} from 'graphql';
-import { HttpGraphQLClient } from '../../../src/graphql-client/http-client';
-import * as path from 'path';
+import { graphql, GraphQLSchema, print } from 'graphql';
 import gql from 'graphql-tag';
-import { makeExecutableSchema } from 'graphql-tools';
-import { IResolvers } from 'graphql-tools/dist/Interfaces';
+import { IResolvers, makeExecutableSchema } from 'graphql-tools';
 import { assertSuccessfulResult } from '../../../src/graphql/execution-result';
 
 function createSchema(size: number) {

@@ -14,7 +14,7 @@ import { Pipeline } from './pipeline/pipeline';
 import { EndpointInfo } from './pipeline/pipeline-module';
 import { compact } from './utils/utils';
 import { WeavingResult } from './weaving-result';
-import TraceError = require('trace-error');
+import TraceError from 'trace-error';
 
 // Not decided on an API to choose this, so leave non-configurable for now
 const endpointFactory = new DefaultClientFactory();

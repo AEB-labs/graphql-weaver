@@ -49,7 +49,7 @@
     "graphql-type-json": "^0.2.1",
     "line-column": "^1.0.2",
     "cross-fetch": "^2.2.2",
-    "trace-error": "~0.0.7"
+    "trace-error": "~1.0.3"
   },
   "peerDependencies": {
     "graphql": "^15.0.0"
