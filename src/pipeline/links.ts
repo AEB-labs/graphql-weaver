@@ -163,8 +163,8 @@ export class LinksModule implements PipelineModule {
                                         hasRightFilter = filterArg.value.fields.some(field => field.name.value == rightFilterFieldName);
                                         if (hasRightFilter) {
                                             newValue = {
-                                                kind: 'ObjectValue',
                                                 ...filterArg.value,
+                                                kind: 'ObjectValue',
                                                 fields: filterArg.value.fields.filter(field => field.name.value != rightFilterFieldName)
                                             };
                                         } else {
