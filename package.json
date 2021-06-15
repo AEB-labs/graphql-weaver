@@ -47,7 +47,7 @@
     "@graphql-tools/schema": "^7.1.5",
     "cross-fetch": "^2.2.2",
     "dataloader": "~1.3.0",
-    "graphql-transformer": "0.2.1",
+    "graphql-transformer": "^0.3.0",
     "graphql-type-json": "^0.2.1",
     "line-column": "^1.0.2",
     "trace-error": "~1.0.3"
