@@ -1,7 +1,7 @@
 {
   "errors": [
     {
-      "message": "Expected type NonNegativeInt, found -1.",
+      "message": "Expected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 7,

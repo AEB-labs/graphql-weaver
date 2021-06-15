@@ -1,7 +1,7 @@
 {
   "errors": [
     {
-      "message": "Expected type NonNegativeInt, found -1.",
+      "message": "Expected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 38,
@@ -13,7 +13,7 @@
       ]
     },
     {
-      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value -1 at \"locationFilter.locationFilterValue\"; Expected type NonNegativeInt. Not a non-negative integer: -1",
+      "message": "Field \"locations\" reported error: Variable \"$locationFilter\" got invalid value -1 at \"locationFilter.locationFilterValue\"; Expected type \"NonNegativeInt\". Not a non-negative integer: -1",
       "locations": [
         {
           "line": 34,

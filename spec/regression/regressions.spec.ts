@@ -1,9 +1,9 @@
-import * as fs from "fs";
-import * as path from "path";
-import { formatError, graphql, GraphQLError, GraphQLFormattedError } from 'graphql';
-import { normalizeJSON, testConfigWithQuery } from './helpers';
-import {TO_EQUAL_JSON_MATCHERS} from "../helpers/equal-json";
-import {GraphQLHTTPTestEndpoint} from "../helpers/grapqhl-http-test/graphql-http-test-endpoint";
+import * as fs from 'fs';
+import { formatError, GraphQLError, GraphQLFormattedError } from 'graphql';
+import * as path from 'path';
+import { TO_EQUAL_JSON_MATCHERS } from '../helpers/equal-json';
+import { GraphQLHTTPTestEndpoint } from '../helpers/grapqhl-http-test/graphql-http-test-endpoint';
+import { testConfigWithQuery } from './helpers';
 
 declare function require(name:string): any;
 
@@ -13,7 +13,7 @@ describe('regression tests', () => {
 
     beforeAll(async() => {
         jasmine.addMatchers(TO_EQUAL_JSON_MATCHERS);
-        httpTestEndpoint.start(1337);
+        await httpTestEndpoint.start(1337);
     });
 
     const dir = path.join(__dirname, 'data');
@@ -35,8 +35,7 @@ describe('regression tests', () => {
             const result = await testConfigWithQuery(await configFile.getConfig(), queryString, variableValues);
 
             if (saveActualAsExpected) {
-                const equals = (jasmine as any).matchersUtil.equals;
-                if (!equals(result.data, expectedResult.data) || !equals(sortAndNormalizeErrors(result.errors), sortAndNormalizeErrors(expectedResult.errors))) {
+                if (!jasmine.matchersUtil.equals(result.data, expectedResult.data) || !jasmine.matchersUtil.equals(sortAndNormalizeErrors(result.errors), sortAndNormalizeErrors(expectedResult.errors))) {
                     fs.writeFileSync(resultPath, JSON.stringify(result, undefined, '  '), 'utf-8');
                 }
             }
