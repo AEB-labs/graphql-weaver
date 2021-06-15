@@ -1,6 +1,6 @@
 import { WeavingConfig } from '../../../src/config/weaving-config';
 import gql from 'graphql-tag';
-import { makeExecutableSchema } from 'graphql-tools';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import { ASTNode, GraphQLError, GraphQLResolveInfo, ObjectValueNode } from 'graphql';
 import { compact } from '../../../src/utils/utils';
 

@@ -1,6 +1,6 @@
 import { WeavingConfig } from '../../../src/config/weaving-config';
 import gql from 'graphql-tag';
-import { makeExecutableSchema } from 'graphql-tools';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import { NonNegativeInt } from '../../helpers/non-negative-int';
 
 export async function getConfig(): Promise<WeavingConfig> {

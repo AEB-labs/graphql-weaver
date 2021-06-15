@@ -1,9 +1,10 @@
-import { BenchmarkConfig, BenchmarkFactories } from '../support/async-bench';
-import { weaveSchemas } from '../../../src/weave-schemas';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { IResolvers } from '@graphql-tools/utils';
 import { graphql, GraphQLSchema, print } from 'graphql';
 import gql from 'graphql-tag';
-import { IResolvers, makeExecutableSchema } from 'graphql-tools';
 import { assertSuccessfulResult } from '../../../src/graphql/execution-result';
+import { weaveSchemas } from '../../../src/weave-schemas';
+import { BenchmarkConfig, BenchmarkFactories } from '../support/async-bench';
 
 function createSchema(size: number) {
     const types = gql`

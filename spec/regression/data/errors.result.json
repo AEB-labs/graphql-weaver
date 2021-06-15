@@ -1,7 +1,7 @@
 {
   "errors": [
     {
-      "message": "Expected type NonNegativeInt, found -1.",
+      "message": "Expected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 13,
@@ -14,7 +14,7 @@
       ]
     },
     {
-      "message": "GraphQL error at line 19, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 20, column 42:\nExpected type NonNegativeInt, found -1.",
+      "message": "GraphQL error at line 19, column 42:\nExpected value of type \"NonNegativeInt\", found -1.\n\nGraphQL error at line 20, column 42:\nExpected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 18,
@@ -56,7 +56,7 @@
       }
     },
     {
-      "message": "Expected type NonNegativeInt, found -1.",
+      "message": "Expected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 25,
@@ -69,7 +69,7 @@
       ]
     },
     {
-      "message": "GraphQL error at line 29, column 42:\nExpected type NonNegativeInt, found -1.\n\nGraphQL error at line 30, column 42:\nExpected type NonNegativeInt, found -1.",
+      "message": "GraphQL error at line 29, column 42:\nExpected value of type \"NonNegativeInt\", found -1.\n\nGraphQL error at line 30, column 42:\nExpected value of type \"NonNegativeInt\", found -1.",
       "locations": [
         {
           "line": 28,

@@ -4,7 +4,7 @@ import { ExecutionResult } from 'graphql';
 import { defaultTestSchema } from '../../helpers/grapqhl-http-test/graphql-http-test-schema';
 import { WeavingErrorHandlingMode } from '../../../src/config/error-handling';
 import gql from 'graphql-tag';
-import { makeExecutableSchema } from 'graphql-tools';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 
 const errorClient: GraphQLClient = {
     execute(query, vars, context, introspection): Promise<ExecutionResult> {
