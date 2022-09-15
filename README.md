@@ -1,3 +1,7 @@
+# NO LONGER MAINTAINED
+
+We no longer us this library at AEB, so unfortunately, we are not able to maintain it properly. The repository is therefor archived.
+
 # graphql-weaver
 
 [![npm version](https://badge.fury.io/js/graphql-weaver.svg)](https://npmjs.org/graphql-weaver) [![Build Status](https://github.com/AEB-labs/graphql-weaver/workflows/Node%20CI/badge.svg)](https://github.com/AEB-labs/graphql-weaver/actions?workflow=Node+CI)
