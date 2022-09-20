@@ -1,6 +1,6 @@
 # NO LONGER MAINTAINED
 
-We no longer us this library at AEB, so unfortunately, we are not able to maintain it properly. The repository is therefor archived.
+We no longer use this library at AEB, so unfortunately, we are not able to maintain it properly. The repository is therefore archived.
 
 # graphql-weaver
 
